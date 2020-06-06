@@ -12,13 +12,13 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 
 
 ## RGVS/RGSF
-### Repair
+#### Repair
 - use std.Minimum, std.Maximum and std.Expr to perform mode 1 in RGSF (commentable)
 
-### RemoveGrain
+#### RemoveGrain
 - use std.Convolution and std.Median for modes 4, 11, 12, 19 and 20 (commentable)
 
-### Clense
+#### Clense
 - use std.Expr instead of RGVS (commentable)
 
 See Vapoursynth website for more information on RGVS - http://www.vapoursynth.com/doc/plugins/rgvs.html
