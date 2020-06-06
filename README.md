@@ -33,7 +33,7 @@ See Vapoursynth website for more information on RGVS - http://www.vapoursynth.co
 ## Median 
 Wraps std.Median, ctmf.CTMF, rgvs.VerticalMedian and average.Median into one function
 ```
-Median(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode=['s'], int vcmode=1, bint range_in=color_family is vs.RGB, int memsize=1048576, int opt=0])
+Median(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode='s', int vcmode=1, bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
 ```
 - "vcmode" allows you to change the VerticalMedian mode when using horizontal or vertical processing and a radius of 1
 - "range_in" is for mixed float/int processing when using CTMF
@@ -56,21 +56,21 @@ clip.rgvs.RemoveGrain([1,2,3]).rgvs.RemoveGrain([0,2,3]).rgvs.RemoveGrain([0,0,3
 ### MinBlur
 Pixelwise median and blur admixture. If the differences are homologous to the input, the weaker result of the two are taken, else the source pixel is passed
 ```
-MinBlur(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode=['s'], str[] blur=['gauss'], bint range_in=color_family is vs.RGB, int memsize=1048576, int opt=0])
+MinBlur(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode='s', str[] blur='gauss', bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
 ```
 ### sbr
 Pixelwise blur operation. Takes a blur's difference and performs a blurring of the difference. If both differences are homologous to the input, the weaker result is taken, else the source pixel is passed
 ```
-sbr(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode=['s'], str[] blur=['gauss'] ])
+sbr(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode='s', str[] blur='gauss' ])
 ```
 ### Blur
 No relation to AviSynth's internal plugin, use std.Convolution or muvsfunc's `Blur` for that.
 Like RemoveGrainM, this was mainly written as a helper for other functions.
 ```
-Blur(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode=['s'], str[] blur=['gauss'] ])
+Blur(clip clip[, int[] radius=1, int[] planes=[0, 1, 2], str[] mode='s', str[] blur='gauss' ])
 ```
 - Included modes:
   - "box" - average blurring (same as RemoveGrain(20), std.Convolution([1]\*9) and std.BoxBlur)
-  - "gauss" - pseudo-gaussian blur technique made popular in a certain forum using an iteration of removegrain, starting with one call to mode 11 and all subsequent calls to mode 20
+  - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with one call to mode 11 and all subsequent calls to mode 20
 - parameter "radius" is iterative when mode="gauss"
 - parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
