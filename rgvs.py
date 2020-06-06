@@ -8,8 +8,10 @@ from math import ceil
 
 
 def Repair(clip, repairclip, mode=2, planes=None):
-    if any_of([clip, repairclip], 'not isinstance', vs.VideoNode):
-        raise TypeError('Repair: This is not a clip')
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError('Repair: "clip" is not a clip')
+    if not isinstance(repairclip, vs.VideoNode):
+        raise TypeError('Repair: "repairclip" is not a clip')
     
     fmt = clip.format
     numplanes = fmt.num_planes
@@ -234,8 +236,8 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     if max(radius) < 1:
         return clip
     
-    mixproc = any_of(['h','v'], 'in', pm) and any_of(pr, '>', 1) and numplanes - len(planes) != 0 # no planes parameter in average.Median
-    mixproc = mixproc or any([any_of(parr, '!=', parr[0]) for parr in (pr, pm)])
+    mixproc = ('h' in pm or 'v' in pm) and max(pr) > 1 and numplanes - len(planes) != 0 # no planes parameter in average.Median
+    mixproc = mixproc or any(len(set(p))>1 for p in (pr, pm))
     
     if mixproc:
         clips = split(clip)
@@ -305,7 +307,7 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     if max(radius) < 1:
         return clip
     
-    mixproc = any([any_of(parr, '!=', parr[0]) for parr in (pr, pm, pb)])
+    mixproc = any(len(set(p))>1 for p in (pr, pm, pb))
     
     if mixproc:
         clips = split(clip)
@@ -438,7 +440,7 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
         return clip
     
     mixproc = numplanes - len(planes) > 1
-    mixproc = mixproc or any([any_of(parr, '!=', parr[0]) for parr in (pr, pm, pb)])
+    mixproc = mixproc or any(len(set(p))>1 for p in (pr, pm, pb))
     
     if mixproc:
         clips = split(clip)
@@ -585,8 +587,9 @@ def vstoavs(planes, numplanes=3):
 def getplanes(planes, numplanes, name):
     out = list(range(numplanes)) if planes is None else [planes] if isinstance(planes, int) else planes
     out = out[:min(len(out), numplanes)]
-    if any_of(out, '>=', numplanes):
-        raise TypeError(f'rgvs.{name}: one or more "planes" values out of bounds')
+    for x in out:
+        if x >= numplanes:
+            raise TypeError(f'{name}: one or more "planes" values out of bounds')
     return out
 
 def append_params(params, length=3):
@@ -595,62 +598,3 @@ def append_params(params, length=3):
     while len(params)<length:
         params.append(params[-1])
     return params
-
-def any_of(arr, mode, val):
-    if mode=='<':
-        for obj in arr:
-            if obj<val:
-                return True
-        return False
-    elif mode=='<=':
-        for obj in arr:
-            if obj<=val:
-                return True
-        return False
-    elif mode=='>':
-        for obj in arr:
-            if obj>val:
-                return True
-        return False
-    elif mode=='>=':
-        for obj in arr:
-            if obj>=val:
-                return True
-        return False
-    elif mode=='==':
-        for obj in arr:
-            if obj==val:
-                return True
-        return False
-    elif mode=='!=':
-        for obj in arr:
-            if obj!=val:
-                return True
-        return False
-    elif mode=='in':
-        for obj in arr:
-            if obj in val:
-                return True
-        return False
-    elif mode=='not in':
-        for obj in arr:
-            if obj not in val:
-                return True
-        return False
-    elif mode=='is':
-        for obj in arr:
-            if obj is val:
-                return True
-        return False
-    elif mode=='isinstance':
-        for obj in arr:
-            if isinstance(obj, val):
-                return True
-        return False
-    elif mode=='not isinstance':
-        for obj in arr:
-            if not isinstance(obj, val):
-                return True
-        return False
-    else:
-        raise ValueError('any_of: invalid mode setting')
