@@ -1,6 +1,11 @@
 # RgToolsVS
 Wrapper for RGVS, RGSF, and various median plugins as well as some functions that largely utilize them
 
+#### Dependencies
+- [vsutil](https://github.com/Irrational-Encoding-Wizardry/vsutil/blob/master/py)
+- [CTMF](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-CTMF)
+- [vs-average](https://github.com/End-of-Eternity/vs-average)
+
 ## All
 - Add `planes` parameters to functions and plugins that previously didn't have them. This will override any kind of mode or radius-type parameter
 - Add alias `r` for functions with a `radius` parameter for backward compatibility with havsfunc's `MinBlur` and `sbr`
