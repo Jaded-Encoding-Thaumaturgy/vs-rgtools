@@ -3,7 +3,7 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 
 #### Optimizations
 - Replaces certain depreciated modes in RGVS/RGSF with core plugins
-- Functions using the plugins std.Expr, std.MakeDiff and std.MergeDiff such as `sbr` and `MinBlur` have been completely rewritten to speed them up as much as possible
+- Functions `sbr` and `MinBlur` have been completely rewritten to speed them up as much as possible
 
 #### Enhancements
 - Add `planes` parameters to functions and plugins that previously didn't have them. This will override any kind of mode or radius-type parameter
@@ -11,10 +11,10 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 - Support float input (CTMF, sbr and MinBlur)
 
 #### Dependencies
+- [RGSF](https://github.com/IFeelBloated/RGSF)
 - [vsutil](https://github.com/Irrational-Encoding-Wizardry/vsutil/blob/master/py)
 - [CTMF](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-CTMF)
 - [vs-average](https://github.com/End-of-Eternity/vs-average)
-
 
 
 ## RGVS/RGSF
