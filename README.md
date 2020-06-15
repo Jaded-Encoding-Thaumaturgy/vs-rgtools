@@ -18,14 +18,17 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 
 
 ## RGVS/RGSF
+#### All
+- Internally detect sample type and choose `core.rgvs` or `core.rgsf` automatically (this is the main reason why I wrote this thing in the first place)
+
 #### Repair
-- use std.Minimum, std.Maximum and std.Expr to perform mode 1 in RGSF (commentable)
+- Use std.Minimum, std.Maximum and std.Expr to perform mode 1 in RGSF (commentable)
 
 #### RemoveGrain
-- use std.Convolution and std.Median for modes 4, 11, 12, 19 and 20 (commentable)
+- Use std.Convolution and std.Median for modes 4, 11, 12, 19 and 20 (commentable)
 
 #### Clense
-- use std.Expr instead of RGVS (commentable)
+- Use std.Expr instead of RGVS (commentable)
 
 See Vapoursynth website for more information on RGVS - http://www.vapoursynth.com/doc/plugins/rgvs.html
 
@@ -64,13 +67,13 @@ Pixelwise blur operation. Takes a blur's difference and performs a blurring of t
 sbr(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
 ```
 ### Blur
-No relation to AviSynth's internal plugin, use std.Convolution or muvsfunc's `Blur` for that.
+No relation to AviSynth's internal plugin, use Convolution or muvsfunc's `Blur` for that.
 Like RemoveGrainM, this was mainly written as a helper for other functions.
 ```
 Blur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
 ```
 - Included modes:
-  - "box" - average blurring (same as RemoveGrain(20), std.Convolution([1]\*9) and std.BoxBlur)
-  - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with one call to mode 11 and all subsequent calls to mode 20
+  - "box" - average blurring (same as RemoveGrain(20), Convolution([1]\*9) and BoxBlur)
+  - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with a call to mode 11 and all subsequent calls to mode 20
 - parameter "radius" is iterative when mode="gauss"
 - parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
