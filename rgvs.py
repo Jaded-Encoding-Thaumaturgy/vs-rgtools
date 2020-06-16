@@ -19,7 +19,7 @@ def Repair(clip, repairclip, mode=2, planes=None):
     rfmt = repairclip.format
     rnumplanes = rfmt.num_planes
     
-    mode = append_params(mode, numplanes)[:numplanes]
+    mode = append_params(mode, numplanes)
     
     planes = parse_planes(planes, numplanes, 'Repair')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
@@ -55,7 +55,7 @@ def RemoveGrain(clip, mode=2, planes=None):
     numplanes = fmt.num_planes
     isint = fmt.sample_type==vs.INTEGER
     
-    mode = append_params(mode, numplanes)[:numplanes]
+    mode = append_params(mode, numplanes)
     
     planes = parse_planes(planes, numplanes, 'RemoveGrain')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
@@ -161,7 +161,7 @@ def VerticalCleaner(clip, mode=1, planes=None):
     
     numplanes = clip.format.num_planes
     
-    mode = append_params(mode, numplanes)[:numplanes]
+    mode = append_params(mode, numplanes)
     
     planes = parse_planes(planes, numplanes, 'VerticalCleaner')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
@@ -187,9 +187,9 @@ def RemoveGrainM(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
     iter = append_params(iter, 3)
     iter = [iter[x] if x in planes else 0 for x in range(3)]
     
-    mode  = [0] if iter[0] is 0 else append_params(mode , iter[0])[:iter[0]]
-    modeu = [0] if iter[1] is 0 else append_params(modeu, iter[1])[:iter[1]]
-    modev = [0] if iter[2] is 0 else append_params(modev, iter[2])[:iter[2]]
+    mode  = [0] if iter[0] is 0 else append_params(mode , iter[0])
+    modeu = [0] if iter[1] is 0 else append_params(modeu, iter[1])
+    modev = [0] if iter[2] is 0 else append_params(modev, iter[2])
     
     iterall = max(iter[:numplanes])
     
@@ -222,9 +222,9 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     
     radius = fallback(radius, r)
     
-    radius = append_params(radius, numplanes)[:numplanes]
-    mode   = append_params(mode,   numplanes)[:numplanes]
-    vcmode = append_params(vcmode, numplanes)[:numplanes]
+    radius = append_params(radius, numplanes)
+    mode   = append_params(mode,   numplanes)
+    vcmode = append_params(vcmode, numplanes)
     
     radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
     vcmode = [vcmode[x] if x in planes else 0 for x in range(numplanes)]
@@ -293,9 +293,9 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     radius = fallback(radius, r)
     
-    radius = append_params(radius, numplanes)[:numplanes]
-    mode   = append_params(mode,   numplanes)[:numplanes]
-    blur   = append_params(blur,   numplanes)[:numplanes]
+    radius = append_params(radius, numplanes)
+    mode   = append_params(mode,   numplanes)
+    blur   = append_params(blur,   numplanes)
     
     radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
     aplanes = [3 if radius[x] > 0 else 1 for x in range(numplanes)]
@@ -392,7 +392,7 @@ def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=Non
     planes = parse_planes(planes, numplanes, 'MinBlur')
     
     radius = fallback(radius, r)
-    radius = append_params(radius, numplanes)[:numplanes]
+    radius = append_params(radius, numplanes)
     radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
     
     aplanes = [3 if radius[x] >= 0 else 1 for x in range(numplanes)]
@@ -425,9 +425,9 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     radius = fallback(radius, r)
     
-    radius = append_params(radius, numplanes)[:numplanes]
-    mode   = append_params(mode,   numplanes)[:numplanes]
-    blur   = append_params(blur,   numplanes)[:numplanes]
+    radius = append_params(radius, numplanes)
+    mode   = append_params(mode,   numplanes)
+    blur   = append_params(blur,   numplanes)
     
     radius = [radius[x] if x in planes else -1 for x in range(numplanes)]
     aplanes = [3 if radius[x] >= 0 else 1 for x in range(numplanes)]
@@ -581,20 +581,26 @@ def avs_to_vs(planes):
     return out
 
 def vs_to_avs(planes, numplanes=3):
-    out = [3 if x in planes else 1 for x in range(numplanes)]
-    return out
+    return [3 if x in planes else 1 for x in range(numplanes)]
 
 def parse_planes(planes, numplanes, name):
-    out = list(range(numplanes)) if planes is None else [planes] if isinstance(planes, int) else planes
-    out = out[:min(len(out), numplanes)]
-    for x in out:
-        if x >= numplanes:
-            raise TypeError(f'{name}: one or more "planes" values out of bounds')
-    return out
+    planes = fallback(planes, list(range(numplanes)))
+    if isinstance(planes, int):
+        planes = [planes]
+    if isinstance(planes, tuple):
+        planes = list(planes)
+    if not isinstance(planes, list):
+        raise TypeError(f'rgvs.{name}: improper "planes" format')
+    planes = planes[:min(len(planes), numplanes)]
+    if any(x >= numplanes for x in planes):
+        raise ValueError(f'rgvs.{name}: one or more "planes" values out of bounds')
+    return planes
 
 def append_params(params, length=3):
+    if isinstance(params, tuple):
+        params = list(params)
     if not isinstance(params, list):
         params = [params]
-    while len(params)<length:
+    while len(params) < length:
         params.append(params[-1])
-    return params
+    return params[:length]
