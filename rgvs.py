@@ -21,7 +21,7 @@ def Repair(clip, repairclip, mode=2, planes=None):
     
     mode = append_params(mode, numplanes)[:numplanes]
     
-    planes = getplanes(planes, numplanes, 'Repair')
+    planes = parse_planes(planes, numplanes, 'Repair')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
     
     if numplanes > rnumplanes:
@@ -43,7 +43,7 @@ def Repair(clip, repairclip, mode=2, planes=None):
     clip = rep1(clip, repairclip, planes)
 ################################################
     
-    return getnamespace(clip).Repair(clip, repairclip, mode)
+    return get_namespace(clip).Repair(clip, repairclip, mode)
 
 
 
@@ -57,7 +57,7 @@ def RemoveGrain(clip, mode=2, planes=None):
     
     mode = append_params(mode, numplanes)[:numplanes]
     
-    planes = getplanes(planes, numplanes, 'RemoveGrain')
+    planes = parse_planes(planes, numplanes, 'RemoveGrain')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
     
     planes_rg4  = []
@@ -106,7 +106,7 @@ def RemoveGrain(clip, mode=2, planes=None):
     
     if max(mode)==0:
         return clip
-    return getnamespace(clip).RemoveGrain(clip, mode)
+    return get_namespace(clip).RemoveGrain(clip, mode)
 
 
 
@@ -133,7 +133,7 @@ def Clense(clip, previous=None, next=None, planes=None, grey=False):
         return MedianClip([clip, previous, next], planes=planes)
 ###################################################################
     
-    return getnamespace(clip).Clense(clip, next, previous, planes)
+    return get_namespace(clip).Clense(clip, next, previous, planes)
 
 
 
@@ -142,7 +142,7 @@ def ForwardClense(clip, planes=None, grey=False):
         raise TypeError('ForwardClense: This is not a clip')
     if grey:
         planes = 0
-    return getnamespace(clip).ForwardClense(clip, planes)
+    return get_namespace(clip).ForwardClense(clip, planes)
 
 
 
@@ -151,7 +151,7 @@ def BackwardClense(clip, planes=None, grey=False):
         raise TypeError('BackwardClense: This is not a clip')
     if grey:
         planes = 0
-    return getnamespace(clip).BackwardClense(clip, planes)
+    return get_namespace(clip).BackwardClense(clip, planes)
 
 
 
@@ -163,10 +163,10 @@ def VerticalCleaner(clip, mode=1, planes=None):
     
     mode = append_params(mode, numplanes)[:numplanes]
     
-    planes = getplanes(planes, numplanes, 'VerticalCleaner')
+    planes = parse_planes(planes, numplanes, 'VerticalCleaner')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
     
-    return getnamespace(clip).VerticalCleaner(clip, mode)
+    return get_namespace(clip).VerticalCleaner(clip, mode)
 
 
 
@@ -177,7 +177,7 @@ def RemoveGrainM(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
         raise TypeError('RemoveGrainM: This is not a clip')
     
     numplanes = clip.format.num_planes
-    planes = getplanes(planes, numplanes, 'RemoveGrainM')
+    planes = parse_planes(planes, numplanes, 'RemoveGrainM')
    
     mode = [mode] if isinstance(mode, int) else mode
     modeu = [0] if numplanes < 2 else fallback([modeu] if isinstance(modeu, int) else modeu, mode )
@@ -218,7 +218,7 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     numplanes = f.num_planes
     range_in = fallback(range_in, f.color_family is vs.RGB)
     
-    planes = getplanes(planes, numplanes, 'Median')
+    planes = parse_planes(planes, numplanes, 'Median')
     
     radius = fallback(radius, r)
     
@@ -253,7 +253,7 @@ def Median_internal(clip, radius, aplanes, mode, vcmode, range_in, cal, memsize,
     
     mode = mode.lower()
     
-    vplanes = avstovs(aplanes)
+    vplanes = avs_to_vs(aplanes)
     
     if radius == 0:
         return clip
@@ -289,7 +289,7 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     numplanes = clip.format.num_planes
     
-    planes = getplanes(planes, numplanes, 'Blur')
+    planes = parse_planes(planes, numplanes, 'Blur')
     
     radius = fallback(radius, r)
     
@@ -325,7 +325,7 @@ def Blur_internal(clip, radius, aplanes, mode, blur):
     blur = blur.lower()
     mode = mode.lower()
     
-    vplanes = avstovs(aplanes)
+    vplanes = avs_to_vs(aplanes)
     
     if radius==0:
         return clip
@@ -389,7 +389,7 @@ def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=Non
     
     numplanes = clip.format.num_planes
     
-    planes = getplanes(planes, numplanes, 'MinBlur')
+    planes = parse_planes(planes, numplanes, 'MinBlur')
     
     radius = fallback(radius, r)
     radius = append_params(radius, numplanes)[:numplanes]
@@ -403,10 +403,10 @@ def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=Non
     sbr_radius = [1 if radius[x] is 0 else 0 for x in range(numplanes)]
     med_radius = [1 if radius[x] is 0 else radius[x] for x in range(numplanes)]
     
-    RG11 = Blur(clip, radius, avstovs(aplanes), mode, blur)
-    RG11 = sbr(RG11, sbr_radius, avstovs(aplanes), mode, blur)
+    RG11 = Blur(clip, radius, avs_to_vs(aplanes), mode, blur)
+    RG11 = sbr(RG11, sbr_radius, avs_to_vs(aplanes), mode, blur)
     
-    RG4 = Median(clip, med_radius, avstovs(aplanes), mode, 1, range_in, memsize, opt)
+    RG4 = Median(clip, med_radius, avs_to_vs(aplanes), mode, 1, range_in, memsize, opt)
     
     return MedianClip([clip, RG11, RG4], planes=planes)
 
@@ -421,7 +421,7 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     numplanes = clip.format.num_planes
     
-    planes = getplanes(planes, numplanes, 'sbr')
+    planes = parse_planes(planes, numplanes, 'sbr')
     
     radius = fallback(radius, r)
     
@@ -456,7 +456,7 @@ def sbr_internal(clip, radius, aplanes, mode, blur):
     if radius < 1:
         return clip
     
-    vplanes = avstovs(aplanes)
+    vplanes = avs_to_vs(aplanes)
     
     return MinFilter(clip, partial(Blur, radius=radius, planes=vplanes, mode=mode, blur=blur), planes=vplanes)
 
@@ -480,7 +480,7 @@ def MinFilter(clip, filtera, filterb=None, mode=None, planes=None):
 def MedianClip(clips, planes=None):
     core = vs.core
     numplanes = clips[0].format.num_planes
-    planes = getplanes(planes, numplanes, 'MedianClip')
+    planes = parse_planes(planes, numplanes, 'MedianClip')
     return core.std.Expr(clips, ['x y z min max y z max min' if x in planes else '' for x in range(numplanes)])
 
 
@@ -489,7 +489,7 @@ def MedianDiff(clip, diffa, diffb, planes=None):
     core = vs.core
     fmt = clip.format
     numplanes = fmt.num_planes
-    planes = getplanes(planes, numplanes, 'MedianDiff')
+    planes = parse_planes(planes, numplanes, 'MedianDiff')
     
     neutral = f' {1 << (fmt.bits_per_sample - 1)} - ' if fmt.sample_type==vs.INTEGER else ''
     expr = f'x 0 y {neutral} y z - min max y {neutral} y z - max min -'
@@ -569,22 +569,22 @@ def rg20(clip, planes):
     core = vs.core
     return core.std.Convolution(clip, [1]*9, planes=planes)
 
-def getnamespace(clip): 
+def get_namespace(clip): 
     core = vs.core
     return core.rgsf if clip.format.sample_type==vs.FLOAT else core.rgvs
 
-def avstovs(planes):
+def avs_to_vs(planes):
     out = []
     for x in range(len(planes)):
         if planes[x] == 3:
             out += [x]
     return out
 
-def vstoavs(planes, numplanes=3):
+def vs_to_avs(planes, numplanes=3):
     out = [3 if x in planes else 1 for x in range(numplanes)]
     return out
 
-def getplanes(planes, numplanes, name):
+def parse_planes(planes, numplanes, name):
     out = list(range(numplanes)) if planes is None else [planes] if isinstance(planes, int) else planes
     out = out[:min(len(out), numplanes)]
     for x in out:
