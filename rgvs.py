@@ -383,6 +383,49 @@ def Blur_internal(clip, radius, aplanes, mode, blur):
 
 
 
+def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, amount=1, legacy=False):
+    
+    amountH = fallback(amountH, amount)
+    amountV = fallback(amountV, amountH)
+    
+    amountH, amountV = -amountH, -amountV
+    
+    if legacy:
+        amountH = max(-1, min(amountH, log2(3)))
+        amountV = max(-1, min(amountV, log2(3)))
+    
+    planes = parse_planes(clip, numplanes, 'Sharpen')
+    
+    if amountH == amountV == 0 or len(planes) == 0:
+        return clip
+    
+    core = vs.core
+    
+    mode = 's'
+    if amountV == 0:
+        mode = 'h'
+    if amountH == 0:
+        mode = 'v'
+        amountH = amountV
+    
+    relative_weight_h = 0.5 ** amountH / ((1 - 0.5 ** amountH) / 2)
+    relative_weight_v = 0.5 ** amountV / ((1 - 0.5 ** amountV) / 2)
+    
+    matrices = [get_matrix_array(relative_weight_h, relative_weight_v, radius, x, mode) for x in range(1, 1024)]
+    
+    error = [sum([abs(x - min(max(round(x), -1023), 1023)) for x in set(matrix[1:])]) for matrix in matrices]
+    
+    matrix = [min(max(round(x), -1023), 1023) for x in matrices[error.index(min(error))]]
+    
+    if mode == 's':
+        matrix = [matrix[x] for x in [(3,2,3,1,0,1,3,2,3), (8,7,6,7,8,5,4,3,4,5,2,1,0,1,2,5,4,3,4,5,8,7,6,7,8)][radius-1]]
+    else:
+        matrix = [matrix[x] for x in range(radius, 0, -1)] + matrix
+    
+    return core.std.Convolution(clip, matrix=matrix, planes=planes, mode=mode)
+
+
+
 def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=None, memsize=1048576, opt=0, r=1):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('MinBlur: This is not a clip')
@@ -495,46 +538,6 @@ def MedianDiff(clip, diffa, diffb, planes=None):
     expr = f'x 0 y {neutral} y z - min max y {neutral} y z - max min -'
     
     return core.std.Expr([clip, diffa, diffb], [expr if x in planes else '' for x in range(numplanes)])
-
-
-
-def Sharpen(clip, amountH=None, amountV=None, radius=1, mode='s', planes=None, amount=1, legacy=False):
-    
-    amountH = fallback(amountH, amount)
-    amountV = fallback(amountV, amountH)
-    
-    amountH, amountV = -amountH, -amountV
-    
-    if legacy:
-        amountH = max(-1, min(amountH, log2(3)))
-        amountV = max(-1, min(amountV, log2(3)))
-    
-    planes = parse_planes(clip, numplanes, 'Sharpen')
-    
-    if amountH == amountV == 0 or len(planes) == 0:
-        return clip
-    
-    core = vs.core
-    
-    mode = mode.lower()
-    if mode == 'v':
-        amountH = amountV
-    
-    relative_weight_h = 0.5 ** amountH / ((1 - 0.5 ** amountH) / 2)
-    relative_weight_v = 0.5 ** amountV / ((1 - 0.5 ** amountV) / 2)
-    
-    matrices = [get_matrix_array(relative_weight_h, relative_weight_v, radius, x, mode) for x in range(1, 1024)]
-    
-    error = [sum([abs(x - min(max(round(x), -1023), 1023)) for x in set(matrix[1:])]) for matrix in matrices]
-    
-    matrix = [min(max(round(x), -1023), 1023) for x in matrices[error.index(min(error))]]
-    
-    if mode == 's':
-        matrix = [matrix[x] for x in [(3,2,3,1,0,1,3,2,3), (8,7,6,7,8,5,4,3,4,5,2,1,0,1,2,5,4,3,4,5,8,7,6,7,8)][radius-1]]
-    else:
-        matrix = [matrix[x] for x in range(radius, 0, -1)] + matrix
-    
-    return core.std.Convolution(clip, matrix=matrix, planes=planes, mode=mode)
 
 
 
