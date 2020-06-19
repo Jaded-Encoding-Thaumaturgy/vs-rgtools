@@ -67,10 +67,21 @@ Pixelwise blur operation. Takes a blur's difference and performs a blurring of t
 sbr(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
 ```
 ### Blur
-No relation to AviSynth's internal plugin, use Convolution or muvsfunc's `Blur` for that.
+No relation to AviSynth's internal plugin, use Sharpen with negative values if you want that.
 Like RemoveGrainM, this was mainly written as a helper for other functions.
 ```
 Blur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
+```
+- Included modes:
+  - "box" - average blurring (same as RemoveGrain(20), Convolution([1]\*9) and BoxBlur)
+  - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with a call to mode 11 and all subsequent calls to mode 20
+- parameter "radius" is iterative when mode="gauss"
+- parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
+
+### Sharpen
+Port of the AviSynth internal plugin. Written as an optimization over muvsfunc's which uses two Convolution calls and doesn't check for rounding error efficiency (likely negligible with 8 bit processing but hey, if was fun to write)
+```
+Sharpen(clip clip[, int amountH=1, int amountV=amountH, int radius=1, int[] planes=None, bint legacy=False])
 ```
 - Included modes:
   - "box" - average blurring (same as RemoveGrain(20), Convolution([1]\*9) and BoxBlur)
