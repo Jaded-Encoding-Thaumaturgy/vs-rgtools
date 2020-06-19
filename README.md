@@ -83,8 +83,3 @@ Port of the AviSynth internal plugin. Written as an optimization over muvsfunc's
 ```
 Sharpen(clip clip[, int amountH=1, int amountV=amountH, int radius=1, int[] planes=None, bint legacy=False])
 ```
-- Included modes:
-  - "box" - average blurring (same as RemoveGrain(20), Convolution([1]\*9) and BoxBlur)
-  - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with a call to mode 11 and all subsequent calls to mode 20
-- parameter "radius" is iterative when mode="gauss"
-- parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
