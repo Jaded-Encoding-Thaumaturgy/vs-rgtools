@@ -62,7 +62,7 @@ Pixelwise median and blur admixture. If the differences are homologous to the in
 MinBlur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'], bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
 ```
 ### sbr
-Pixelwise blur operation. Takes a blur's difference and performs a blurring of the difference. If both differences are homologous to the input, the weaker result is taken, else the source pixel is passed
+Pixelwise blur operation. Takes a blur's difference and performs an equal blurring upon said difference. If both differences are homologous to the input, the weaker difference is reapplied, else the source pixel is passed
 ```
 sbr(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
 ```
@@ -79,7 +79,10 @@ Blur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s'
 - parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
 
 ### Sharpen
-Port of the AviSynth internal plugin. Written as an optimization over muvsfunc's which uses two Convolution calls and doesn't check for rounding error efficiency (likely negligible with 8 bit processing but hey, if was fun to write)
+Port of the AviSynth internal plugin. Please use 1.585 as opposed to 1.58 for box blurring in integer precision. For float precision import math and use math.log2(3)
 ```
 Sharpen(clip clip[, int amountH=1, int amountV=amountH, int radius=1, int[] planes=None, bint legacy=False])
 ```
+Radius can be up to 2 for 3x3 processing and up to 12 for horizontal or vertical-only processing.
+
+Set legacy to clamp amountX to the range -1 to log2(3)
