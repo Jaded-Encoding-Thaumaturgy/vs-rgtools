@@ -1,13 +1,13 @@
 import vapoursynth as vs
 from vsutil import split, join, fallback
 from functools import partial
-from math import ceil
+from math import ceil, log2
 
 
 
 
 
-def Repair(clip, repairclip, mode=2, planes=None):
+def Repair(clip, repairclip, mode=2, planes=None, planar=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('Repair: "clip" is not a clip')
     if not isinstance(repairclip, vs.VideoNode):
@@ -16,25 +16,17 @@ def Repair(clip, repairclip, mode=2, planes=None):
     fmt = clip.format
     numplanes = fmt.num_planes
     
-    rfmt = repairclip.format
-    rnumplanes = rfmt.num_planes
+    planes = parse_planes(planes, numplanes, 'Repair')
     
     mode = append_params(mode, numplanes)
-    
-    planes = parse_planes(planes, numplanes, 'Repair')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
-    
-    if numplanes > rnumplanes:
-        mode = [mode[i] if i > rnumplanes else 0 for i in range(len(numplanes))]
-    
-    if max(mode)==0:
-        return clip
-    repairclip = repairclip.resize.Bicubic(format=fmt.id)
     
 ################################################
 ### Mode 1 - Use Minimum/Maximum for float clips
+    if fmt != repairclip.format:
+        raise vs.Error('Repair: "clip" and "repairclip" must have matching formats')
     planes = []
-    if fmt.sample_type==vs.FLOAT:
+    if fmt.sample_type == vs.FLOAT:
         for i in range(numplanes):
             if mode[i] in (1, 11):
                 mode[i] = 0
@@ -43,17 +35,19 @@ def Repair(clip, repairclip, mode=2, planes=None):
     clip = rep1(clip, repairclip, planes)
 ################################################
     
+    if max(mode) == 0:
+        return clip
     return get_namespace(clip).Repair(clip, repairclip, mode)
 
 
 
-def RemoveGrain(clip, mode=2, planes=None):
+def RemoveGrain(clip, mode=2, planes=None, planar=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('RemoveGrain: This is not a clip')
     
     fmt = clip.format
     numplanes = fmt.num_planes
-    isint = fmt.sample_type==vs.INTEGER
+    isint = fmt.sample_type == vs.INTEGER
     
     mode = append_params(mode, numplanes)
     
@@ -65,15 +59,14 @@ def RemoveGrain(clip, mode=2, planes=None):
     planes_rg19 = []
     planes_rg20 = []
     
-######################################################
-### Mode 4 - Use std.Median() ########################
+#########################################################
+### Mode 4 - Use std.Median() ###########################
     for i in range(numplanes):
-        if mode[i]==4:
+        if mode[i] == 4:
             planes_rg4 += [i]
             mode[i] = 0
     clip = rg4 (clip, planes_rg4)
-######################################################
-
+#########################################################
 
 #########################################################
 ### Mode 11/12 - Use std.Convolution([1,2,1,2,4,2,1,2,1])
@@ -84,27 +77,25 @@ def RemoveGrain(clip, mode=2, planes=None):
     clip = rg11(clip, planes_rg11)
 #########################################################
 
-
-######################################################
+########################################################
 ### Mode 19 - Use std.Convolution([1,1,1,1,0,1,1,1,1])
     for i in range(numplanes):
-        if mode[i]==19:
+        if mode[i] == 19:
             planes_rg19 += [i]
             mode[i] = 0
     clip = rg19(clip, planes_rg19)
-######################################################
+########################################################
 
-
-######################################################
+########################################################
 ### Mode 20 - Use std.Convolution([1,1,1,1,1,1,1,1,1])
     for i in range(numplanes):
-        if mode[i]==20:
+        if mode[i] == 20:
             planes_rg20 += [i]
             mode[i] = 0
     clip = rg20(clip, planes_rg20)
-######################################################
+########################################################
     
-    if max(mode)==0:
+    if max(mode) == 0:
         return clip
     return get_namespace(clip).RemoveGrain(clip, mode)
 
@@ -120,11 +111,14 @@ def Clense(clip, previous=None, next=None, planes=None, grey=False):
         if not isinstance(previous, vs.VideoNode):
             raise TypeError('Clense: This is not a clip')
     
+    planes = parse_planes(planes, clip.format.num_planes, 'Clense')
     if grey:
-        planes = 0
+        planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
+    if len(planes) == 0:
+        return clip
     
 ###################################################################
-### Use std.Expr for integer clips ################################
+### Use std.Expr for integer and half float clips #################
     if clip.format.bits_per_sample < 32:
         previous = fallback(previous, clip)
         previous = previous[0] + previous[:-1]
@@ -140,8 +134,11 @@ def Clense(clip, previous=None, next=None, planes=None, grey=False):
 def ForwardClense(clip, planes=None, grey=False):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('ForwardClense: This is not a clip')
+    planes = parse_planes(planes, clip.format.num_planes, 'ForwardClense')
     if grey:
-        planes = 0
+        planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
+    if len(planes) == 0:
+        return clip
     return get_namespace(clip).ForwardClense(clip, planes)
 
 
@@ -149,13 +146,16 @@ def ForwardClense(clip, planes=None, grey=False):
 def BackwardClense(clip, planes=None, grey=False):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('BackwardClense: This is not a clip')
+    planes = parse_planes(planes, clip.format.num_planes, 'BackwardClense')
     if grey:
-        planes = 0
+        planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
+    if len(planes) == 0:
+        return clip
     return get_namespace(clip).BackwardClense(clip, planes)
 
 
 
-def VerticalCleaner(clip, mode=1, planes=None):
+def VerticalCleaner(clip, mode=1, planes=None, planar=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('VerticalCleaner: This is not a clip')
     
@@ -218,32 +218,32 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     numplanes = f.num_planes
     range_in = fallback(range_in, f.color_family is vs.RGB)
     
-    planes = parse_planes(planes, numplanes, 'Median')
-    
     radius = fallback(radius, r)
     
     radius = append_params(radius, numplanes)
     mode   = append_params(mode,   numplanes)
     vcmode = append_params(vcmode, numplanes)
     
-    radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
-    vcmode = [vcmode[x] if x in planes else 0 for x in range(numplanes)]
-    aplanes = [3 if radius[x] > 0 else 1 for x in range(numplanes)]
+    planes = parse_planes(planes, numplanes, 'Median')
+    planes = eval_planes(planes, radius, zero=0)
+    
+    if len(planes) == 0:
+        return clip
     
     pr = [radius[x] for x in planes]
     pm = [mode[x]   for x in planes]
-    
-    if max(radius) < 1:
-        return clip
+    pv = [vcmode[x] for x in planes]
     
     mixproc = ('h' in pm or 'v' in pm) and max(pr) > 1 and numplanes - len(planes) != 0 # no planes parameter in average.Median
-    mixproc = mixproc or any(len(set(p))>1 for p in (pr, pm))
+    mixproc = mixproc or any(len(set(p))>1 for p in (pr, pm, pv))
     
     if mixproc:
         clips = split(clip)
-        return join([Median_internal(clips[x], radius[x], [3], mode[x], vcmode[x], range_in, [0,1,1][x], memsize, opt) for x in range(numplanes)])
+        for x in planes:
+            clip[x] = Median_internal(clips[x], radius[x], [3], mode[x], vcmode[x], range_in, [0,1,1][x], memsize, opt)
+        return join(clips)
     
-    return Median_internal(clip, pr[0], aplanes, pm[0], vcmode, range_in, 0, memsize, opt)
+    return Median_internal(clip, pr[0], vs_to_avs(planes, numplanes), pm[0], pv[0], range_in, 0, memsize, opt)
 
 def Median_internal(clip, radius, aplanes, mode, vcmode, range_in, cal, memsize, opt):
     core = vs.core
@@ -254,9 +254,6 @@ def Median_internal(clip, radius, aplanes, mode, vcmode, range_in, cal, memsize,
     mode = mode.lower()
     
     vplanes = avs_to_vs(aplanes)
-    
-    if radius == 0:
-        return clip
     
     if radius == 1:
         if mode == 's':
@@ -289,31 +286,29 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     numplanes = clip.format.num_planes
     
-    planes = parse_planes(planes, numplanes, 'Blur')
-    
     radius = fallback(radius, r)
     
     radius = append_params(radius, numplanes)
     mode   = append_params(mode,   numplanes)
     blur   = append_params(blur,   numplanes)
     
-    radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
-    aplanes = [3 if radius[x] > 0 else 1 for x in range(numplanes)]
+    planes = parse_planes(planes, numplanes, 'Blur')
+    planes = eval_planes(planes, radius, zero=0)
+    
+    if len(planes) == 0:
+        return clip
     
     pr = [radius[x] for x in planes]
     pm = [mode[x]   for x in planes]
     pb = [blur[x]   for x in planes]
     
-    if max(radius) < 1:
-        return clip
-    
-    mixproc = any(len(set(p))>1 for p in (pr, pm, pb))
-    
-    if mixproc:
+    if any(len(set(p))>1 for p in (pr, pm, pb)):
         clips = split(clip)
-        return join([Blur_internal(clips[x], radius[x], [3], mode[x], blur[x]) for x in range(numplanes)])
+        for x in planes:
+            clips[x] = Blur_internal(clips[x], radius[x], [3], mode[x], blur[x])
+        return join(clips)
     
-    return Blur_internal(clip, pr[0], aplanes, pm[0], pb[0])
+    return Blur_internal(clip, pr[0], vs_to_avs(planes, numplanes), pm[0], pb[0])
 
 def Blur_internal(clip, radius, aplanes, mode, blur):
     core = vs.core
@@ -326,9 +321,6 @@ def Blur_internal(clip, radius, aplanes, mode, blur):
     mode = mode.lower()
     
     vplanes = avs_to_vs(aplanes)
-    
-    if radius==0:
-        return clip
     
     if 'g' not in blur:
         if radius==1:
@@ -383,18 +375,39 @@ def Blur_internal(clip, radius, aplanes, mode, blur):
 
 
 
-def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, amount=1, legacy=False):
+def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=False, amount=1):
+    
+    numplanes = clip.format.num_planes
     
     amountH = fallback(amountH, amount)
-    amountV = fallback(amountV, amountH)
+    amountH = append_params(amountH, numplanes)
     
-    amountH, amountV = -amountH, -amountV
+    amountV = fallback(amountV, amountH)
+    amountV = append_params(amountV, numplanes)
+    
+    radius = append_params(radius, numplanes)
+    
+    planes = parse_planes(planes, numplanes, 'Sharpen')
+    planes = eval_planes(planes, [1 if (x, y) != (0, 0) else 0 for x, y in zip(amountH, amountV)], 0)
+    
+    legacy = append_params(legacy, numplanes)
+    
+    ph = [amountH[x] for x in planes]
+    pv = [amountV[x] for x in planes]
+    pr = [radius[x]  for x in planes]
+    pl = [legacy[x]  for x in planes]
+    
+    if any(len(set(p))>1 for p in (ph, pv, pr, pl)):
+        clips = split(clip)
+        for x in planes:
+            clips[x] = Sharpen(clip, amountH[x], amountV[x], radius[x], [0], legacy[x])
+        return join(clips)
+    
+    amountH, amountV, radius, legacy = -ph[0], -pv[0], pr[0], pl[0]
     
     if legacy:
         amountH = max(-1, min(amountH, log2(3)))
         amountV = max(-1, min(amountV, log2(3)))
-    
-    planes = parse_planes(clip, numplanes, 'Sharpen')
     
     if amountH == amountV == 0 or len(planes) == 0:
         return clip
@@ -416,7 +429,11 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, amount=1, l
         error = [sum([abs(x - min(max(round(x), -1023), 1023)) for x in set(matrix[1:])]) for matrix in matrices]
         matrix = [min(max(round(x), -1023), 1023) for x in matrices[error.index(min(error))]]
     else:
-        matrix = get_matrix_array(relative_weight_h, relative_weight_v, radius, 1000, mode)
+        base = 1000
+        matrix = get_matrix_array(relative_weight_h, relative_weight_v, radius, base, mode)
+        while max(matrix) > 1023:
+            base /= 10
+            matrix = get_matrix_array(relative_weight_h, relative_weight_v, radius, base, mode)
     
     if mode == 's':
         matrix = [matrix[x] for x in [(3,2,3,1,0,1,3,2,3), (8,7,6,7,8,5,4,3,4,5,2,1,0,1,2,5,4,3,4,5,8,7,6,7,8)][radius-1]]
@@ -433,24 +450,22 @@ def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=Non
     
     numplanes = clip.format.num_planes
     
-    planes = parse_planes(planes, numplanes, 'MinBlur')
-    
     radius = fallback(radius, r)
     radius = append_params(radius, numplanes)
-    radius = [radius[x] if x in planes else 0 for x in range(numplanes)]
     
-    aplanes = [3 if radius[x] >= 0 else 1 for x in range(numplanes)]
+    planes = parse_planes(planes, numplanes, 'MinBlur')
+    planes = eval_planes(planes, radius, zero=-1)
     
-    if max(radius) < 0:
+    if len(planes) == 0:
         return clip
     
-    sbr_radius = [1 if radius[x] is 0 else 0 for x in range(numplanes)]
-    med_radius = [1 if radius[x] is 0 else radius[x] for x in range(numplanes)]
+    sbr_radius = [1 if radius[x] == 0 else 0 for x in range(numplanes)]
+    med_radius = [1 if radius[x] == 0 else radius[x] for x in range(numplanes)]
     
-    RG11 = Blur(clip, radius, avs_to_vs(aplanes), mode, blur)
-    RG11 = sbr(RG11, sbr_radius, avs_to_vs(aplanes), mode, blur)
+    RG11 = Blur(clip, radius, planes, mode, blur)
+    RG11 = sbr(RG11, sbr_radius, planes, mode, blur)
     
-    RG4 = Median(clip, med_radius, avs_to_vs(aplanes), mode, 1, range_in, memsize, opt)
+    RG4 = Median(clip, med_radius, planes, mode, 1, range_in, memsize, opt)
     
     return MedianClip([clip, RG11, RG4], planes=planes)
 
@@ -465,7 +480,6 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     numplanes = clip.format.num_planes
     
-    planes = parse_planes(planes, numplanes, 'sbr')
     
     radius = fallback(radius, r)
     
@@ -473,14 +487,14 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     mode   = append_params(mode,   numplanes)
     blur   = append_params(blur,   numplanes)
     
-    radius = [radius[x] if x in planes else -1 for x in range(numplanes)]
-    aplanes = [3 if radius[x] >= 0 else 1 for x in range(numplanes)]
+    planes = parse_planes(planes, numplanes, 'sbr')
+    planes = eval_planes(planes, radius, zero=0)
     
     pr = [radius[x] for x in planes]
     pm = [mode[x] for x in planes]
     pb = [blur[x] for x in planes]
     
-    if max(radius) < 1:
+    if max(pr) < 1:
         return clip
     
     mixproc = numplanes - len(planes) > 1
@@ -490,7 +504,7 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
         clips = split(clip)
         return join([sbr_internal(clips[x], radius[x], [3], mode[x], blur[x]) for x in range(numplanes)])
     
-    return sbr_internal(clip, pr[0], aplanes, pm[0], pb[0])
+    return sbr_internal(clip, pr[0], vs_to_avs(planes, numplanes), pm[0], pb[0])
 
 sbrV = partial(sbr, mode='v')
 sbrH = partial(sbr, mode='h')
@@ -616,17 +630,16 @@ def rg20(clip, planes):
 
 def get_namespace(clip): 
     core = vs.core
-    return core.rgsf if clip.format.sample_type==vs.FLOAT else core.rgvs
+    return [core.rgvs, core.rgsf][clip.format.sample_type]
 
 def avs_to_vs(planes):
     out = []
     for x in range(len(planes)):
         if planes[x] == 3:
-            out += [x]
+            out.append(x)
     return out
 
-def vs_to_avs(planes, numplanes=3):
-    return [3 if x in planes else 1 for x in range(numplanes)]
+def vs_to_avs(planes, numplanes=3): return [3 if x in planes else 1 for x in range(numplanes)]
 
 def parse_planes(planes, numplanes, name):
     planes = fallback(planes, list(range(numplanes)))
@@ -642,6 +655,20 @@ def parse_planes(planes, numplanes, name):
             planes = planes[:planes.index(x)]
             break
     return planes
+
+# if param[x] is a number less than or equal to "zero" or is explicitly False or None, delete x from "planes"
+# if param[x] is a number greater than "zero" or is explicitly True, pass x if it was originally in "planes"
+def eval_planes(planes, params, zero=0):
+    process = []
+    for x in range(len(params)):
+        if x in planes:
+            if params[x] is False or params[x] is None:
+                pass
+            elif params[x] is True:
+                process += [x]
+            elif params[x] > zero:
+                process += [x]
+    return process
 
 def append_params(params, length=3):
     if isinstance(params, tuple):
