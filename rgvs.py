@@ -411,11 +411,12 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, amount=1, l
     relative_weight_h = 0.5 ** amountH / ((1 - 0.5 ** amountH) / 2)
     relative_weight_v = 0.5 ** amountV / ((1 - 0.5 ** amountV) / 2)
     
-    matrices = [get_matrix_array(relative_weight_h, relative_weight_v, radius, x, mode) for x in range(1, 1024)]
-    
-    error = [sum([abs(x - min(max(round(x), -1023), 1023)) for x in set(matrix[1:])]) for matrix in matrices]
-    
-    matrix = [min(max(round(x), -1023), 1023) for x in matrices[error.index(min(error))]]
+    if clip.format.sample_type == 0:
+        matrices = [get_matrix_array(relative_weight_h, relative_weight_v, radius, x, mode) for x in range(1, 1024)]
+        error = [sum([abs(x - min(max(round(x), -1023), 1023)) for x in set(matrix[1:])]) for matrix in matrices]
+        matrix = [min(max(round(x), -1023), 1023) for x in matrices[error.index(min(error))]]
+    else:
+        matrix = get_matrix_array(relative_weight_h, relative_weight_v, radius, 1000, mode)
     
     if mode == 's':
         matrix = [matrix[x] for x in [(3,2,3,1,0,1,3,2,3), (8,7,6,7,8,5,4,3,4,5,2,1,0,1,2,5,4,3,4,5,8,7,6,7,8)][radius-1]]
@@ -551,6 +552,7 @@ repair = Repair
 median = Median
 
 blur = Blur
+sharpen = Sharpen
 
 minblur = MinBlur
 minblurv = MinBlurV
@@ -635,8 +637,10 @@ def parse_planes(planes, numplanes, name):
     if not isinstance(planes, list):
         raise TypeError(f'rgvs.{name}: improper "planes" format')
     planes = planes[:min(len(planes), numplanes)]
-    if any(x >= numplanes for x in planes):
-        raise ValueError(f'rgvs.{name}: one or more "planes" values out of bounds')
+    for x in planes:
+        if x >= numplanes:
+            planes = planes[:planes.index(x)]
+            break
     return planes
 
 def append_params(params, length=3):
