@@ -10,12 +10,16 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 - Allow `radius` parameter to be set per-plane (sbr and MinBlur)
 - Support float input (CTMF, sbr and MinBlur)
 
+#### "New" Functions
+- Blur - Wrapper for std.BoxBlur, std.Convolution and iterative RemoveGrain usage with mode 11, 20, 20, etc
+- Sharpen - Port of the Avisynth internal plugin with adjustable radius
+- RemoveGrainM - Helper function for iterative RemoveGrain
+
 #### Dependencies
 - [RGSF](https://github.com/IFeelBloated/RGSF)
 - [vsutil](https://github.com/Irrational-Encoding-Wizardry/vsutil/blob/master/py)
 - [CTMF](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-CTMF)
 - [vs-average](https://github.com/End-of-Eternity/vs-average)
-
 
 ## RGVS/RGSF
 #### All
@@ -59,30 +63,32 @@ clip.rgvs.RemoveGrain([1,2,3]).rgvs.RemoveGrain([0,2,3]).rgvs.RemoveGrain([0,0,3
 ### MinBlur
 Pixelwise median and blur admixture. If the differences are homologous to the input, the weaker result of the two are taken, else the source pixel is passed
 ```
-MinBlur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'], bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
+MinBlur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] bmode=['gauss', 'gauss', 'gauss'], bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
 ```
 ### sbr
 Pixelwise blur operation. Takes a blur's difference and performs an equal blurring upon said difference. If both differences are homologous to the input, the weaker difference is reapplied, else the source pixel is passed
 ```
-sbr(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
+sbr(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] bmode=['gauss', 'gauss', 'gauss'] ])
 ```
 ### Blur
 No relation to AviSynth's internal plugin, use Sharpen with negative values if you want that.
 Like RemoveGrainM, this was mainly written as a helper for other functions.
 ```
-Blur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] blur=['gauss', 'gauss', 'gauss'] ])
+Blur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] bmode=['gauss', 'gauss', 'gauss'] ])
 ```
 - Included modes:
   - "box" - average blurring (same as RemoveGrain(20), Convolution([1]\*9) and BoxBlur)
   - "gauss" - pseudo-gaussian blur technique made popular on a certain forum using an iteration of removegrain, starting with a call to mode 11 and all subsequent calls to mode 20
 - parameter "radius" is iterative when mode="gauss"
-- parameter "blur" toggles between std.BoxBlur for blur="box" and removegrain(11)\[.removegrain(20)...] for blur="gauss"
+- parameter "bmode" toggles between std.BoxBlur for bmode="box" and removegrain(11)\[.removegrain(20)...] for bmode="gauss"
 
 ### Sharpen
-Port of the AviSynth internal plugin. Please use 1.585 as opposed to 1.58 for box blurring in integer precision. For float precision import math and use math.log2(3)
+Port of the AviSynth internal plugin. Please use 1.585 as opposed to 1.58 for box blurring in integer precision. For float precision `import math` and use `math.log2(3)`
 ```
-Sharpen(clip clip[, int amountH=1, int amountV=amountH, int radius=1, int[] planes=None, bint legacy=False])
+Sharpen(clip clip[, int[] amountH=1, int[] amountV=amountH, int[] radius=1, int[] planes=None, bint[] legacy=False])
 ```
-Radius can be up to 2 for 3x3 processing and up to 12 for horizontal or vertical-only processing.
+Accepts `amount` as `amountH` alias
 
-Set legacy to clamp amountX to the range -1 to log2(3)
+Radius can be up to `2` for 2D processing (3x3, 5x5) and up to `12` for horizontal or vertical-only processing.
+
+Set legacy to clamp `amount` to the range `-1` to `math.log2(3)`
