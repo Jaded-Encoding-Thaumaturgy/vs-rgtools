@@ -7,7 +7,7 @@ from math import ceil, log2
 
 
 
-def Repair(clip, repairclip, mode=2, planes=None, planar=None):
+def Repair(clip, repairclip, mode=2, planes=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('Repair: "clip" is not a clip')
     if not isinstance(repairclip, vs.VideoNode):
@@ -41,7 +41,7 @@ def Repair(clip, repairclip, mode=2, planes=None, planar=None):
 
 
 
-def RemoveGrain(clip, mode=2, planes=None, planar=None):
+def RemoveGrain(clip, mode=2, planes=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('RemoveGrain: This is not a clip')
     
@@ -155,7 +155,7 @@ def BackwardClense(clip, planes=None, grey=False):
 
 
 
-def VerticalCleaner(clip, mode=1, planes=None, planar=None):
+def VerticalCleaner(clip, mode=1, planes=None):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('VerticalCleaner: This is not a clip')
     
@@ -280,7 +280,7 @@ def Median_internal(clip, radius, aplanes, mode, vcmode, range_in, cal, memsize,
 
 
 
-def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
+def Blur(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('Blur: This is not a clip')
     
@@ -290,7 +290,7 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     radius = append_params(radius, numplanes)
     mode   = append_params(mode,   numplanes)
-    blur   = append_params(blur,   numplanes)
+    bmode  = append_params(bmode,  numplanes)
     
     planes = parse_planes(planes, numplanes, 'Blur')
     planes = eval_planes(planes, radius, zero=0)
@@ -300,36 +300,36 @@ def Blur(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     pr = [radius[x] for x in planes]
     pm = [mode[x]   for x in planes]
-    pb = [blur[x]   for x in planes]
+    pb = [bmode[x]  for x in planes]
     
     if any(len(set(p))>1 for p in (pr, pm, pb)):
         clips = split(clip)
         for x in planes:
-            clips[x] = Blur_internal(clips[x], radius[x], [3], mode[x], blur[x])
+            clips[x] = Blur_internal(clips[x], radius[x], [3], mode[x], bmode[x])
         return join(clips)
     
     return Blur_internal(clip, pr[0], vs_to_avs(planes, numplanes), pm[0], pb[0])
 
-def Blur_internal(clip, radius, aplanes, mode, blur):
+def Blur_internal(clip, radius, aplanes, mode, bmode):
     core = vs.core
     
     fmt = clip.format
-    isint = fmt.sample_type==vs.INTEGER
+    isint = fmt.sample_type == vs.INTEGER
     numplanes = fmt.num_planes
     
-    blur = blur.lower()
+    bmode = bmode.lower()
     mode = mode.lower()
     
     vplanes = avs_to_vs(aplanes)
     
-    if 'g' not in blur:
+    if 'g' not in bmode:
         if radius==1:
             if mode=='s':
                 return RemoveGrain(clip, mode=[20,20,20], planes=vplanes)
             return core.std.Convolution(clip, matrix=[1,1,1], planes=vplanes, mode=mode)
         return core.std.BoxBlur(clip, planes=vplanes, hradius=0 if mode=='v' else radius, hpasses=1, vradius=0 if mode=='h' else radius, vpasses=1)
     
-    if mode=='s':
+    if mode == 's':
         return RemoveGrainM(clip, [11,20], iter=radius, planes=vplanes)
     
     #This is my punishment for failing calculus
@@ -376,6 +376,8 @@ def Blur_internal(clip, radius, aplanes, mode, blur):
 
 
 def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=False, amount=1):
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError('Sharpen: This is not a clip')
     
     numplanes = clip.format.num_planes
     
@@ -390,6 +392,9 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
     planes = parse_planes(planes, numplanes, 'Sharpen')
     planes = eval_planes(planes, [1 if (x, y) != (0, 0) else 0 for x, y in zip(amountH, amountV)], 0)
     
+    if len(planes) == 0:
+        return clip
+    
     legacy = append_params(legacy, numplanes)
     
     ph = [amountH[x] for x in planes]
@@ -403,16 +408,13 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
             clips[x] = Sharpen(clip, amountH[x], amountV[x], radius[x], [0], legacy[x])
         return join(clips)
     
+    core = vs.core
+    
     amountH, amountV, radius, legacy = -ph[0], -pv[0], pr[0], pl[0]
     
     if legacy:
         amountH = max(-1, min(amountH, log2(3)))
         amountV = max(-1, min(amountV, log2(3)))
-    
-    if amountH == amountV == 0 or len(planes) == 0:
-        return clip
-    
-    core = vs.core
     
     mode = 's'
     if amountV == 0:
@@ -420,6 +422,9 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
     if amountH == 0:
         mode = 'v'
         amountH = amountV
+    
+    if not 0 < radius < (3 if mode is 's' else 13)
+        raise ValueError('Sharpen: radius must be in the range of 1 - 2 for 2D processing or 1 - 12 for horizontal/vertical only processing') 
     
     relative_weight_h = 0.5 ** amountH / ((1 - 0.5 ** amountH) / 2)
     relative_weight_v = 0.5 ** amountV / ((1 - 0.5 ** amountV) / 2)
@@ -444,7 +449,7 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
 
 
 
-def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=None, memsize=1048576, opt=0, r=1):
+def MinBlur(clip, radius=None, planes=None, mode='s', bmode='gauss', range_in=None, memsize=1048576, opt=0, r=1):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('MinBlur: This is not a clip')
     
@@ -462,8 +467,8 @@ def MinBlur(clip, radius=None, planes=None, mode='s', blur='gauss', range_in=Non
     sbr_radius = [1 if radius[x] == 0 else 0 for x in range(numplanes)]
     med_radius = [1 if radius[x] == 0 else radius[x] for x in range(numplanes)]
     
-    RG11 = Blur(clip, radius, planes, mode, blur)
-    RG11 = sbr(RG11, sbr_radius, planes, mode, blur)
+    RG11 = Blur(clip, radius, planes, mode, bmode)
+    RG11 = sbr(RG11, sbr_radius, planes, mode, bmode)
     
     RG4 = Median(clip, med_radius, planes, mode, 1, range_in, memsize, opt)
     
@@ -474,7 +479,7 @@ MinBlurH = partial(MinBlur, mode='h')
 
 
 
-def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
+def sbr(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     if not isinstance(clip, vs.VideoNode):
         raise TypeError('sbr: This is not a clip')
     
@@ -485,14 +490,14 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     radius = append_params(radius, numplanes)
     mode   = append_params(mode,   numplanes)
-    blur   = append_params(blur,   numplanes)
+    bmode  = append_params(bmode,  numplanes)
     
     planes = parse_planes(planes, numplanes, 'sbr')
     planes = eval_planes(planes, radius, zero=0)
     
     pr = [radius[x] for x in planes]
-    pm = [mode[x] for x in planes]
-    pb = [blur[x] for x in planes]
+    pm = [mode[x]   for x in planes]
+    pb = [bmode[x]  for x in planes]
     
     if max(pr) < 1:
         return clip
@@ -502,21 +507,21 @@ def sbr(clip, radius=None, planes=None, mode='s', blur='gauss', r=1):
     
     if mixproc:
         clips = split(clip)
-        return join([sbr_internal(clips[x], radius[x], [3], mode[x], blur[x]) for x in range(numplanes)])
+        return join([sbr_internal(clips[x], radius[x], [3], mode[x], bmode[x]) for x in range(numplanes)])
     
     return sbr_internal(clip, pr[0], vs_to_avs(planes, numplanes), pm[0], pb[0])
 
 sbrV = partial(sbr, mode='v')
 sbrH = partial(sbr, mode='h')
 
-def sbr_internal(clip, radius, aplanes, mode, blur):
+def sbr_internal(clip, radius, aplanes, mode, bmode):
     
     if radius < 1:
         return clip
     
     vplanes = avs_to_vs(aplanes)
     
-    return MinFilter(clip, partial(Blur, radius=radius, planes=vplanes, mode=mode, blur=blur), planes=vplanes)
+    return MinFilter(clip, partial(Blur, radius=radius, planes=vplanes, mode=mode, bmode=bmode), planes=vplanes)
 
 
 
@@ -648,7 +653,7 @@ def parse_planes(planes, numplanes, name):
     if isinstance(planes, tuple):
         planes = list(planes)
     if not isinstance(planes, list):
-        raise TypeError(f'rgvs.{name}: improper "planes" format')
+        raise TypeError(f'{name}: improper "planes" format')
     planes = planes[:min(len(planes), numplanes)]
     for x in planes:
         if x >= numplanes:
