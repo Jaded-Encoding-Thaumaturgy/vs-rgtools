@@ -16,9 +16,11 @@ Wrapper for RGVS, RGSF, and various median plugins as well as some functions tha
 - RemoveGrainM - Helper function for iterative RemoveGrain
 
 #### Dependencies
-- [RGSF](https://github.com/IFeelBloated/RGSF)
 - [vsutil](https://github.com/Irrational-Encoding-Wizardry/vsutil/blob/master/py)
+- [RGSF](https://github.com/IFeelBloated/RGSF)
 - [CTMF](https://github.com/HomeOfVapourSynthEvolution/VapourSynth-CTMF)
+- [fmtconv](https://github.com/EleonoreMizo/fmtconv/)
+- [TemporalMedian](https://github.com/dubhater/vapoursynth-temporalmedian)
 - [vs-average](https://github.com/End-of-Eternity/vs-average)
 
 ## RGVS/RGSF
