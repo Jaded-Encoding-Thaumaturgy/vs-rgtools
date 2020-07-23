@@ -65,7 +65,7 @@ clip.rgvs.RemoveGrain([1,2,3]).rgvs.RemoveGrain([0,2,3]).rgvs.RemoveGrain([0,0,3
 ### MinBlur
 Pixelwise median and blur admixture. If the differences are homologous to the input, the weaker result of the two are taken, else the source pixel is passed
 ```
-MinBlur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] bmode=['gauss', 'gauss', 'gauss'], bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
+MinBlur(clip clip[, int[] radius=[1, 1, 1], int[] planes=[0, 1, 2], str[] mode=['s', 's', 's'], str[] bmode=['gauss', 'gauss', 'gauss'], int[] vcmode=[1, 1, 1], bint range_in=color_family==vs.RGB, int memsize=1048576, int opt=0])
 ```
 ### sbr
 Pixelwise blur operation. Takes a blur's difference and performs an equal blurring upon said difference. If both differences are homologous to the input, the weaker difference is reapplied, else the source pixel is passed
@@ -93,4 +93,4 @@ Accepts `amount` as `amountH` alias
 
 Radius can be up to `2` for 2D processing (3x3, 5x5) and up to `12` for horizontal or vertical-only processing.
 
-Set legacy to clamp `amount` to the range `-1` to `math.log2(3)`
+Set legacy to clamp `amount` to the range `-158` to `1`
