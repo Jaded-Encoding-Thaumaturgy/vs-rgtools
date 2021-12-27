@@ -1,23 +1,21 @@
-__all__ = ['Repair', 'RemoveGrainM', 'RemoveGrain', 'VerticalCleaner', 'Clense', 'BackwardClense', 'ForwardClense']
+__all__ = ['repair', 'removegrainm', 'removegrain', 'verticalcleaner', 'clense', 'backwardclense', 'forwardclense']
 
 import vapoursynth as vs
-from .util import fallback, append_params, parse_planes, eval_planes, MedianClip
+
+from .util import medianclip, append_params, eval_planes, fallback, parse_planes
 
 
-
-
-
-def Repair(clip, repairclip, mode=2, planes=None):
+def repair(clip, repairclip, mode=2, planes=None):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('Repair: "clip" is not a clip')
+        raise TypeError('repair: "clip" is not a clip')
     if not isinstance(repairclip, vs.VideoNode):
-        raise TypeError('Repair: "repairclip" is not a clip')
+        raise TypeError('repair: "repairclip" is not a clip')
 
     fmt = clip.format
     isflt = fmt.sample_type
     numplanes = fmt.num_planes
 
-    planes = parse_planes(planes, numplanes, 'Repair')
+    planes = parse_planes(planes, numplanes, 'repair')
 
     mode = append_params(mode, numplanes)
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
@@ -26,7 +24,7 @@ def Repair(clip, repairclip, mode=2, planes=None):
 ################################################################################################
 ### Mode 1 - Use Minimum/Maximum for float clips
     if fmt != repairclip.format:
-        raise vs.Error('Repair: "clip" and "repairclip" must have matching formats')
+        raise vs.Error('repair: "clip" and "repairclip" must have matching formats')
     def _rep1(clip, repairclip, planes):
         if len(planes)==0:
             return clip
@@ -48,14 +46,13 @@ def Repair(clip, repairclip, mode=2, planes=None):
     if max(mode) == 0:
         return clip
     if isflt:
-        return clip.rgsf.Repair(repairclip, mode)
-    return clip.rgvs.Repair(repairclip, mode)
+        return clip.rgsf.repair(repairclip, mode)
+    return clip.rgvs.repair(repairclip, mode)
 
 
-
-def RemoveGrain(clip, mode=2, planes=None):
+def removegrain(clip, mode=2, planes=None):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('RemoveGrain: This is not a clip')
+        raise TypeError('removegrain: This is not a clip')
 
     fmt = clip.format
     isflt = fmt.sample_type
@@ -63,16 +60,16 @@ def RemoveGrain(clip, mode=2, planes=None):
 
     mode = append_params(mode, numplanes)
 
-    planes = parse_planes(planes, numplanes, 'RemoveGrain')
+    planes = parse_planes(planes, numplanes, 'removegrain')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
 
 ########################################################################
 ########################################################################
-### Mode 4 - Use std.Median()
+### Mode 4 - Use std.median()
     def _rg4(clip, planes):
         if len(planes)==0:
             return clip
-        return clip.std.Median(planes=planes)
+        return clip.std.median(planes=planes)
     planes_rg4  = []
     for i in range(numplanes):
         if mode[i] == 4:
@@ -136,17 +133,16 @@ def RemoveGrain(clip, mode=2, planes=None):
     if max(mode) == 0:
         return clip
     if isflt:
-        return clip.rgsf.RemoveGrain(mode)
-    return clip.rgvs.RemoveGrain(mode)
+        return clip.rgsf.removegrain(mode)
+    return clip.rgvs.removegrain(mode)
 
 
-
-def RemoveGrainM(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
+def removegrainm(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('RemoveGrainM: This is not a clip')
+        raise TypeError('removegrainm: This is not a clip')
 
     numplanes = clip.format.num_planes
-    planes = parse_planes(planes, numplanes, 'RemoveGrainM')
+    planes = parse_planes(planes, numplanes, 'removegrainm')
 
     mode = [mode] if isinstance(mode, int) else mode
     modeu = [0] if numplanes < 2 else fallback([modeu] if isinstance(modeu, int) else modeu, mode )
@@ -170,23 +166,22 @@ def RemoveGrainM(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
         modev.append(0)
 
     for x in range(iterall):
-        clip = RemoveGrain(clip, [mode[x], modeu[x], modev[x]])
+        clip = removegrain(clip, [mode[x], modeu[x], modev[x]])
 
     return clip
 
 
-
-def Clense(clip, previous=None, next=None, planes=None, grey=False):
+def clense(clip, previous=None, next=None, planes=None, grey=False):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('Clense: This is not a clip')
+        raise TypeError('clense: This is not a clip')
     if next is not None:
         if not isinstance(next, vs.VideoNode):
-            raise TypeError('Clense: This is not a clip')
+            raise TypeError('clense: This is not a clip')
     if previous is not None:
         if not isinstance(previous, vs.VideoNode):
-            raise TypeError('Clense: This is not a clip')
+            raise TypeError('clense: This is not a clip')
 
-    planes = parse_planes(planes, clip.format.num_planes, 'Clense')
+    planes = parse_planes(planes, clip.format.num_planes, 'clense')
     if grey:
         planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
     if len(planes) == 0:
@@ -201,19 +196,18 @@ def Clense(clip, previous=None, next=None, planes=None, grey=False):
     next = fallback(next, clip)
     next = next[1:] + next[-1]
 
-    return MedianClip([previous, clip, next], planes=planes)
+    return medianclip([previous, clip, next], planes=planes)
 
 
-
-def ForwardClense(clip, planes=None, grey=False):
+def forwardclense(clip, planes=None, grey=False):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('ForwardClense: This is not a clip')
+        raise TypeError('forwardclense: This is not a clip')
 
     fmt = clip.format
     isflt = fmt.sample_type
     numplanes = fmt.num_planes
 
-    planes = parse_planes(planes, clip.format.num_planes, 'ForwardClense')
+    planes = parse_planes(planes, clip.format.num_planes, 'forwardclense')
 
     if grey:
         planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
@@ -221,20 +215,19 @@ def ForwardClense(clip, planes=None, grey=False):
     if len(planes) == 0:
         return clip
     if isflt:
-        return clip.rgsf.ForwardClense(planes)
-    return clip.rgvs.ForwardClense(planes)
+        return clip.rgsf.forwardclense(planes)
+    return clip.rgvs.forwardclense(planes)
 
 
-
-def BackwardClense(clip, planes=None, grey=False):
+def backwardclense(clip, planes=None, grey=False):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('BackwardClense: This is not a clip')
+        raise TypeError('backwardclense: This is not a clip')
 
     fmt = clip.format
     isflt = fmt.sample_type
     numplanes = fmt.num_planes
 
-    planes = parse_planes(planes, clip.format.num_planes, 'BackwardClense')
+    planes = parse_planes(planes, clip.format.num_planes, 'backwardclense')
 
     if grey:
         planes = eval_planes(planes, [1] + [0] * (numplanes - 1), 0)
@@ -242,14 +235,13 @@ def BackwardClense(clip, planes=None, grey=False):
     if len(planes) == 0:
         return clip
     if isflt:
-        return clip.rgsf.BackwardClense(planes)
-    return clip.rgvs.BackwardClense(planes)
+        return clip.rgsf.backwardclense(planes)
+    return clip.rgvs.backwardclense(planes)
 
 
-
-def VerticalCleaner(clip, mode=1, planes=None):
+def verticalcleaner(clip, mode=1, planes=None):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('VerticalCleaner: This is not a clip')
+        raise TypeError('verticalcleaner: This is not a clip')
 
     fmt = clip.format
     isflt = fmt.sample_type
@@ -257,11 +249,11 @@ def VerticalCleaner(clip, mode=1, planes=None):
 
     mode = append_params(mode, numplanes)
 
-    planes = parse_planes(planes, numplanes, 'VerticalCleaner')
+    planes = parse_planes(planes, numplanes, 'verticalcleaner')
     mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
 
     if max(mode) == 0:
         return clip
     if isflt:
-        return clip.rgsf.VerticalCleaner(mode)
-    return clip.rgvs.VerticalCleaner(mode)
+        return clip.rgsf.verticalcleaner(mode)
+    return clip.rgvs.verticalcleaner(mode)

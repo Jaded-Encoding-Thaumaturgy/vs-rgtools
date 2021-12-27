@@ -1,60 +1,54 @@
-__all__ = ['MinFilter', 'MedianClip', 'MedianDiff']
+__all__ = ['minfilter', 'medianclip', 'mediandiff']
 
 import vapoursynth as vs
-from vsutil import split, join, fallback
+from vsutil import fallback
 
 
-
-
-
-def MinFilter(clip, filtera, filterb=None, mode=None, planes=None):
+def minfilter(clip, filtera, filterb=None, mode=None, planes=None):
     if mode == 1 and filterb is None:
-        raise ValueError('rgvs.MinFilter: filterb must be defined when mode=1')
+        raise ValueError('rgvs.minfilter: filterb must be defined when mode=1')
 
-    planes = parse_planes(planes, clip.format.num_planes, 'MinFilter')
+    planes = parse_planes(planes, clip.format.num_planes, 'minfilter')
     mode = fallback(mode, 2 if filterb is None else 1)
 
     filterb = fallback(filterb, filtera)
 
     if mode == 1:
-        return MedianClip([clip, filtera(clip), filterb(clip)], planes=planes)
+        return medianclip([clip, filtera(clip), filterb(clip)], planes=planes)
 
     filtered = filtera(clip)
 
     diffa = clip.std.MakeDiff(filtered, planes=planes)
     diffb = filterb(diffa)
 
-    return MedianDiff(clip, diffa, diffb, planes=planes)
+    return mediandiff(clip, diffa, diffb, planes=planes)
 
 
-
-def MedianClip(clips, planes=None):
+def medianclip(clips, planes=None):
     core = vs.core
 
     numplanes = clips[0].format.num_planes
-    planes = parse_planes(planes, numplanes, 'MedianClip')
+    planes = parse_planes(planes, numplanes, 'medianclip')
 
     if rad <= 10:
         dia = len(clips)
         rad = dia // 2
         return core.std.Interleave(clips).tmedian.TemporalMedian(radius=rad, planes=planes)[rad::dia]
 
-    return core.average.Median(clips)
+    return core.average.median(clips)
 
 
-
-def MedianDiff(clip, diffa, diffb, planes=None):
+def mediandiff(clip, diffa, diffb, planes=None):
     core = vs.core
 
     fmt = clip.format
     numplanes = fmt.num_planes
-    planes = parse_planes(planes, numplanes, 'MedianDiff')
+    planes = parse_planes(planes, numplanes, 'mediandiff')
 
     neutral = f' {1 << (fmt.bits_per_sample - 1)} - ' if fmt.sample_type==vs.INTEGER else ''
     expr = f'x 0 y {neutral} y z - min max y {neutral} y z - max min -'
 
     return core.std.Expr([clip, diffa, diffb], [expr if x in planes else '' for x in range(numplanes)])
-
 
 
 def parse_planes(planes, numplanes, name):
@@ -72,7 +66,6 @@ def parse_planes(planes, numplanes, name):
     return planes
 
 
-
 # if param[x] is a number less than or equal to "zero" or is explicitly False or None, delete x from "planes"
 # if param[x] is a number greater than "zero" or is explicitly True, pass x if it was originally in "planes"
 def eval_planes(planes, params, zero=0):
@@ -86,7 +79,6 @@ def eval_planes(planes, params, zero=0):
             elif params[x] > zero:
                 process += [x]
     return process
-
 
 
 def append_params(params, length=3):

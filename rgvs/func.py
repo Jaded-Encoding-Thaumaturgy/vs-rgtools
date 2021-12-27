@@ -1,17 +1,16 @@
-__all__ = ['Blur', 'Sharpen', 'sbr', 'sbrH', 'sbrV', 'MinBlur', 'MinBlurH', 'MinBlurV']
+__all__ = ['blur', 'sharpen', 'sbr', 'sbrH', 'sbrV', 'minblur', 'minblurh', 'minblurv']
 
-import vapoursynth as vs
-from .util import split, join, fallback, append_params, parse_planes, eval_planes, MinFilter, MedianClip
 from functools import partial
 from math import ceil, log2
 
+import vapoursynth as vs
+
+from .util import medianclip, minfilter, append_params, eval_planes, fallback, join, parse_planes, split
 
 
-
-
-def Blur(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
+def blur(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('Blur: This is not a clip')
+        raise TypeError('blur: This is not a clip')
 
     numplanes = clip.format.num_planes
 
@@ -21,7 +20,7 @@ def Blur(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     mode   = append_params(mode,   numplanes)
     bmode  = append_params(bmode,  numplanes)
 
-    planes = parse_planes(planes, numplanes, 'Blur')
+    planes = parse_planes(planes, numplanes, 'blur')
     planes = eval_planes(planes, radius, zero=0)
 
     if len(planes) == 0:
@@ -34,12 +33,13 @@ def Blur(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     if any(len(set(p))>1 for p in (pr, pm, pb)):
         clips = split(clip)
         for x in planes:
-            clips[x] = Blur_internal(clips[x], radius[x], [0], mode[x], bmode[x])
+            clips[x] = blur_internal(clips[x], radius[x], [0], mode[x], bmode[x])
         return join(clips)
 
-    return Blur_internal(clip, pr[0], planes, pm[0], pb[0])
+    return blur_internal(clip, pr[0], planes, pm[0], pb[0])
 
-def Blur_internal(clip, radius, planes, mode, bmode):
+
+def blur_internal(clip, radius, planes, mode, bmode):
     fmt = clip.format
     isint = fmt.sample_type == vs.INTEGER
     numplanes = fmt.num_planes
@@ -50,12 +50,12 @@ def Blur_internal(clip, radius, planes, mode, bmode):
     if 'g' not in bmode:
         if radius==1:
             if mode=='s':
-                return RemoveGrain(clip, mode=[20,20,20], planes=planes)
+                return removegrain(clip, mode=[20,20,20], planes=planes)
             return clip.std.Convolution(matrix=[1,1,1], planes=planes, mode=mode)
         return clip.std.BoxBlur(planes=planes, hradius=0 if mode=='v' else radius, hpasses=1, vradius=0 if mode=='h' else radius, vpasses=1)
 
     if mode == 's':
-        return RemoveGrainM(clip, [11,20], iter=radius, planes=planes)
+        return removegrainm(clip, [11,20], iter=radius, planes=planes)
 
     #This is my punishment for failing calculus
     gmatrix = [ [1,2,1],
@@ -99,10 +99,9 @@ def Blur_internal(clip, radius, planes, mode, bmode):
     return clip
 
 
-
-def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=False, amount=1):
+def sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=False, amount=1):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('Sharpen: This is not a clip')
+        raise TypeError('sharpen: This is not a clip')
 
     numplanes = clip.format.num_planes
 
@@ -114,7 +113,7 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
 
     radius = append_params(radius, numplanes)
 
-    planes = parse_planes(planes, numplanes, 'Sharpen')
+    planes = parse_planes(planes, numplanes, 'sharpen')
     planes = eval_planes(planes, [1 if (x, y) != (0, 0) else 0 for x, y in zip(amountH, amountV)], 0)
 
     if len(planes) == 0:
@@ -130,7 +129,7 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
     if any(len(set(p))>1 for p in (ph, pv, pr, pl)):
         clips = split(clip)
         for x in planes:
-            clips[x] = Sharpen(clip, amountH[x], amountV[x], radius[x], [0], legacy[x])
+            clips[x] = sharpen(clip, amountH[x], amountV[x], radius[x], [0], legacy[x])
         return join(clips)
 
     amountH, amountV, radius, legacy = -ph[0], -pv[0], pr[0], pl[0]
@@ -147,7 +146,7 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
         amountH = amountV
 
     if not 0 < radius <= (2 if mode is 's' else 12):
-        raise ValueError('Sharpen: radius must be in the range of 1 - 2 for 2D processing or 1 - 12 for horizontal/vertical only processing')
+        raise ValueError('sharpen: radius must be in the range of 1 - 2 for 2D processing or 1 - 12 for horizontal/vertical only processing')
 
     relative_weight_h = 0.5 ** amountH / ((1 - 0.5 ** amountH) / 2)
     relative_weight_v = 0.5 ** amountV / ((1 - 0.5 ** amountV) / 2)
@@ -170,6 +169,7 @@ def Sharpen(clip, amountH=None, amountV=None, radius=1, planes=None, legacy=Fals
 
     return clip.std.Convolution(matrix=matrix, planes=planes, mode=mode)
 
+
 def get_matrix_array(rwh, rwv, radius, center, mode):
     matrix = [center]
     for x in range(radius):
@@ -181,17 +181,16 @@ def get_matrix_array(rwh, rwv, radius, center, mode):
     return matrix
 
 
-
-def MinBlur(clip, radius=None, planes=None, mode='s', bmode='gauss', range_in=None, memsize=1048576, opt=0, r=1):
+def minblur(clip, radius=None, planes=None, mode='s', bmode='gauss', range_in=None, memsize=1048576, opt=0, r=1):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('MinBlur: This is not a clip')
+        raise TypeError('minblur: This is not a clip')
 
     numplanes = clip.format.num_planes
 
     radius = fallback(radius, r)
     radius = append_params(radius, numplanes)
 
-    planes = parse_planes(planes, numplanes, 'MinBlur')
+    planes = parse_planes(planes, numplanes, 'minblur')
     planes = eval_planes(planes, radius, zero=-1)
 
     if len(planes) == 0:
@@ -200,16 +199,20 @@ def MinBlur(clip, radius=None, planes=None, mode='s', bmode='gauss', range_in=No
     sbr_radius = [1 if radius[x] == 0 else 0 for x in range(numplanes)]
     med_radius = [1 if radius[x] == 0 else radius[x] for x in range(numplanes)]
 
-    RG11 = Blur(clip, radius, planes, mode, bmode)
+    RG11 = blur(clip, radius, planes, mode, bmode)
     RG11 = sbr(RG11, sbr_radius, planes, mode, bmode)
 
-    RG4 = Median(clip, med_radius, planes, mode, 1, range_in, memsize, opt)
+    RG4 = median(clip, med_radius, planes, mode, 1, range_in, memsize, opt)
 
-    return MedianClip([clip, RG11, RG4], planes=planes)
+    return medianclip([clip, RG11, RG4], planes=planes)
 
-MinBlurV = partial(MinBlur, mode='v')
-MinBlurH = partial(MinBlur, mode='h')
 
+def minblurv(clip, radius=None, planes=None, bmode='gauss', range_in=None, memsize=1048576, opt=0, r=1):
+    return minblur(clip, radius, planes, 'v', bmode, range_in, memsize, opt, r)
+
+
+def minblurh(clip, radius=None, planes=None, bmode='gauss', range_in=None, memsize=1048576, opt=0, r=1):
+    return minblur(clip, radius, planes, 'h', bmode, range_in, memsize, opt, r)
 
 
 def sbr(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
@@ -240,10 +243,10 @@ def sbr(clip, radius=None, planes=None, mode='s', bmode='gauss', r=1):
     if mixproc:
         clips = split(clip)
         for x in planes:
-            clips[x] = MinFilter(clips[x], partial(Blur, radius=radius[x], mode=mode[x], bmode=bmode[x]))
+            clips[x] = minfilter(clips[x], partial(blur, radius=radius[x], mode=mode[x], bmode=bmode[x]))
         return join(clips)
 
-    return MinFilter(clip, partial(Blur, radius=pr[0], planes=planes, mode=pm[0], bmode=pb[0]), planes=planes)
+    return minfilter(clip, partial(blur, radius=pr[0], planes=planes, mode=pm[0], bmode=pb[0]), planes=planes)
 
 sbrV = partial(sbr, mode='v')
 sbrH = partial(sbr, mode='h')

@@ -1,15 +1,13 @@
-__all__ = ['Median']
+__all__ = ['median']
 
 import vapoursynth as vs
-from .util import split, join, fallback, append_params, parse_planes, eval_planes, MedianClip
+
+from .util import medianclip, append_params, eval_planes, fallback, join, parse_planes, split
 
 
-
-
-
-def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, memsize=1048576, opt=0, r=1):
+def median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, memsize=1048576, opt=0, r=1):
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError('Median: This is not a clip')
+        raise TypeError('median: This is not a clip')
 
     f = clip.format
     bits = f.bits_per_sample
@@ -22,7 +20,7 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     mode   = append_params(mode,   numplanes)
     vcmode = append_params(vcmode, numplanes)
 
-    planes = parse_planes(planes, numplanes, 'Median')
+    planes = parse_planes(planes, numplanes, 'median')
     planes = eval_planes(planes, radius, zero=0)
 
     if len(planes) == 0:
@@ -37,14 +35,14 @@ def Median(clip, radius=None, planes=None, mode='s', vcmode=1, range_in=None, me
     if mixproc:
         clips = split(clip)
         for x in planes:
-            clip[x] = Median_internal(clips[x], radius[x], [0], mode[x], vcmode[x], range_in, [0,1,1][x], memsize, opt)
+            clip[x] = median_internal(clips[x], radius[x], [0], mode[x], vcmode[x], range_in, [0,1,1][x], memsize, opt)
         return join(clips)
 
-    return Median_internal(clip, pr[0], planes, pm[0], pv[0], range_in, 0, memsize, opt)
+    return median_internal(clip, pr[0], planes, pm[0], pv[0], range_in, 0, memsize, opt)
 
 
 
-def Median_internal(clip, radius, planes, mode, vcmode, range_in, cal, memsize, opt):
+def median_internal(clip, radius, planes, mode, vcmode, range_in, cal, memsize, opt):
 
     fmt = clip.format
     numplanes = fmt.num_planes
@@ -53,7 +51,7 @@ def Median_internal(clip, radius, planes, mode, vcmode, range_in, cal, memsize, 
 
     if mode == 's':
         if radius == 1:
-            return clip.std.Median(clip, planes=planes)
+            return clip.std.median(clip, planes=planes)
 
         if fmt.sample_type == vs.FLOAT:
             core = vs.core
@@ -64,28 +62,28 @@ def Median_internal(clip, radius, planes, mode, vcmode, range_in, cal, memsize, 
 
         return clip.ctmf.CTMF(radius=radius, memsize=memsize, opt=opt, planes=planes)
 
-    return Median2D(clip, radius, mode, planes)
+    return median2D(clip, radius, mode, planes)
 
 
 
-def Median2D(clip, radius, mode, planes):
+def median2D(clip, radius, mode, planes):
 
     if radius > 10 and len(planes) > clip.format.num_planes:
         clips = split(clip)
         for x in clips:
-            clips[x] = Median2D(clips[x], radius, mode, [0])
+            clips[x] = median2D(clips[x], radius, mode, [0])
         return join(clips)
 
     if radius == 1:
         if mode == 'v':
-            return VerticalCleaner(clip, mode=vcmode, planes=vplanes)
-        return VerticalCleaner(clip.std.Transpose(), mode=vcmode, planes=vplanes).std.Transpose()
+            return verticalcleaner(clip, mode=vcmode, planes=vplanes)
+        return verticalcleaner(clip.std.Transpose(), mode=vcmode, planes=vplanes).std.Transpose()
 
     ShiftPlanes = partial(_shift, sx=0) if mode == 'v' else partial(_shift, sy=0)
 
     clips = [ShiftPlanes(clip, x, planes) for x in range(-radius, radius + 1)]
 
-    return MedianClip(clips, planes)
+    return medianclip(clips, planes)
 
 
 
