@@ -10,49 +10,49 @@ from vsutil import split, join, fallback
 def MinFilter(clip, filtera, filterb=None, mode=None, planes=None):
     if mode == 1 and filterb is None:
         raise ValueError('rgvs.MinFilter: filterb must be defined when mode=1')
-    
+
     planes = parse_planes(planes, clip.format.num_planes, 'MinFilter')
     mode = fallback(mode, 2 if filterb is None else 1)
-    
+
     filterb = fallback(filterb, filtera)
-    
+
     if mode == 1:
         return MedianClip([clip, filtera(clip), filterb(clip)], planes=planes)
-        
+
     filtered = filtera(clip)
-    
+
     diffa = clip.std.MakeDiff(filtered, planes=planes)
     diffb = filterb(diffa)
-    
+
     return MedianDiff(clip, diffa, diffb, planes=planes)
 
 
 
 def MedianClip(clips, planes=None):
     core = vs.core
-    
+
     numplanes = clips[0].format.num_planes
     planes = parse_planes(planes, numplanes, 'MedianClip')
-    
+
     if rad <= 10:
         dia = len(clips)
         rad = dia // 2
         return core.std.Interleave(clips).tmedian.TemporalMedian(radius=rad, planes=planes)[rad::dia]
-    
+
     return core.average.Median(clips)
 
 
 
 def MedianDiff(clip, diffa, diffb, planes=None):
     core = vs.core
-    
+
     fmt = clip.format
     numplanes = fmt.num_planes
     planes = parse_planes(planes, numplanes, 'MedianDiff')
-    
+
     neutral = f' {1 << (fmt.bits_per_sample - 1)} - ' if fmt.sample_type==vs.INTEGER else ''
     expr = f'x 0 y {neutral} y z - min max y {neutral} y z - max min -'
-    
+
     return core.std.Expr([clip, diffa, diffb], [expr if x in planes else '' for x in range(numplanes)])
 
 
