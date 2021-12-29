@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 __all__ = ['minfilter', 'medianclip', 'mediandiff']
+
+from typing import List, Sequence, TypeVar, Union, cast
 
 import vapoursynth as vs
 from vsutil import fallback
@@ -51,21 +55,6 @@ def mediandiff(clip, diffa, diffb, planes=None):
     return core.std.Expr([clip, diffa, diffb], [expr if x in planes else '' for x in range(numplanes)])
 
 
-def parse_planes(planes, numplanes, name):
-    planes = fallback(planes, list(range(numplanes)))
-    if not isinstance(planes, (list, tuple, set, int)):
-        raise TypeError(f'{name}: improper "planes" format')
-    if isinstance(planes, int):
-        planes = [planes]
-    else:
-        planes = list(set(planes))
-    for x in planes:
-        if x >= numplanes:
-            planes = planes[:planes.index(x)]
-            break
-    return planes
-
-
 # if param[x] is a number less than or equal to "zero" or is explicitly False or None, delete x from "planes"
 # if param[x] is a number greater than "zero" or is explicitly True, pass x if it was originally in "planes"
 def eval_planes(planes, params, zero=0):
@@ -81,11 +70,16 @@ def eval_planes(planes, params, zero=0):
     return process
 
 
-def append_params(params, length=3):
-    if isinstance(params, tuple):
-        params = list(params)
-    if not isinstance(params, list):
-        params = [params]
-    while len(params) < length:
-        params.append(params[-1])
-    return params[:length]
+T = TypeVar('T')
+Nb = TypeVar('Nb', bound=Union[float, int])
+
+
+def normalise_seq(x: T | Sequence[T], length_max: int = 3) -> List[T]:
+    if not isinstance(x, Sequence):
+        return [x] * length_max
+    x = cast(Sequence[T], x)
+    return list(x) + [x[-1]] * (length_max - len(x))
+
+
+def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
+    return min_val if val < min_val else max_val if val > max_val else val
