@@ -63,6 +63,14 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
                 expr.append(_aka_repair_expr_23())
             elif m == 24:
                 expr.append(_aka_repair_expr_24())
+            elif m == 25:
+                raise ValueError('repair: invalid mode specified')
+            elif m == 26:
+                expr.append(_aka_repair_expr_26())
+            elif m == 27:
+                expr.append(_aka_repair_expr_27())
+            elif m == 28:
+                expr.append(_aka_repair_expr_28())
         return aka_expr([clip, repairclip], expr).std.SetFrameProps(AkaExpr=mode)
     if (20 in mode or 23 in mode) and clip.format.sample_type == vs.FLOAT:
         raise ValueError('rgsf is wrong')
@@ -388,6 +396,104 @@ def _aka_repair_expr_24() -> str:
         f'{A1} {A8} max x - x {A1} {A8} min - max {A2} {A7} max x - x {A2} {A7} min - max '
         f'{A3} {A6} max x - x {A3} {A6} min - max {A4} {A5} max x - x {A4} {A5} min - max min min min u! '
         'y x u@ - x u@ + clamp'
+    )
+
+
+def _aka_repair_expr_26() -> str:
+    return (
+        f'{A1} {A2} min mil1! '
+        f'{A1} {A2} max mal1! '
+        f'{A2} {A3} min mil2! '
+        f'{A2} {A3} max mal2! '
+        f'{A3} {A5} min mil3! '
+        f'{A3} {A5} max mal3! '
+        f'{A5} {A8} min mil4! '
+        f'{A5} {A8} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A7} {A8} min mil1! '
+        f'{A7} {A8} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A4} {A6} min mil3! '
+        f'{A4} {A6} max mal3! '
+        f'{A1} {A4} min mil4! '
+        f'{A1} {A4} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x y maxmil@ minmal@ min min y maxmil@ minmal@ max max clamp'
+    )
+
+
+def _aka_repair_expr_27() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A1} {A2} min mil2! '
+        f'{A1} {A2} max mal2! '
+        f'{A7} {A8} min mil3! '
+        f'{A7} {A8} max mal3! '
+        f'{A2} {A7} min mil4! '
+        f'{A2} {A7} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A2} {A3} min mil1! '
+        f'{A2} {A3} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A3} {A5} min mil4! '
+        f'{A3} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        f'{A4} {A6} min mil1! '
+        f'{A4} {A6} max mal1! '
+        f'{A4} {A5} min mil2! '
+        f'{A4} {A5} max mal2! '
+        f'{A5} {A8} min mil3! '
+        f'{A5} {A8} max mal3! '
+        f'{A1} {A4} min mil4! '
+        f'{A1} {A4} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x y maxmil@ minmal@ min min y maxmil@ minmal@ max max clamp'
+    )
+
+
+def _aka_repair_expr_28() -> str:
+    return (
+        f'{A1} {A2} min mil1! '
+        f'{A1} {A2} max mal1! '
+        f'{A2} {A3} min mil2! '
+        f'{A2} {A3} max mal2! '
+        f'{A3} {A5} min mil3! '
+        f'{A3} {A5} max mal3! '
+        f'{A5} {A8} min mil4! '
+        f'{A5} {A8} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A7} {A8} min mil1! '
+        f'{A7} {A8} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A4} {A6} min mil3! '
+        f'{A4} {A6} max mal3! '
+        f'{A1} {A5} min mil4! '
+        f'{A1} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A3} {A6} min mil2! '
+        f'{A3} {A6} max mal2! '
+        f'{A2} {A7} min mil3! '
+        f'{A2} {A7} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x y maxmil@ minmal@ min min y maxmil@ minmal@ max max clamp'
     )
 
 
