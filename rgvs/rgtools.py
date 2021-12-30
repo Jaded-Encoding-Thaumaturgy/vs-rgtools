@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ['repair', 'removegrainm', 'removegrain', 'verticalcleaner', 'clense', 'backwardclense', 'forwardclense']
 
+import warnings
 from typing import List, Sequence
 
 import vapoursynth as vs
@@ -497,91 +498,436 @@ def _aka_repair_expr_28() -> str:
     )
 
 
-def removegrain(clip, mode=2, planes=None):
-    if not isinstance(clip, vs.VideoNode):
-        raise TypeError('removegrain: This is not a clip')
+@disallow_variable_format
+def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
+    assert clip.format
 
-    fmt = clip.format
-    isflt = fmt.sample_type
-    numplanes = fmt.num_planes
+    mode = normalise_seq(mode, clip.format.num_planes)
 
-    mode = append_params(mode, numplanes)
+    # rgvs is faster for integer clips
+    if clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
+        return clip.rgvs.RemoveGrain(mode)
 
-    planes = parse_planes(planes, numplanes, 'removegrain')
-    mode = [max(mode[x], 0) if x in planes else 0 for x in range(numplanes)]
+    RemoveGrain = (core.rgsf.RemoveGrain if clip.format.sample_type == vs.FLOAT else core.rgvs.RemoveGrain)
 
-########################################################################
-########################################################################
-### Mode 4 - Use std.median()
-    def _rg4(clip, planes):
-        if len(planes)==0:
-            return clip
-        return clip.std.median(planes=planes)
-    planes_rg4  = []
-    for i in range(numplanes):
-        if mode[i] == 4:
-            planes_rg4 += [i]
-            mode[i] = 0
-    clip = _rg4(clip, planes_rg4)
-########################################################################
-########################################################################
+    try:
+        aka_expr = core.akarin.Expr
+    except AttributeError:
+        pass
+    else:
+        expr: List[str] = []
+        for idx, m in enumerate(mode):
+            if m == 0:
+                expr.append('')
+            if m == 1:
+                expr.append(_aka_removegrain_expr_1())
+            elif 2 <= m <= 4:
+                expr.append(_aka_removegrain_expr_2_4(m))
+            elif m == 5:
+                expr.append(_aka_removegrain_expr_5())
+            elif m == 6:
+                expr.append(_aka_removegrain_expr_6())
+            elif m == 7:
+                expr.append(_aka_removegrain_expr_7())
+            elif m == 8:
+                expr.append(_aka_removegrain_expr_8())
+            elif m == 9:
+                expr.append(_aka_removegrain_expr_9())
+            elif m == 10:
+                expr.append(_aka_removegrain_expr_10())
+            elif 11 <= m <= 12:
+                if all(mm == m for mm in mode):
+                    return clip.std.Convolution([1, 2, 1, 2, 4, 2, 1, 2, 1])
+                expr.append(_aka_removegrain_expr_11_12())
+            elif 13 <= m <= 16:
+                return RemoveGrain(clip, mode)
+            elif m == 17:
+                expr.append(_aka_removegrain_expr_17())
+            elif m == 18:
+                expr.append(_aka_removegrain_expr_18())
+            elif m == 19:
+                if all(mm == 19 for mm in mode):
+                    return clip.std.Convolution([1, 1, 1, 1, 0, 1, 1, 1, 1])
+                expr.append(_aka_removegrain_expr_19())
+            elif m == 20:
+                if all(mm == 20 for mm in mode):
+                    return clip.std.Convolution([1] * 9)
+                expr.append(_aka_removegrain_expr_20())
+            elif m == 21:
+                expr.append(_aka_removegrain_expr_21_22())
+            elif m == 22:
+                expr.append(_aka_removegrain_expr_21_22())
+            elif m == 23:
+                expr.append(_aka_removegrain_expr_23(0 if idx == 0 else -0.5))
+            elif m == 24:
+                expr.append(_aka_removegrain_expr_24(0 if idx == 0 else -0.5))
+            elif m == 25:
+                expr.append('')
+                warnings.warn('mode 25 isn\'t implemented yet')
+            elif m == 26:
+                expr.append(_aka_removegrain_expr_26())
+            elif m == 27:
+                expr.append(_aka_removegrain_expr_27())
+            elif m == 28:
+                expr.append(_aka_removegrain_expr_28())
+        return aka_expr(clip, expr).std.SetFrameProps(AkaExpr=mode)
+    return clip.rgsf.RemoveGrain(mode)
 
 
-########################################################################
-########################################################################
-### Mode 11/12 - Use std.Convolution([1,2,1,2,4,2,1,2,1])
-    def _rg11(clip, planes):
-        if len(planes)==0:
-            return clip
-        return clip.std.Convolution([1,2,1,2,4,2,1,2,1], planes=planes)
-    planes_rg11 = []
-    for i in range(numplanes):
-        if mode[i] in (11, 12):
-            planes_rg11 += [i]
-            mode[i] = 0
-    clip = _rg11(clip, planes_rg11)
-########################################################################
-########################################################################
+
+A1 = 'x[-1,-1]'
+A2 = 'x[0,-1]'
+A3 = 'x[1,-1]'
+A4 = 'x[-1,0]'
+A5 = 'x[1,0]'
+A6 = 'x[-1,1]'
+A7 = 'x[0,1]'
+A8 = 'x[1,1]'
+c = 'x'
+PIXELS = ' '.join([A1, A2, A3, A4, A5, A6, A7, A8])
 
 
-########################################################################
-########################################################################
-### Mode 19 - Use std.Convolution([1,1,1,1,0,1,1,1,1])
-    def _rg19(clip, planes):
-        if len(planes)==0:
-            return clip
-        return clip.std.Convolution([1,1,1,1,0,1,1,1,1], planes=planes)
-    planes_rg19 = []
-    for i in range(numplanes):
-        if mode[i] == 19:
-            planes_rg19 += [i]
-            mode[i] = 0
-    clip = _rg19(clip, planes_rg19)
-########################################################################
-########################################################################
+def _aka_removegrain_expr_1() -> str:
+    return f'x {PIXELS} min min min min min min min {PIXELS} max max max max max max max clamp'
 
 
-########################################################################
-########################################################################
-### Mode 20 - Use std.Convolution([1,1,1,1,1,1,1,1,1])
-    def _rg20(clip, planes):
-        if len(planes)==0:
-            return clip
-        return clip.std.Convolution([1]*9, planes=planes)
-    planes_rg20 = []
-    for i in range(numplanes):
-        if mode[i] == 20:
-            planes_rg20 += [i]
-            mode[i] = 0
-    clip = _rg20(clip, planes_rg20)
-########################################################################
-########################################################################
+def _aka_removegrain_expr_2_4(m: int) -> str:
+    # print(f'dup{9 - m} dup{m - 1}')
+    return f'{PIXELS} sort8 dup{8 - m} max_val! dup{m - 1} min_val! drop8 x min_val@ max_val@ clamp'
 
-    if max(mode) == 0:
-        return clip
-    if isflt:
-        return clip.rgsf.removegrain(mode)
-    return clip.rgvs.removegrain(mode)
+
+def _aka_removegrain_expr_5() -> str:
+    return (
+        f'x {A1} {A8} min {A1} {A8} max clamp clamp1! '
+        f'x {A2} {A7} min {A2} {A7} max clamp clamp2! '
+        f'x {A3} {A6} min {A3} {A6} max clamp clamp3! '
+        f'x {A4} {A5} min {A4} {A5} max clamp clamp4! '
+        'x clamp1@ - abs c1! '
+        'x clamp2@ - abs c2! '
+        'x clamp3@ - abs c3! '
+        'x clamp4@ - abs c4! '
+        'c1@ c2@ c3@ c4@ min min min mindiff! '
+        'mindiff@ c4@ = clamp4@ mindiff@ c2@ = clamp2@ mindiff@ c3@ = clamp3@ clamp1@ ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_6() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - d1! '
+        'mal2@ mil2@ - d2! '
+        'mal3@ mil3@ - d3! '
+        'mal4@ mil4@ - d4! '
+        'x mil1@ mal1@ clamp clamp1! '
+        'x mil2@ mal2@ clamp clamp2! '
+        'x mil3@ mal3@ clamp clamp3! '
+        'x mil4@ mal4@ clamp clamp4! '
+        'x clamp1@ - abs 2 * d1@ + c1! '
+        'x clamp2@ - abs 2 * d2@ + c2! '
+        'x clamp3@ - abs 2 * d3@ + c3! '
+        'x clamp4@ - abs 2 * d4@ + c4! '
+        'c1@ c2@ c3@ c4@ min min min mindiff! '
+        'mindiff@ c4@ = clamp4@ mindiff@ c2@ = clamp2@ mindiff@ c3@ = clamp3@ clamp1@ ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_7() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - d1! '
+        'mal2@ mil2@ - d2! '
+        'mal3@ mil3@ - d3! '
+        'mal4@ mil4@ - d4! '
+        'x mil1@ mal1@ clamp clamp1! '
+        'x mil2@ mal2@ clamp clamp2! '
+        'x mil3@ mal3@ clamp clamp3! '
+        'x mil4@ mal4@ clamp clamp4! '
+        # Only change is removing the "* 2"
+        'x clamp1@ - abs d1@ + c1! '
+        'x clamp2@ - abs d2@ + c2! '
+        'x clamp3@ - abs d3@ + c3! '
+        'x clamp4@ - abs d4@ + c4! '
+        'c1@ c2@ c3@ c4@ min min min mindiff! '
+        'mindiff@ c4@ = clamp4@ mindiff@ c2@ = clamp2@ mindiff@ c3@ = clamp3@ clamp1@ ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_8() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - d1! '
+        'mal2@ mil2@ - d2! '
+        'mal3@ mil3@ - d3! '
+        'mal4@ mil4@ - d4! '
+        'x mil1@ mal1@ clamp clamp1! '
+        'x mil2@ mal2@ clamp clamp2! '
+        'x mil3@ mal3@ clamp clamp3! '
+        'x mil4@ mal4@ clamp clamp4! '
+        'x clamp1@ - abs d1@ 2 * + c1! '
+        'x clamp2@ - abs d2@ 2 * + c2! '
+        'x clamp3@ - abs d3@ 2 * + c3! '
+        'x clamp4@ - abs d4@ 2 * + c4! '
+        'c1@ c2@ c3@ c4@ min min min mindiff! '
+        'mindiff@ c4@ = clamp4@ mindiff@ c2@ = clamp2@ mindiff@ c3@ = clamp3@ clamp1@ ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_9() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - d1! '
+        'mal2@ mil2@ - d2! '
+        'mal3@ mil3@ - d3! '
+        'mal4@ mil4@ - d4! '
+        'd1@ d2@ d3@ d4@ min min min mindiff! '
+        'mindiff@ d4@ = x mil4@ mal4@ clamp mindiff@ d2@ = x mil2@ mal2@ clamp mindiff@ d3@ = x mil3@ mal3@ clamp x mil1@ mal1@ clamp ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_10() -> str:
+    return (
+        f'x {A1} - abs d1! '
+        f'x {A2} - abs d2! '
+        f'x {A3} - abs d3! '
+        f'x {A4} - abs d4! '
+        f'x {A5} - abs d5! '
+        f'x {A6} - abs d6! '
+        f'x {A7} - abs d7! '
+        f'x {A8} - abs d8! '
+        'd1@ d2@ d3@ d4@ d5@ d6@ d7@ d8@ min min min min min min min mindiff! '
+        f'mindiff@ d7@ = {A7} mindiff@ d8@ = {A8} mindiff@ d6@ = {A6} mindiff@ d2@ = {A2} mindiff@ d3@ = {A3} mindiff@ d1@ = {A1} '
+        f'mindiff@ d5@ = {A5} {A4} ? ? ? ? ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_11_12() -> str:
+    return f'x 4 * {A2} {A4} {A5} {A7} + + + 2 * + {A1} {A3} {A6} {A8} + + + + 16 /'
+
+
+def _aka_removegrain_expr_17() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        'x maxmil@ minmal@ min maxmil@ minmal@ max clamp'
+    )
+
+
+def _aka_removegrain_expr_18() -> str:
+    return (
+        f'x {A1} - abs x {A8} - abs max d1! '
+        f'x {A2} - abs x {A7} - abs max d2! '
+        f'x {A3} - abs x {A6} - abs max d3! '
+        f'x {A4} - abs x {A5} - abs max d4! '
+        'd1@ d2@ d3@ d4@ min min min mindiff! '
+        f'mindiff@ d4@ = x {A4} {A5} min {A4} {A5} max clamp '
+        f'mindiff@ d2@ = x {A2} {A7} min {A2} {A7} max clamp '
+        f'mindiff@ d3@ = x {A3} {A6} min {A3} {A6} max clamp '
+        f'x {A1} {A8} min {A1} {A8} max clamp ? ? ?'
+    )
+
+
+def _aka_removegrain_expr_19() -> str:
+    return f'{A1} {A2} {A3} {A4} {A5} {A6} {A7} {A8} + + + + + + + 8.0 /'
+
+
+def _aka_removegrain_expr_20() -> str:
+    return f'x {A1} {A2} {A3} {A4} {A5} {A6} {A7} {A8} + + + + + + + + 9.0 /'
+
+
+def _aka_removegrain_expr_21_22() -> str:
+    return (
+        f'{A1} {A8} + 2 / av1! '
+        f'{A2} {A7} + 2 / av2! '
+        f'{A3} {A6} + 2 / av3! '
+        f'{A4} {A5} + 2 / av4! '
+        'x av1@ av2@ av3@ av4@ min min min av1@ av2@ av3@ av4@ max max max clamp'
+    )
+
+
+def _aka_removegrain_expr_23(peak_min: float) -> str:
+    u = f'x mal1@ - linediff1@ min x mal2@ - linediff2@ min x mal3@ - linediff3@ min x mal4@ - linediff4@ min max max max {peak_min} max'
+    d = f'mil1@ x - linediff1@ min mil2@ x - linediff2@ min mil3@ x - linediff3@ min mil4@ x - linediff4@ min max max max {peak_min} max'
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - linediff1! '
+        'mal2@ mil2@ - linediff2! '
+        'mal3@ mil3@ - linediff3! '
+        'mal4@ mil4@ - linediff4! '
+        f'x {u} - {d} +'
+    )
+
+
+def _aka_removegrain_expr_24(peak_min: float) -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A2} {A7} min mil2! '
+        f'{A2} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mal1@ mil1@ - linediff1! '
+        'mal2@ mil2@ - linediff2! '
+        'mal3@ mil3@ - linediff3! '
+        'mal4@ mil4@ - linediff4! '
+        'x mal1@ - t1! '
+        'x mal2@ - t2! '
+        'x mal3@ - t3! '
+        'x mal4@ - t4! '
+        f'linediff1@ t1@ - t1@ min linediff2@ t2@ - t2@ min linediff3@ t3@ - t3@ min linediff4@ t4@ - t4@ min max max max {peak_min} max u! '
+        'mil1@ x - t1! '
+        'mil2@ x - t2! '
+        'mil3@ x - t3! '
+        'mil4@ x - t4! '
+        f'linediff1@ t1@ - t1@ min linediff2@ t2@ - t2@ min linediff3@ t3@ - t3@ min linediff4@ t4@ - t4@ min max max max {peak_min} max d! '
+        f'x u@ - d@ +'
+    )
+
+
+def _aka_removegrain_expr_25() -> str:
+    raise ValueError
+
+
+def _aka_removegrain_expr_26() -> str:
+    return (
+        f'{A1} {A2} min mil1! '
+        f'{A1} {A2} max mal1! '
+        f'{A2} {A3} min mil2! '
+        f'{A2} {A3} max mal2! '
+        f'{A3} {A5} min mil3! '
+        f'{A3} {A5} max mal3! '
+        f'{A5} {A8} min mil4! '
+        f'{A5} {A8} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A7} {A8} min mil1! '
+        f'{A7} {A8} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A4} {A6} min mil3! '
+        f'{A4} {A6} max mal3! '
+        f'{A1} {A4} min mil4! '
+        f'{A1} {A4} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x maxmil@ minmal@ min maxmil@ minmal@ max clamp'
+    )
+
+
+def _aka_removegrain_expr_27() -> str:
+    return (
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A1} {A2} min mil2! '
+        f'{A1} {A2} max mal2! '
+        f'{A7} {A8} min mil3! '
+        f'{A7} {A8} max mal3! '
+        f'{A2} {A7} min mil4! '
+        f'{A2} {A7} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A2} {A3} min mil1! '
+        f'{A2} {A3} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A3} {A6} min mil3! '
+        f'{A3} {A6} max mal3! '
+        f'{A3} {A5} min mil4! '
+        f'{A3} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        f'{A4} {A6} min mil1! '
+        f'{A4} {A6} max mal1! '
+        f'{A4} {A5} min mil2! '
+        f'{A4} {A5} max mal2! '
+        f'{A5} {A8} min mil3! '
+        f'{A5} {A8} max mal3! '
+        f'{A1} {A4} min mil4! '
+        f'{A1} {A4} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x maxmil@ minmal@ min maxmil@ minmal@ max clamp'
+    )
+
+
+def _aka_removegrain_expr_28() -> str:
+    return (
+        f'{A1} {A2} min mil1! '
+        f'{A1} {A2} max mal1! '
+        f'{A2} {A3} min mil2! '
+        f'{A2} {A3} max mal2! '
+        f'{A3} {A5} min mil3! '
+        f'{A3} {A5} max mal3! '
+        f'{A5} {A8} min mil4! '
+        f'{A5} {A8} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ min min min minmal! '
+        f'{A7} {A8} min mil1! '
+        f'{A7} {A8} max mal1! '
+        f'{A6} {A7} min mil2! '
+        f'{A6} {A7} max mal2! '
+        f'{A4} {A6} min mil3! '
+        f'{A4} {A6} max mal3! '
+        f'{A1} {A5} min mil4! '
+        f'{A1} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        f'{A1} {A8} min mil1! '
+        f'{A1} {A8} max mal1! '
+        f'{A3} {A6} min mil2! '
+        f'{A3} {A6} max mal2! '
+        f'{A2} {A7} min mil3! '
+        f'{A2} {A7} max mal3! '
+        f'{A4} {A5} min mil4! '
+        f'{A4} {A5} max mal4! '
+        'mil1@ mil2@ mil3@ mil4@ maxmil@ max max max max maxmil! '
+        'mal1@ mal2@ mal3@ mal4@ minmal@ min min min min minmal! '
+        'x maxmil@ minmal@ min maxmil@ minmal@ max clamp'
+    )
 
 
 def removegrainm(clip, mode=2, modeu=None, modev=None, iter=None, planes=None):
