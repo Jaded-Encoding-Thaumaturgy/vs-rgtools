@@ -31,49 +31,49 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
             if m == 0:
                 expr.append('')
             elif 1 <= m <= 4:
-                expr.append(_aka_repair_expr_1_4(m))
+                expr.append(aka_repair_expr_1_4(m))
             elif m == 5:
-                expr.append(_aka_repair_expr_5())
+                expr.append(aka_repair_expr_5())
             elif m == 6:
-                expr.append(_aka_repair_expr_6())
+                expr.append(aka_repair_expr_6())
             elif m == 7:
-                expr.append(_aka_repair_expr_7())
+                expr.append(aka_repair_expr_7())
             elif m == 8:
-                expr.append(_aka_repair_expr_8())
+                expr.append(aka_repair_expr_8())
             elif m == 9:
-                expr.append(_aka_repair_expr_9())
+                expr.append(aka_repair_expr_9())
             elif m == 10:
-                expr.append(_aka_repair_expr_10())
+                expr.append(aka_repair_expr_10())
             elif 11 <= m <= 14:
-                expr.append(_aka_repair_expr_11_14(m - 10))
+                expr.append(aka_repair_expr_11_14(m - 10))
             elif m == 15:
-                expr.append(_aka_repair_expr_15())
+                expr.append(aka_repair_expr_15())
             elif m == 16:
-                expr.append(_aka_repair_expr_16())
+                expr.append(aka_repair_expr_16())
             elif m == 17:
-                expr.append(_aka_repair_expr_17())
+                expr.append(aka_repair_expr_17())
             elif m == 18:
-                expr.append(_aka_repair_expr_18())
+                expr.append(aka_repair_expr_18())
             elif m == 19:
-                expr.append(_aka_repair_expr_19())
+                expr.append(aka_repair_expr_19())
             elif m == 20:
-                expr.append(_aka_repair_expr_20())
+                expr.append(aka_repair_expr_20())
             elif m == 21:
-                expr.append(_aka_repair_expr_21())
+                expr.append(aka_repair_expr_21())
             elif m == 22:
-                expr.append(_aka_repair_expr_22())
+                expr.append(aka_repair_expr_22())
             elif m == 23:
-                expr.append(_aka_repair_expr_23())
+                expr.append(aka_repair_expr_23())
             elif m == 24:
-                expr.append(_aka_repair_expr_24())
+                expr.append(aka_repair_expr_24())
             elif m == 25:
                 raise ValueError('repair: invalid mode specified')
             elif m == 26:
-                expr.append(_aka_repair_expr_26())
+                expr.append(aka_repair_expr_26())
             elif m == 27:
-                expr.append(_aka_repair_expr_27())
+                expr.append(aka_repair_expr_27())
             elif m == 28:
-                expr.append(_aka_repair_expr_28())
+                expr.append(aka_repair_expr_28())
         return aka_expr([clip, repairclip], expr)
     if (20 in mode or 23 in mode) and clip.format.sample_type == vs.FLOAT:
         raise ValueError('rgsf is wrong')
@@ -102,56 +102,56 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
             if m == 0:
                 expr.append('')
             if m == 1:
-                expr.append(_aka_removegrain_expr_1())
+                expr.append(aka_removegrain_expr_1())
             elif 2 <= m <= 4:
-                expr.append(_aka_removegrain_expr_2_4(m))
+                expr.append(aka_removegrain_expr_2_4(m))
             elif m == 5:
-                expr.append(_aka_removegrain_expr_5())
+                expr.append(aka_removegrain_expr_5())
             elif m == 6:
-                expr.append(_aka_removegrain_expr_6())
+                expr.append(aka_removegrain_expr_6())
             elif m == 7:
-                expr.append(_aka_removegrain_expr_7())
+                expr.append(aka_removegrain_expr_7())
             elif m == 8:
-                expr.append(_aka_removegrain_expr_8())
+                expr.append(aka_removegrain_expr_8())
             elif m == 9:
-                expr.append(_aka_removegrain_expr_9())
+                expr.append(aka_removegrain_expr_9())
             elif m == 10:
-                expr.append(_aka_removegrain_expr_10())
+                expr.append(aka_removegrain_expr_10())
             elif 11 <= m <= 12:
                 if all(mm == m for mm in mode):
                     return clip.std.Convolution([1, 2, 1, 2, 4, 2, 1, 2, 1])
-                expr.append(_aka_removegrain_expr_11_12())
+                expr.append(aka_removegrain_expr_11_12())
             elif 13 <= m <= 16:
                 return RemoveGrain(clip, mode)
             elif m == 17:
-                expr.append(_aka_removegrain_expr_17())
+                expr.append(aka_removegrain_expr_17())
             elif m == 18:
-                expr.append(_aka_removegrain_expr_18())
+                expr.append(aka_removegrain_expr_18())
             elif m == 19:
                 if all(mm == 19 for mm in mode):
                     return clip.std.Convolution([1, 1, 1, 1, 0, 1, 1, 1, 1])
-                expr.append(_aka_removegrain_expr_19())
+                expr.append(aka_removegrain_expr_19())
             elif m == 20:
                 if all(mm == 20 for mm in mode):
                     return clip.std.Convolution([1] * 9)
-                expr.append(_aka_removegrain_expr_20())
+                expr.append(aka_removegrain_expr_20())
             elif m == 21:
-                expr.append(_aka_removegrain_expr_21_22())
+                expr.append(aka_removegrain_expr_21_22())
             elif m == 22:
-                expr.append(_aka_removegrain_expr_21_22())
+                expr.append(aka_removegrain_expr_21_22())
             elif m == 23:
-                expr.append(_aka_removegrain_expr_23(0 if idx == 0 else -0.5))
+                expr.append(aka_removegrain_expr_23(0 if idx == 0 else -0.5))
             elif m == 24:
-                expr.append(_aka_removegrain_expr_24(0 if idx == 0 else -0.5))
+                expr.append(aka_removegrain_expr_24(0 if idx == 0 else -0.5))
             elif m == 25:
                 expr.append('')
                 warnings.warn('mode 25 isn\'t implemented yet')
             elif m == 26:
-                expr.append(_aka_removegrain_expr_26())
+                expr.append(aka_removegrain_expr_26())
             elif m == 27:
-                expr.append(_aka_removegrain_expr_27())
+                expr.append(aka_removegrain_expr_27())
             elif m == 28:
-                expr.append(_aka_removegrain_expr_28())
+                expr.append(aka_removegrain_expr_28())
         return aka_expr(clip, expr).std.SetFrameProps(AkaExpr=mode)
     return clip.rgsf.RemoveGrain(mode)
 
