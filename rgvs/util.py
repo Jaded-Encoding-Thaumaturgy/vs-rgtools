@@ -1,73 +1,36 @@
 from __future__ import annotations
 
-__all__ = ['minfilter', 'medianclip', 'mediandiff']
+__all__ = ['minfilter', 'maxfilter']
 
 from typing import List, Sequence, TypeVar, Union, cast
 
 import vapoursynth as vs
-from vsutil import fallback
+
+core = vs.core
 
 
-def minfilter(clip, filtera, filterb=None, mode=None, planes=None):
-    if mode == 1 and filterb is None:
-        raise ValueError('rgvs.minfilter: filterb must be defined when mode=1')
-
-    planes = parse_planes(planes, clip.format.num_planes, 'minfilter')
-    mode = fallback(mode, 2 if filterb is None else 1)
-
-    filterb = fallback(filterb, filtera)
-
-    if mode == 1:
-        return medianclip([clip, filtera(clip), filterb(clip)], planes=planes)
-
-    filtered = filtera(clip)
-
-    diffa = clip.std.MakeDiff(filtered, planes=planes)
-    diffb = filterb(diffa)
-
-    return mediandiff(clip, diffa, diffb, planes=planes)
+def minfilter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+    assert src.format
+    if planes is not None:
+        planes = normalise_seq(planes)
+    else:
+        planes = list(range(3))
+    return core.std.Expr(
+        [src, flt1, flt2],
+        ['x z - abs x y - abs < z y ?' if i in planes else '' for i in range(src.format.num_planes)]
+    )
 
 
-def medianclip(clips, planes=None):
-    core = vs.core
-
-    numplanes = clips[0].format.num_planes
-    planes = parse_planes(planes, numplanes, 'medianclip')
-
-    if rad <= 10:
-        dia = len(clips)
-        rad = dia // 2
-        return core.std.Interleave(clips).tmedian.TemporalMedian(radius=rad, planes=planes)[rad::dia]
-
-    return core.average.median(clips)
-
-
-def mediandiff(clip, diffa, diffb, planes=None):
-    core = vs.core
-
-    fmt = clip.format
-    numplanes = fmt.num_planes
-    planes = parse_planes(planes, numplanes, 'mediandiff')
-
-    neutral = f' {1 << (fmt.bits_per_sample - 1)} - ' if fmt.sample_type==vs.INTEGER else ''
-    expr = f'x 0 y {neutral} y z - min max y {neutral} y z - max min -'
-
-    return core.std.Expr([clip, diffa, diffb], [expr if x in planes else '' for x in range(numplanes)])
-
-
-# if param[x] is a number less than or equal to "zero" or is explicitly False or None, delete x from "planes"
-# if param[x] is a number greater than "zero" or is explicitly True, pass x if it was originally in "planes"
-def eval_planes(planes, params, zero=0):
-    process = []
-    for x in range(len(params)):
-        if x in planes:
-            if params[x] is False or params[x] is None:
-                pass
-            elif params[x] is True:
-                process += [x]
-            elif params[x] > zero:
-                process += [x]
-    return process
+def maxfilter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+    assert src.format
+    if planes is not None:
+        planes = normalise_seq(planes)
+    else:
+        planes = list(range(3))
+    return core.std.Expr(
+        [src, flt1, flt2],
+        ['x z - abs x y - abs > z y ?' if i in planes else '' for i in range(src.format.num_planes)]
+    )
 
 
 T = TypeVar('T')
