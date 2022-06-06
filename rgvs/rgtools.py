@@ -7,9 +7,22 @@ from typing import List, Optional, Sequence
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format
+from .util import pick_rg
 
-from ._expr_rg import *
-from ._expr_rp import *
+from ._expr_rg import (
+    aka_removegrain_expr_1, aka_removegrain_expr_2_4, aka_removegrain_expr_5, aka_removegrain_expr_6,
+    aka_removegrain_expr_7, aka_removegrain_expr_8, aka_removegrain_expr_9, aka_removegrain_expr_10,
+    aka_removegrain_expr_11_12, aka_removegrain_expr_17, aka_removegrain_expr_18, aka_removegrain_expr_19,
+    aka_removegrain_expr_20, aka_removegrain_expr_21_22, aka_removegrain_expr_23, aka_removegrain_expr_24,
+    aka_removegrain_expr_26, aka_removegrain_expr_27, aka_removegrain_expr_28
+)
+from ._expr_rp import (
+    aka_repair_expr_1_4, aka_repair_expr_5, aka_repair_expr_6, aka_repair_expr_7, aka_repair_expr_8,
+    aka_repair_expr_9, aka_repair_expr_10, aka_repair_expr_11_14, aka_repair_expr_15, aka_repair_expr_16,
+    aka_repair_expr_17, aka_repair_expr_18, aka_repair_expr_19, aka_repair_expr_20, aka_repair_expr_21,
+    aka_repair_expr_22, aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27,
+    aka_repair_expr_28
+)
 from .util import normalise_seq
 
 core = vs.core
