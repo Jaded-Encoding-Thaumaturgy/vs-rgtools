@@ -23,13 +23,10 @@ def minfilter(
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
     assert src.format
-    if planes is not None:
-        planes = normalise_seq(planes)
-    else:
-        planes = list(range(3))
+
     return core.std.Expr(
         [src, flt1, flt2],
-        ['x z - abs x y - abs < z y ?' if i in planes else '' for i in range(src.format.num_planes)]
+        ['x z - abs x y - abs < z y ?' if i in normalise_planes(planes) else '' for i in range(src.format.num_planes)]
     )
 
 
@@ -39,13 +36,10 @@ def maxfilter(
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
     assert src.format
-    if planes is not None:
-        planes = normalise_seq(planes)
-    else:
-        planes = list(range(3))
+
     return core.std.Expr(
         [src, flt1, flt2],
-        ['x z - abs x y - abs > z y ?' if i in planes else '' for i in range(src.format.num_planes)]
+        ['x z - abs x y - abs > z y ?' if i in normalise_planes(planes) else '' for i in range(src.format.num_planes)]
     )
 
 
@@ -62,3 +56,14 @@ def normalise_seq(x: T | Sequence[T], length_max: int = 3) -> List[T]:
 
 def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
     return min_val if val < min_val else max_val if val > max_val else val
+
+
+def normalise_planes(clip: vs.VideoNode, planes: int | Sequence[int] | None) -> List[int]:
+    assert clip.format
+
+    if planes is None:
+        planes = list(range(3))
+    else:
+        planes = normalise_seq(planes, clip.format.num_planes)
+
+    return planes
