@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['sbr', 'minblur']
+__all__ = ['sbr', 'minblur', 'boxblur']
 
 
 from typing import Sequence
@@ -8,6 +8,39 @@ from typing import Sequence
 import vapoursynth as vs
 
 core = vs.core
+
+wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
+mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+
+def boxblur(
+    clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    if len(weights) != 9:
+        raise ValueError('boxblur: weights has to be an array of length 9!')
+
+    try:
+        aka_expr = core.akarin.Expr
+    except AttributeError:
+        pass
+    else:
+        weights_string = [
+            x.format(w=w) for x, w in zip([
+                'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
+                'x[-1,0] {w} *', 'x {w} *', 'x[1,0] {w} *',
+                'x[-1,1] {w} *', 'x[0,1] {w} *', 'x[1,1] {w} *'
+            ], weights)
+        ].join(' ')
+
+        add_string = '+ ' * 8
+
+        expr_string = f'{weights_string} {add_string} {sum(map(float, weights))} /'
+
+        return aka_expr(clip, [
+            expr_string if i in normalise_planes(planes) else ''
+            for i in range(clip.format.num_planes)
+        ])
+    return clip.std.Convolution(weights, planes=planes)
 
 
 def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
