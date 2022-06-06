@@ -1,0 +1,7 @@
+[flake8]
+count = True
+ignore = W503
+max-line-length = 120
+exclude = stubs/*, legacy/*
+show-source = True
+statistics = True
