@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ['minfilter', 'maxfilter']
 
 from typing import List, Sequence, TypeVar, cast, Callable
+from vsutil import disallow_variable_format, get_depth
 
 import vapoursynth as vs
 
@@ -67,3 +68,26 @@ def normalise_planes(clip: vs.VideoNode, planes: int | Sequence[int] | None) -> 
         planes = normalise_seq(planes, clip.format.num_planes)
 
     return planes
+
+
+# Waiting for vsutil 0.6.1 zzzzz
+
+@disallow_variable_format
+def get_lowest_value(clip: vs.VideoNode, chroma: bool = False) -> float:
+    is_float = clip.format.sample_type == vs.FLOAT
+
+    return -0.5 if chroma and is_float else 0.
+
+
+@disallow_variable_format
+def get_neutral_value(clip: vs.VideoNode, chroma: bool = False) -> float:
+    is_float = clip.format.sample_type == vs.FLOAT
+
+    return (0. if chroma else 0.5) if is_float else float(1 << (get_depth(clip) - 1))
+
+
+@disallow_variable_format
+def get_peak_value(clip: vs.VideoNode, chroma: bool = False) -> float:
+    is_float = clip.format.sample_type == vs.FLOAT
+
+    return (0.5 if chroma else 1.) if is_float else (1 << get_depth(clip)) - 1.
