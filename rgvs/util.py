@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ['minfilter', 'maxfilter']
 
-from typing import List, Sequence, TypeVar, Union, cast, Callable
+from typing import List, Sequence, TypeVar, cast, Callable
 
 import vapoursynth as vs
 
@@ -50,7 +50,7 @@ def maxfilter(
 
 
 T = TypeVar('T')
-Nb = TypeVar('Nb', bound=Union[float, int])
+Nb = TypeVar('Nb', float, int)
 
 
 def normalise_seq(x: T | Sequence[T], length_max: int = 3) -> List[T]:
