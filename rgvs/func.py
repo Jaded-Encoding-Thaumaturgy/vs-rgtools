@@ -4,8 +4,12 @@ __all__ = ['sbr', 'minblur', 'boxblur']
 
 
 from typing import Sequence
+from functools import partial
+from vsutil import disallow_variable_format, disallow_variable_resolution
 
 import vapoursynth as vs
+
+from .util import normalise_planes
 
 core = vs.core
 
@@ -43,81 +47,67 @@ def boxblur(
     return clip.std.Convolution(weights, planes=planes)
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
     """
     MinBlur   by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
     """
-    if not clip.format:
-        raise ValueError('minblur: Variable format isn\'t supported')
-    if planes is None:
-        planes = list(range(clip.format.num_planes))
-    elif isinstance(planes, int):
-        planes = [planes]
+    assert clip.format
 
-    wmean_mat = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-    mean_mat = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    planes = normalise_planes(clip, planes)
+    pboxblur = partial(boxblur, planes=planes)
+
+    median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, planes=planes)
 
     if radius == 0:
         weighted = sbr(clip, planes=planes)
-        median = core.std.Median(clip, planes)
     elif radius == 1:
-        weighted = core.std.Convolution(clip, wmean_mat, planes=planes)
-        median = core.std.Median(clip, planes)
+        weighted = pboxblur(clip, wmean_matrix)
     elif radius == 2:
-        weighted = core.std.Convolution(clip, wmean_mat, planes=planes).std.Convolution(mean_mat, planes=planes)
-        median = core.ctmf.CTMF(clip, radius, planes=planes)
+        weighted = pboxblur(pboxblur(clip, wmean_matrix), mean_matrix)
     else:
-        weighted = core.std.Convolution(clip, wmean_mat, planes=planes).std.Convolution(mean_mat, planes=planes)
-        weighted = weighted.std.Convolution(mean_mat, planes=planes)
-        median = core.ctmf.CTMF(clip, radius, planes=planes)
+        weighted = pboxblur(pboxblur(pboxblur(clip, wmean_matrix), mean_matrix), mean_matrix)
 
-    return core.std.Expr(
-        [clip, weighted, median],
-        ['x y - x z - * 0 < x x y - abs x z - abs < y z ? ?'
-         if i in planes else '' for i in range(clip.format.num_planes)]
-    )
+    return core.std.Expr([clip, weighted, median], [
+        'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?'
+        if i in planes else '' for i in range(clip.format.num_planes)
+    ])
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def sbr(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
     """make a highpass on a blur's difference (well, kind of that)"""
-    if not clip.format:
-        raise ValueError('minblur: Variable format isn\'t supported')
+    assert clip.format
 
-    if planes is None:
-        planes = list(range(clip.format.num_planes))
-    elif isinstance(planes, int):
-        planes = [planes]
+    planes = normalise_planes(clip, planes)
+    pboxblur = partial(boxblur, planes=planes)
 
     neutral = [
-        1 << (clip.format.bits_per_sample - 1)
-        if clip.format.sample_type != vs.FLOAT else 0.
+        1 << (clip.format.bits_per_sample - 1) if clip.format.sample_type != vs.FLOAT else 0.
     ] * clip.format.num_planes
 
-    matrix1 = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-    matrix2 = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    if radius == 1:
+        weighted = pboxblur(clip, wmean_matrix)
+    elif radius == 2:
+        weighted = pboxblur(pboxblur(clip, wmean_matrix), mean_matrix)
+    else:
+        weighted = pboxblur(pboxblur(pboxblur(clip, wmean_matrix), mean_matrix), mean_matrix)
+
+    diff = clip.std.MakeDiff(weighted, planes)
 
     if radius == 1:
-        weighted = core.std.Convolution(clip, matrix1, planes=planes)
+        diff_weighted = pboxblur(diff, wmean_matrix)
     elif radius == 2:
-        weighted = core.std.Convolution(clip, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
+        diff_weighted = pboxblur(pboxblur(diff, wmean_matrix), mean_matrix)
     else:
-        weighted = core.std.Convolution(clip, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
-        weighted = weighted.std.Convolution(matrix2, planes=planes)
+        diff_weighted = pboxblur(pboxblur(pboxblur(diff, wmean_matrix), mean_matrix), mean_matrix)
 
-    diff = core.std.MakeDiff(clip, weighted, planes)
+    diff = core.std.Expr([diff, diff_weighted], [
+        f'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
+        if i in planes else '' for i, mid in enumerate(neutral, 0)
+    ])
 
-    if radius == 1:
-        diff_weighted = core.std.Convolution(diff, matrix1, planes=planes)
-    elif radius == 2:
-        diff_weighted = core.std.Convolution(diff, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
-    else:
-        diff_weighted = core.std.Convolution(diff, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
-        diff_weighted = diff_weighted.std.Convolution(matrix2, planes=planes)
-
-    diff = core.std.Expr(
-        [diff, diff_weighted],
-        [f'x y - x {neutral[i]} - * 0 < {neutral[i]} x y - abs x {neutral[i]} - abs < x y - {neutral[i]} + x ? ?'
-         if i in planes else '' for i in range(clip.format.num_planes)]
-    )
-    return core.std.MakeDiff(clip, diff, planes)
+    return clip.std.MakeDiff(diff, planes)

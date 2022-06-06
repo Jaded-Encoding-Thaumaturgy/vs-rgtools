@@ -89,7 +89,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
         return aka_expr([clip, repairclip], expr)
     if (20 in mode or 23 in mode) and clip.format.sample_type == vs.FLOAT:
         raise ValueError('rgsf is wrong')
-    return (core.rgsf.Repair if clip.format.sample_type == vs.FLOAT else core.rgvs.Repair)(clip, repairclip, mode)
+    return pick_rg(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
 
 
 @disallow_variable_format
@@ -101,8 +101,6 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     # rgvs is faster for integer clips
     if clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
         return clip.rgvs.RemoveGrain(mode)
-
-    RemoveGrain = (core.rgsf.RemoveGrain if clip.format.sample_type == vs.FLOAT else core.rgvs.RemoveGrain)
 
     try:
         aka_expr = core.akarin.Expr
@@ -134,7 +132,7 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
                     return clip.std.Convolution([1, 2, 1, 2, 4, 2, 1, 2, 1])
                 expr.append(aka_removegrain_expr_11_12())
             elif 13 <= m <= 16:
-                return RemoveGrain(clip, mode)
+                return pick_rg(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
             elif m == 17:
                 expr.append(aka_removegrain_expr_17())
             elif m == 18:

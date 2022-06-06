@@ -25,10 +25,10 @@ def minfilter(
 ) -> vs.VideoNode:
     assert src.format
 
-    return core.std.Expr(
-        [src, flt1, flt2],
-        ['x z - abs x y - abs < z y ?' if i in normalise_planes(planes) else '' for i in range(src.format.num_planes)]
-    )
+    return core.std.Expr([src, flt1, flt2], [
+        'x z - abs x y - abs < z y ?' if i in normalise_planes(planes) else ''
+        for i in range(src.format.num_planes)
+    ])
 
 
 def maxfilter(
@@ -38,10 +38,10 @@ def maxfilter(
 ) -> vs.VideoNode:
     assert src.format
 
-    return core.std.Expr(
-        [src, flt1, flt2],
-        ['x z - abs x y - abs > z y ?' if i in normalise_planes(planes) else '' for i in range(src.format.num_planes)]
-    )
+    return core.std.Expr([src, flt1, flt2], [
+        'x z - abs x y - abs > z y ?' if i in normalise_planes(planes) else ''
+        for i in range(src.format.num_planes)
+    ])
 
 
 T = TypeVar('T')
@@ -63,7 +63,9 @@ def normalise_planes(clip: vs.VideoNode, planes: int | Sequence[int] | None) -> 
     assert clip.format
 
     if planes is None:
-        planes = list(range(3))
+        planes = list(range(clip.format.num_planes))
+    elif isinstance(planes, int):
+        planes = [planes]
     else:
         planes = normalise_seq(planes, clip.format.num_planes)
 
