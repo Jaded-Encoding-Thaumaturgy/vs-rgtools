@@ -175,23 +175,19 @@ def clense(
     previous_clip: Optional[vs.VideoNode] = None, next_clip: Optional[vs.VideoNode] = None,
     planes: int | Sequence[int] | None = None, grey=False
 ) -> vs.VideoNode:
-    assert clip.format
-    return (core.rgsf.Clense if clip.format.sample_type == vs.FLOAT else core.rgvs.Clense)(clip, previous_clip, next_clip, planes)
+    return pick_rg(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
 
 
 @disallow_variable_format
 def forward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
-    assert clip.format
-    return (core.rgsf.ForwardClense if clip.format.sample_type == vs.FLOAT else core.rgvs.ForwardClense)(clip, planes)
+    return pick_rg(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
 
 
 @disallow_variable_format
 def backward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
-    assert clip.format
-    return (core.rgsf.BackwardClense if clip.format.sample_type == vs.FLOAT else core.rgvs.BackwardClense)(clip, planes)
+    return pick_rg(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
 
 
 @disallow_variable_format
 def vertical_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]):
-    assert clip.format
-    return (core.rgsf.VerticalCleaner if clip.format.sample_type == vs.FLOAT else core.rgvs.VerticalCleaner)(clip, mode)
+    return pick_rg(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
