@@ -35,7 +35,8 @@ def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | N
         weighted = core.std.Convolution(clip, wmean_mat, planes=planes).std.Convolution(mean_mat, planes=planes)
         median = core.ctmf.CTMF(clip, radius, planes=planes)
     else:
-        weighted = core.std.Convolution(clip, wmean_mat, planes=planes).std.Convolution(mean_mat, planes=planes).std.Convolution(mean_mat, planes=planes)
+        weighted = core.std.Convolution(clip, wmean_mat, planes=planes).std.Convolution(mean_mat, planes=planes)
+        weighted = weighted.std.Convolution(mean_mat, planes=planes)
         median = core.ctmf.CTMF(clip, radius, planes=planes)
 
     return core.std.Expr(
@@ -68,7 +69,8 @@ def sbr(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None 
     elif radius == 2:
         weighted = core.std.Convolution(clip, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
     else:
-        weighted = core.std.Convolution(clip, matrix1, planes=planes).std.Convolution(matrix2, planes=planes).std.Convolution(matrix2, planes=planes)
+        weighted = core.std.Convolution(clip, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
+        weighted = weighted.std.Convolution(matrix2, planes=planes)
 
     diff = core.std.MakeDiff(clip, weighted, planes)
 
@@ -77,7 +79,8 @@ def sbr(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None 
     elif radius == 2:
         diff_weighted = core.std.Convolution(diff, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
     else:
-        diff_weighted = core.std.Convolution(diff, matrix1, planes=planes).std.Convolution(matrix2, planes=planes).std.Convolution(matrix2, planes=planes)
+        diff_weighted = core.std.Convolution(diff, matrix1, planes=planes).std.Convolution(matrix2, planes=planes)
+        diff_weighted = diff_weighted.std.Convolution(matrix2, planes=planes)
 
     diff = core.std.Expr(
         [diff, diff_weighted],

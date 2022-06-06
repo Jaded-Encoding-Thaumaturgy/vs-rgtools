@@ -131,7 +131,8 @@ def aka_removegrain_expr_9() -> str:
         'mal3@ mil3@ - d3! '
         'mal4@ mil4@ - d4! '
         'd1@ d2@ d3@ d4@ min min min mindiff! '
-        'mindiff@ d4@ = x mil4@ mal4@ clamp mindiff@ d2@ = x mil2@ mal2@ clamp mindiff@ d3@ = x mil3@ mal3@ clamp x mil1@ mal1@ clamp ? ? ?'
+        'mindiff@ d4@ = x mil4@ mal4@ clamp mindiff@ d2@ = x mil2@ mal2@ clamp '
+        'mindiff@ d3@ = x mil3@ mal3@ clamp x mil1@ mal1@ clamp ? ? ?'
     )
 
 
@@ -146,8 +147,8 @@ def aka_removegrain_expr_10() -> str:
         f'x {A7} - abs d7! '
         f'x {A8} - abs d8! '
         'd1@ d2@ d3@ d4@ d5@ d6@ d7@ d8@ min min min min min min min mindiff! '
-        f'mindiff@ d7@ = {A7} mindiff@ d8@ = {A8} mindiff@ d6@ = {A6} mindiff@ d2@ = {A2} mindiff@ d3@ = {A3} mindiff@ d1@ = {A1} '
-        f'mindiff@ d5@ = {A5} {A4} ? ? ? ? ? ? ?'
+        f'mindiff@ d7@ = {A7} mindiff@ d8@ = {A8} mindiff@ d6@ = {A6} mindiff@ d2@ = {A2} '
+        f'mindiff@ d3@ = {A3} mindiff@ d1@ = {A1} mindiff@ d5@ = {A5} {A4} ? ? ? ? ? ? ?'
     )
 
 
@@ -204,8 +205,9 @@ def aka_removegrain_expr_21_22() -> str:
 
 
 def aka_removegrain_expr_23(peak_min: float) -> str:
-    u = f'x mal1@ - linediff1@ min x mal2@ - linediff2@ min x mal3@ - linediff3@ min x mal4@ - linediff4@ min max max max {peak_min} max'
-    d = f'mil1@ x - linediff1@ min mil2@ x - linediff2@ min mil3@ x - linediff3@ min mil4@ x - linediff4@ min max max max {peak_min} max'
+    minmax = f'min max max max {peak_min} max'
+    u = f'x mal1@ - linediff1@ min x mal2@ - linediff2@ min x mal3@ - linediff3@ min x mal4@ - linediff4@ {minmax}'
+    d = f'mil1@ x - linediff1@ min mil2@ x - linediff2@ min mil3@ x - linediff3@ min mil4@ x - linediff4@ {minmax}'
     return (
         f'{A1} {A8} min mil1! '
         f'{A1} {A8} max mal1! '
@@ -224,6 +226,12 @@ def aka_removegrain_expr_23(peak_min: float) -> str:
 
 
 def aka_removegrain_expr_24(peak_min: float) -> str:
+    linediff_minmax = (
+        'linediff1@ t1@ - t1@ min linediff2@ t2@ - t2@ min '
+        'linediff3@ t3@ - t3@ min linediff4@ t4@ - t4@ min '
+        f'max max max {peak_min} max'
+    )
+
     return (
         f'{A1} {A8} min mil1! '
         f'{A1} {A8} max mal1! '
@@ -241,12 +249,12 @@ def aka_removegrain_expr_24(peak_min: float) -> str:
         'x mal2@ - t2! '
         'x mal3@ - t3! '
         'x mal4@ - t4! '
-        f'linediff1@ t1@ - t1@ min linediff2@ t2@ - t2@ min linediff3@ t3@ - t3@ min linediff4@ t4@ - t4@ min max max max {peak_min} max u! '
+        f'{linediff_minmax} u! '
         'mil1@ x - t1! '
         'mil2@ x - t2! '
         'mil3@ x - t3! '
         'mil4@ x - t4! '
-        f'linediff1@ t1@ - t1@ min linediff2@ t2@ - t2@ min linediff3@ t3@ - t3@ min linediff4@ t4@ - t4@ min max max max {peak_min} max d! '
+        f'{linediff_minmax} d! '
         f'x u@ - d@ +'
     )
 

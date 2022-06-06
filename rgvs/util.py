@@ -11,12 +11,17 @@ core = vs.core
 FINT = TypeVar('FINT', bound=Callable[..., vs.VideoNode])
 FFLOAT = TypeVar('FFLOAT', bound=Callable[..., vs.VideoNode])
 
-def minfilter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
 
 def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FFLOAT:
     assert clip.format
     return func_float if clip.format.sample_type == vs.FLOAT else func_int
 
+
+def minfilter(
+    src: vs.VideoNode,
+    flt1: vs.VideoNode, flt2: vs.VideoNode,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
     assert src.format
     if planes is not None:
         planes = normalise_seq(planes)
@@ -28,7 +33,11 @@ def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FF
     )
 
 
-def maxfilter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def maxfilter(
+    src: vs.VideoNode,
+    flt1: vs.VideoNode, flt2: vs.VideoNode,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
     assert src.format
     if planes is not None:
         planes = normalise_seq(planes)

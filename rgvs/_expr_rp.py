@@ -1,5 +1,3 @@
-
-
 A1 = 'y[-1,-1]'
 A2 = 'y[0,-1]'
 A3 = 'y[1,-1]'
@@ -129,7 +127,8 @@ def aka_repair_expr_9() -> str:
         'mal3@ mil3@ - d3! '
         'mal4@ mil4@ - d4! '
         'd1@ d2@ d3@ d4@ min min min mindiff! '
-        'mindiff@ d4@ = x mil4@ mal4@ clamp mindiff@ d2@ = x mil2@ mal2@ clamp mindiff@ d3@ = x mil3@ mal3@ clamp x mil1@ mal1@ clamp ? ? ?'
+        'mindiff@ d4@ = x mil4@ mal4@ clamp mindiff@ d2@ = x mil2@ mal2@ clamp '
+        'mindiff@ d3@ = x mil3@ mal3@ clamp x mil1@ mal1@ clamp ? ? ?'
     )
 
 
@@ -145,8 +144,8 @@ def aka_repair_expr_10() -> str:
         f'x {A8} - abs d8! '
         f'x y - abs dc! '
         'd1@ d2@ d3@ d4@ d5@ d6@ d7@ d8@ dc@ min min min min min min min min mindiff! '
-        f'mindiff@ d7@ = {A7} mindiff@ d8@ = {A8} mindiff@ d6@ = {A6} mindiff@ d2@ = {A2} mindiff@ d3@ = {A3} mindiff@ d1@ = {A1} '
-        f'mindiff@ d5@ = {A5} mindiff@ dc@ = y {A4} ? ? ? ? ? ? ? ?'
+        f'mindiff@ d7@ = {A7} mindiff@ d8@ = {A8} mindiff@ d6@ = {A6} mindiff@ d2@ = {A2} '
+        f'mindiff@ d3@ = {A3} mindiff@ d1@ = {A1} mindiff@ d5@ = {A5} mindiff@ dc@ = y {A4} ? ? ? ? ? ? ? ?'
     )
 
 
