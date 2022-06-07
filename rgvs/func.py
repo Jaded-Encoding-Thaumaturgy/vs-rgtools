@@ -4,17 +4,24 @@ __all__ = ['sbr', 'minblur', 'boxblur']
 
 
 from typing import Sequence
+from enum import Enum
 from functools import partial
-from vsutil import disallow_variable_format, disallow_variable_resolution
+from vsutil import disallow_variable_format, disallow_variable_resolution, Range as CRange
 
 import vapoursynth as vs
 
-from .util import normalise_planes
+from .util import normalise_planes, get_neutral_value, normalise_seq
 
 core = vs.core
 
 wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
 mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+
+class MedianMode(str, Enum):
+    SQUARE = 'hv'
+    VERTICAL = 'v'
+    HORIZONTAL = 'h'
 
 
 def boxblur(
@@ -78,32 +85,43 @@ def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | N
 
 @disallow_variable_format
 @disallow_variable_resolution
-def sbr(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
-    """make a highpass on a blur's difference (well, kind of that)"""
-    assert clip.format
+def sbr(
+    clip: vs.VideoNode,
+    radius: int = 1, mode: MedianMode = MedianMode.SQUARE,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    neutral = get_neutral_value(clip, chroma=True)
 
-    planes = normalise_planes(clip, planes)
-    pboxblur = partial(boxblur, planes=planes)
-
-    neutral = [
-        1 << (clip.format.bits_per_sample - 1) if clip.format.sample_type != vs.FLOAT else 0.
-    ] * clip.format.num_planes
+    if mode == MedianMode.SQUARE:
+        matrix2 = [1, 3, 4, 3, 1]
+        matrix3 = [1, 4, 8, 10, 8, 4, 1]
+    elif mode in {MedianMode.HORIZONTAL, MedianMode.VERTICAL}:
+        matrix2 = [1, 6, 15, 20, 15, 6, 1]
+        matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
+    else:
+        raise ValueError('sbr: invalid mode specified!')
 
     if radius == 1:
-        weighted = pboxblur(clip, wmean_matrix)
+        matrix = [1, 2, 1]
     elif radius == 2:
-        weighted = pboxblur(pboxblur(clip, wmean_matrix), mean_matrix)
+        matrix = matrix2
+    elif radius == 3:
+        matrix = matrix3
     else:
-        weighted = pboxblur(pboxblur(pboxblur(clip, wmean_matrix), mean_matrix), mean_matrix)
+        raise ValueError('sbr: invalid radius')
+
+    neutral = normalise_seq(
+        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
+    )
+
+    planes = normalise_planes(clip, planes)
+    pboxblur = partial(core.std.Convolution, matrix=matrix, planes=planes, mode=mode)
+
+    weighted = pboxblur(clip)
 
     diff = clip.std.MakeDiff(weighted, planes)
 
-    if radius == 1:
-        diff_weighted = pboxblur(diff, wmean_matrix)
-    elif radius == 2:
-        diff_weighted = pboxblur(pboxblur(diff, wmean_matrix), mean_matrix)
-    else:
-        diff_weighted = pboxblur(pboxblur(pboxblur(diff, wmean_matrix), mean_matrix), mean_matrix)
+    diff_weighted = pboxblur(diff)
 
     diff = core.std.Expr([diff, diff_weighted], [
         f'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
