@@ -18,7 +18,7 @@ wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
 mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
-class MedianMode(str, Enum):
+class ConvMode(str, Enum):
     SQUARE = 'hv'
     VERTICAL = 'v'
     HORIZONTAL = 'h'
@@ -87,7 +87,7 @@ def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | N
 @disallow_variable_resolution
 def sbr(
     clip: vs.VideoNode,
-    radius: int = 1, mode: MedianMode = MedianMode.SQUARE,
+    radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
     assert clip.format
@@ -97,10 +97,10 @@ def sbr(
         [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
     )
 
-    if mode == MedianMode.SQUARE:
+    if mode == ConvMode.SQUARE:
         matrix2 = [1, 3, 4, 3, 1]
         matrix3 = [1, 4, 8, 10, 8, 4, 1]
-    elif mode in {MedianMode.HORIZONTAL, MedianMode.VERTICAL}:
+    elif mode in {ConvMode.HORIZONTAL, ConvMode.VERTICAL}:
         matrix2 = [1, 6, 15, 20, 15, 6, 1]
         matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
     else:
