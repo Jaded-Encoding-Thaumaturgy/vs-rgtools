@@ -74,16 +74,23 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
         raise ValueError('contrasharpening: Clips must be the same format')
 
     dehaloed_y, *chroma = split(dehaloed)
-    neutral = get_neutral_value(dehaloed)
 
-    weighted = dehaloed_y.std.Convolution([1, 2, 1, 2, 4, 2, 1, 2, 1])
+    weighted = boxblur(dehaloed_y, [1, 2, 1, 2, 4, 2, 1, 2, 1])
     weighted2 = weighted.ctmf.CTMF(radius=2)
     weighted2 = iterate(weighted2, lambda c: repair(c, weighted, 1), 2)
 
-    diff = weighted.std.MakeDiff(weighted2).std.Expr(f'x {neutral} - 2.49 * {level} * {neutral} +')
-    diff2 = core.std.Expr(
-        [diff, get_y(src).std.MakeDiff(dehaloed_y)],
-        f'x {neutral} - y {neutral} - * 0 < {neutral} x {neutral} - abs y {neutral} - abs < x y ? ?'
-    )
+    try:
+        contra_y = core.akarin.Expr(
+            [weighted, weighted2, get_y(src), dehaloed_y],
+            f'x y - 2.49 * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
+        )
+    except AttributeError:
+        neutral = get_neutral_value(dehaloed)
+        diff = weighted.std.MakeDiff(weighted2).std.Expr(f'x {neutral} - 2.49 * {level} * {neutral} +')
+        diff = core.std.Expr(
+            [diff, get_y(src).std.MakeDiff(dehaloed_y)],
+            f'x {neutral} - y {neutral} - * 0 < {neutral} x {neutral} - abs y {neutral} - abs < x y ? ?'
+        )
+        contra_y = dehaloed_y.std.MergeDiff(diff)
 
-    return join([dehaloed_y.std.MergeDiff(diff2)] + chroma, dehaloed.format.color_family)
+    return join([contra_y] + chroma, dehaloed.format.color_family)
