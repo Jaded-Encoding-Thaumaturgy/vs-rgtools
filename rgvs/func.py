@@ -125,38 +125,17 @@ def sbr(
     radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
-    assert clip.format
-
-    planes = normalise_planes(clip, planes)
     neutral = normalise_seq(
         [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
     )
 
-    if mode == ConvMode.SQUARE:
-        matrix2 = [1, 3, 4, 3, 1]
-        matrix3 = [1, 4, 8, 10, 8, 4, 1]
-    elif mode in {ConvMode.HORIZONTAL, ConvMode.VERTICAL}:
-        matrix2 = [1, 6, 15, 20, 15, 6, 1]
-        matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
-    else:
-        raise ValueError('sbr: invalid mode specified!')
+    blur_func = partial(blur, radius=radius, mode=mode, planes=planes)
 
-    if radius == 1:
-        matrix = [1, 2, 1]
-    elif radius == 2:
-        matrix = matrix2
-    elif radius == 3:
-        matrix = matrix3
-    else:
-        raise ValueError('sbr: invalid radius')
-
-    pboxblur = partial(core.std.Convolution, matrix=matrix, planes=planes, mode=mode)
-
-    weighted = pboxblur(clip)
+    weighted = blur_func(clip)
 
     diff = clip.std.MakeDiff(weighted, planes)
 
-    diff_weighted = pboxblur(diff)
+    diff_weighted = blur_func(diff)
 
     diff = core.std.Expr([diff, diff_weighted], [
         f'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
