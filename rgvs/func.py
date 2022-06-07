@@ -10,7 +10,7 @@ from vsutil import disallow_variable_format, disallow_variable_resolution, Range
 
 import vapoursynth as vs
 
-from .util import normalise_planes, get_neutral_value, normalise_seq
+from .util import norm_expr_planes, normalise_planes, get_neutral_value, normalise_seq
 
 core = vs.core
 
@@ -129,6 +129,14 @@ def sbr(
     ])
 
     return clip.std.MakeDiff(diff, planes)
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def median_clips(clips: Sequence[vs.VideoNode], planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+    return core.std.Expr(
+        list(clips), norm_expr_planes(clips[0], 'x y z min max y z max min', planes)
+    )
 
 
 def median_diff(
