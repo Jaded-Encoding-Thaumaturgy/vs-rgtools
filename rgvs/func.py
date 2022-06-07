@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-__all__ = ['sbr', 'minblur', 'boxblur', 'median', 'blur', 'min_filter', 'median_clip', 'median_diff']
+__all__ = ['sbr', 'minblur', 'boxblur', 'median', 'blur', 'min_filter', 'median_clips', 'median_diff']
 
 
-from typing import Sequence
-from enum import Enum
+from typing import Callable, Sequence
+from enum import Enum, IntEnum
 from functools import partial
-from vsutil import disallow_variable_format, disallow_variable_resolution, Range as CRange
+from vsutil import disallow_variable_format, disallow_variable_resolution, Range as CRange, fallback
 
 import vapoursynth as vs
 
@@ -22,6 +22,11 @@ class ConvMode(str, Enum):
     SQUARE = 'hv'
     VERTICAL = 'v'
     HORIZONTAL = 'h'
+
+
+class MinFilterMode(IntEnum):
+    CLIP = 1
+    DIFF = 2
 
 
 def boxblur(
@@ -129,6 +134,37 @@ def sbr(
     ])
 
     return clip.std.MakeDiff(diff, planes)
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def min_filter(
+    clip: vs.VideoNode,
+    clip_func: Callable[[vs.VideoNode], vs.VideoNode],
+    diff_func: Callable[[vs.VideoNode], vs.VideoNode] | None = None,
+    mode: MinFilterMode | None = None,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+
+    mode = fallback(
+        mode, MinFilterMode.DIFF if diff_func is None else MinFilterMode.CLIP
+    )
+
+    diff_func = fallback(diff_func, clip_func)
+
+    if mode == MinFilterMode.CLIP:
+        return median_clips([clip, clip_func(clip), diff_func(clip)], planes)
+
+    filtered = clip_func(clip)
+
+    diffa = core.std.MakeDiff(clip, filtered, planes)
+
+    diffb = diff_func(diffa)
+
+    return median_diff(clip, diffa, diffb, planes)
 
 
 @disallow_variable_format
