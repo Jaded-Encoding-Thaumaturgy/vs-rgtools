@@ -40,20 +40,20 @@ def boxblur(
     except AttributeError:
         pass
     else:
-        weights_string = [
+        weights_string = ' '.join([
             x.format(w=w) for x, w in zip([
                 'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
                 'x[-1,0] {w} *', 'x {w} *', 'x[1,0] {w} *',
                 'x[-1,1] {w} *', 'x[0,1] {w} *', 'x[1,1] {w} *'
             ], weights)
-        ].join(' ')
+        ])
 
         add_string = '+ ' * 8
 
         expr_string = f'{weights_string} {add_string} {sum(map(float, weights))} /'
 
         return aka_expr(clip, [
-            expr_string if i in normalise_planes(planes) else ''
+            expr_string if i in normalise_planes(clip, planes) else ''
             for i in range(clip.format.num_planes)
         ])
     return clip.std.Convolution(weights, planes=planes)

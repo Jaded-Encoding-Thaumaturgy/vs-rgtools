@@ -31,13 +31,13 @@ def minfilter(
 
 
 def maxfilter(
-    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
+    clip: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert src.format
+    assert clip.format
 
-    return core.std.Expr([src, flt1, flt2], [
-        'x z - abs x y - abs > z y ?' if i in normalise_planes(planes) else ''
-        for i in range(src.format.num_planes)
+    return core.std.Expr([clip, flt1, flt2], [
+        'x z - abs x y - abs > z y ?' if i in normalise_planes(clip, planes) else ''
+        for i in range(clip.format.num_planes)
     ])
 
 

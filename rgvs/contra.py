@@ -3,7 +3,7 @@ from typing import Sequence
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, iterate, join, split
 
-from .func import minblur, blur, boxblur
+from .func import blur, boxblur, minblur
 from .rgtools import repair
 from .util import get_neutral_value, normalise_planes, normalise_seq
 
@@ -73,6 +73,7 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
     :param level:       Strengh level
     :return:            Contrasharpened clip
     """
+
     if dehaloed.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')
 
