@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+__all__ = ['contrasharpening', 'contrasharpening_dehalo']
+
 from typing import Sequence
 
 import vapoursynth as vs

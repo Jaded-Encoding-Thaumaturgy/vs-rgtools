@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-__all__ = ['minfilter', 'maxfilter']
-
 from typing import Callable, List, Sequence, TypeVar, Union, cast
 
 import vapoursynth as vs
@@ -12,6 +10,9 @@ core = vs.core
 FINT = TypeVar('FINT', bound=Callable[..., vs.VideoNode])
 FFLOAT = TypeVar('FFLOAT', bound=Callable[..., vs.VideoNode])
 PlanesT = Union[int, Sequence[int], None]
+
+wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
+mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
 def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FFLOAT:

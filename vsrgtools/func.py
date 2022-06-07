@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-__all__ = ['sbr', 'minblur', 'boxblur', 'min_filter', 'median_clips', 'median_diff']
+__all__ = [
+    'sbr', 'minblur', 'boxblur', 'blur', 'min_filter',
+    'median_clips', 'median_diff', 'ConvMode', 'MinFilterMode'
+]
 
 
 from enum import Enum, IntEnum
@@ -10,12 +13,9 @@ from typing import Callable, Sequence
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback
 
-from .util import get_neutral_value, norm_expr_planes, normalise_planes, normalise_seq
+from .util import get_neutral_value, mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
-
-wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
 class ConvMode(str, Enum):
