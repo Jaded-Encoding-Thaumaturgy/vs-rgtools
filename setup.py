@@ -6,8 +6,8 @@ with open("requirements.txt") as fh:
     install_requires = fh.read()
 
 name = 'vs-rgtools'
-version = "0.1.0"
-release = "0.1.0"
+version = "0.1.1"
+release = "0.1.1"
 
 setuptools.setup(
     name=name,
