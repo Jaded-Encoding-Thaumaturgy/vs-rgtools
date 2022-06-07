@@ -129,3 +129,21 @@ def sbr(
     ])
 
     return clip.std.MakeDiff(diff, planes)
+
+
+def median_diff(
+    clip: vs.VideoNode,
+    diffa: vs.VideoNode, diffb: vs.VideoNode,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+    neutral = normalise_seq(
+        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
+    )
+
+    return core.std.Expr([clip, diffa, diffb], [
+        f'x 0 y {mid} y z - min max y {mid} y z - max min -'
+        if i in planes else '' for i, mid in enumerate(neutral, 0)
+    ])
