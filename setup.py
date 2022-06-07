@@ -6,7 +6,7 @@ with open('README.md', encoding='utf-8') as fh:
 with open('requirements.txt', encoding='utf-8') as fh:
     install_requires = fh.read()
 
-NAME = 'rgvs'
+NAME = 'vsrgtools'
 RELEASE = '0.1.0'
 
 setup(
@@ -17,10 +17,10 @@ setup(
     description='',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    packages=['rgvs'],
+    packages=['vsrgtools'],
     url='',
     package_data={
-        'rgvs': ['py.typed'],
+        'vsrgtools': ['py.typed'],
     },
     install_requires=install_requires,
     classifiers=[
