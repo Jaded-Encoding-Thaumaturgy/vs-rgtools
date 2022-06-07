@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['sbr', 'minblur', 'boxblur']
+__all__ = ['sbr', 'minblur', 'boxblur', 'median', 'blur', 'min_filter', 'median_clip', 'median_diff']
 
 
 from typing import Sequence
@@ -90,7 +90,12 @@ def sbr(
     radius: int = 1, mode: MedianMode = MedianMode.SQUARE,
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
-    neutral = get_neutral_value(clip, chroma=True)
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+    neutral = normalise_seq(
+        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
+    )
 
     if mode == MedianMode.SQUARE:
         matrix2 = [1, 3, 4, 3, 1]
@@ -110,11 +115,6 @@ def sbr(
     else:
         raise ValueError('sbr: invalid radius')
 
-    neutral = normalise_seq(
-        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
-    )
-
-    planes = normalise_planes(clip, planes)
     pboxblur = partial(core.std.Convolution, matrix=matrix, planes=planes, mode=mode)
 
     weighted = pboxblur(clip)
