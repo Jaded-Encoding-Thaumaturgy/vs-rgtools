@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __all__ = ['minfilter', 'maxfilter']
 
-from typing import List, Sequence, TypeVar, cast, Callable
+from typing import List, Sequence, TypeVar, cast, Callable, Union
 from vsutil import disallow_variable_format, get_depth
 
 import vapoursynth as vs
@@ -11,6 +11,7 @@ core = vs.core
 
 FINT = TypeVar('FINT', bound=Callable[..., vs.VideoNode])
 FFLOAT = TypeVar('FFLOAT', bound=Callable[..., vs.VideoNode])
+PlanesT = Union[int, Sequence[int], None]
 
 
 def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FFLOAT:
@@ -19,22 +20,18 @@ def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FF
 
 
 def minfilter(
-    src: vs.VideoNode,
-    flt1: vs.VideoNode, flt2: vs.VideoNode,
-    planes: int | Sequence[int] | None = None
+    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert src.format
 
-    return core.std.Expr([src, flt1, flt2], [
-        'x z - abs x y - abs < z y ?' if i in normalise_planes(planes) else ''
-        for i in range(src.format.num_planes)
-    ])
+    return core.std.Expr(
+        [src, flt1, flt2],
+        norm_expr_planes(src, 'x z - abs x y - abs < z y ?', planes)
+    )
 
 
 def maxfilter(
-    src: vs.VideoNode,
-    flt1: vs.VideoNode, flt2: vs.VideoNode,
-    planes: int | Sequence[int] | None = None
+    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert src.format
 
@@ -59,7 +56,7 @@ def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
     return min_val if val < min_val else max_val if val > max_val else val
 
 
-def normalise_planes(clip: vs.VideoNode, planes: int | Sequence[int] | None) -> List[int]:
+def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None) -> List[int]:
     assert clip.format
 
     if planes is None:
@@ -70,6 +67,19 @@ def normalise_planes(clip: vs.VideoNode, planes: int | Sequence[int] | None) -> 
         planes = normalise_seq(planes, clip.format.num_planes)
 
     return planes
+
+
+def norm_expr_planes(clip: vs.VideoNode, expr: str | List[str], planes: PlanesT = None) -> List[str]:
+    assert clip.format
+
+    expr_array = normalise_seq(
+        [expr] if isinstance(expr, str) else expr,
+        clip.format.num_planes
+    )
+
+    planes = normalise_planes(clip, planes)
+
+    return [exp if i in planes else '' for i, exp in enumerate(expr_array, 0)]
 
 
 # Waiting for vsutil 0.6.1 zzzzz
