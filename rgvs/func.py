@@ -59,6 +59,36 @@ def boxblur(
     return clip.std.Convolution(weights, planes=planes)
 
 
+def blur(
+    clip: vs.VideoNode,
+    radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+
+    if mode == ConvMode.SQUARE:
+        matrix2 = [1, 3, 4, 3, 1]
+        matrix3 = [1, 4, 8, 10, 8, 4, 1]
+    elif mode in {ConvMode.HORIZONTAL, ConvMode.VERTICAL}:
+        matrix2 = [1, 6, 15, 20, 15, 6, 1]
+        matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
+    else:
+        raise ValueError('blur: invalid mode specified!')
+
+    if radius == 1:
+        matrix = [1, 2, 1]
+    elif radius == 2:
+        matrix = matrix2
+    elif radius == 3:
+        matrix = matrix3
+    else:
+        raise ValueError('blur: invalid radius')
+
+    return clip.std.Convolution(matrix, planes=planes, mode=mode)
+
+
 @disallow_variable_format
 @disallow_variable_resolution
 def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
