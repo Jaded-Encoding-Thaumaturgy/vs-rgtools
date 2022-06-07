@@ -1,33 +1,35 @@
-from setuptools import setup
+#!/usr/bin/env python3
 
-with open('README.md', encoding='utf-8') as fh:
-    long_description = fh.read()
+import setuptools
 
-with open('requirements.txt', encoding='utf-8') as fh:
+with open("requirements.txt") as fh:
     install_requires = fh.read()
 
-NAME = 'vsrgtools'
-RELEASE = '0.1.0'
+name = 'vs-rgtools'
+version = "0.1.0"
+release = "0.1.0"
 
-setup(
-    name=NAME,
-    version=RELEASE,
-    author='',
-    author_email='',
-    description='',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    packages=['vsrgtools'],
-    url='',
+setuptools.setup(
+    name=name,
+    version=version,
+    author="Irrational Encoding Wizardry",
+    author_email="wizards@encode.moe",
+    maintainer="Setsugen no ao",
+    maintainer_email="setsugen@setsugen.dev",
+    packages=["vsrgtools"],
+    project_urls={
+        "Source Code": 'https://github.com/Irrational-Encoding-Wizardry/vs-rgtools',
+        "Documentation": 'https://vsrgtools.encode.moe/en/latest/',
+        "Contact": 'https://discord.gg/qxTxVJGtst',
+    },
     package_data={
         'vsrgtools': ['py.typed'],
     },
     install_requires=install_requires,
     classifiers=[
-        'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent',
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
-    zip_safe=False,
-    python_requires='>=3.9',
+    python_requires='>=3.9'
 )
