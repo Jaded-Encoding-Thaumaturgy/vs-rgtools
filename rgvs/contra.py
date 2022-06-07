@@ -54,15 +54,11 @@ def contrasharpening(
     ])
 
     # abs(diff) after limiting may not be bigger than before
-    limit = core.std.Expr(
-        [limit, diff_blur], [
-            f'x {mid} - abs y {mid} - abs < x y ?'
-            if i in planes else '' for i, mid in enumerate(neutral)
-        ]
-    )
-
     # Apply the limited difference (sharpening is just inverse blurring)
-    return flt.std.MergeDiff(limit, planes)
+    return core.std.Expr([limit, diff_blur, flt], [
+        f'x abs y abs < x y ? {mid} - z +'
+        if i in planes else '' for i, mid in enumerate(neutral)
+    ])
 
 
 @disallow_variable_format
