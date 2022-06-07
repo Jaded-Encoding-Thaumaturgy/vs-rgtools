@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-__all__ = ['sbr', 'minblur', 'boxblur', 'median', 'blur', 'min_filter', 'median_clips', 'median_diff']
+__all__ = ['sbr', 'minblur', 'boxblur', 'min_filter', 'median_clips', 'median_diff']
 
 
-from typing import Callable, Sequence
 from enum import Enum, IntEnum
 from functools import partial
-from vsutil import disallow_variable_format, disallow_variable_resolution, Range as CRange, fallback
+from typing import Callable, Sequence
 
 import vapoursynth as vs
+from vsutil import disallow_variable_format, disallow_variable_resolution, fallback
 
-from .util import norm_expr_planes, normalise_planes, get_neutral_value, normalise_seq
+from .util import get_neutral_value, norm_expr_planes, normalise_planes, normalise_seq
 
 core = vs.core
 

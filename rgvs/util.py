@@ -2,10 +2,10 @@ from __future__ import annotations
 
 __all__ = ['minfilter', 'maxfilter']
 
-from typing import List, Sequence, TypeVar, cast, Callable, Union
-from vsutil import disallow_variable_format, get_depth
+from typing import Callable, List, Sequence, TypeVar, Union, cast
 
 import vapoursynth as vs
+from vsutil import disallow_variable_format, get_depth
 
 core = vs.core
 
