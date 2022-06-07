@@ -3,7 +3,7 @@ from typing import Sequence
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, iterate, join, split
 
-from .func import minblur
+from .func import minblur, blur, boxblur
 from .rgtools import repair
 from .util import get_neutral_value, normalise_planes, normalise_seq
 
@@ -40,14 +40,7 @@ def contrasharpening(
     # Damp down remaining spots of the denoised clip
     mblur = minblur(flt, radius, planes)
 
-    wmean_mat = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-    mean_mat = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-    rg11 = mblur.std.Convolution(wmean_mat, planes=planes)
-    if radius >= 2:
-        rg11 = rg11.std.Convolution(mean_mat, planes=planes)
-    if radius >= 3:
-        rg11 = rg11.std.Convolution(mean_mat, planes=planes)
+    rg11 = blur(mblur, radius, planes=planes)
 
     # Difference of a simple kernel blur
     diff_blur = mblur.std.MakeDiff(rg11, planes)
@@ -56,15 +49,15 @@ def contrasharpening(
     diff_flt = src.std.MakeDiff(flt, planes)
 
     # Limit the difference to the max of what the filtering removed locally
-    limit = repair(
-        diff_blur, diff_flt, [rep if i in planes else 0 for i in range(flt.format.num_planes)]
-    )
+    limit = repair(diff_blur, diff_flt, [
+        rep if i in planes else 0 for i in range(flt.format.num_planes)
+    ])
 
     # abs(diff) after limiting may not be bigger than before
     limit = core.std.Expr(
         [limit, diff_blur], [
-            f'x {mid} - abs y {mid} - abs < x y ?' if i in planes else ''
-            for i, mid in enumerate(neutral)
+            f'x {mid} - abs y {mid} - abs < x y ?'
+            if i in planes else '' for i, mid in enumerate(neutral)
         ]
     )
 
