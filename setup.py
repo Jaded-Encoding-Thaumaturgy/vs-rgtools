@@ -5,7 +5,7 @@ import setuptools
 with open("requirements.txt") as fh:
     install_requires = fh.read()
 
-name = 'vs-rgtools'
+name = 'vsrgtools'
 version = "0.1.1"
 release = "0.1.1"
 
