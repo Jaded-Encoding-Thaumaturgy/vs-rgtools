@@ -50,7 +50,8 @@ def normalise_seq(x: T | Sequence[T], length_max: int = 3) -> List[T]:
     if not isinstance(x, Sequence):
         return [x] * length_max
     x = cast(Sequence[T], x)
-    return list(x) + [x[-1]] * (length_max - len(x))
+    x = list(x) + [x[-1]] * (length_max - len(x))
+    return x[:length_max]
 
 
 def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
