@@ -36,7 +36,7 @@ def contrasharpening(
 
     neutral = normalise_seq([get_neutral_value(flt), get_neutral_value(flt, True)], flt.format.num_planes)
 
-    planes = normalise_planes(src, planes)
+    planes = normalise_planes(flt, planes)
 
     if radius is None:
         radius = 2 if flt.width > 1024 or flt.height > 576 else 1
@@ -60,7 +60,7 @@ def contrasharpening(
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
     return core.std.Expr([limit, diff_blur, flt], [
-        f'x abs y abs < x y ? {mid} - z +'
+        f'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
         if i in planes else '' for i, mid in enumerate(neutral)
     ])
 
@@ -96,5 +96,8 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
             f'x {neutral} - y {neutral} - * 0 < {neutral} x {neutral} - abs y {neutral} - abs < x y ? ?'
         )
         contra_y = dehaloed_y.std.MergeDiff(diff)
+
+    if not chroma:
+        return contra_y
 
     return join([contra_y] + chroma, dehaloed.format.color_family)
