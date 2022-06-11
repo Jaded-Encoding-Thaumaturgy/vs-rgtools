@@ -6,8 +6,8 @@ with open("requirements.txt") as fh:
     install_requires = fh.read()
 
 name = 'vsrgtools'
-version = "0.1.1"
-release = "0.1.1"
+version = "0.1.2"
+release = "0.1.2"
 
 setuptools.setup(
     name=name,
