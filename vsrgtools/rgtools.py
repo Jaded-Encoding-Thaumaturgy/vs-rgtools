@@ -6,7 +6,7 @@ import warnings
 from typing import List, Sequence
 
 import vapoursynth as vs
-from vsutil import disallow_variable_format
+from vsutil import disallow_variable_format, disallow_variable_resolution
 
 from ._expr_rg import (
     aka_removegrain_expr_1, aka_removegrain_expr_2_4, aka_removegrain_expr_5, aka_removegrain_expr_6,
@@ -28,6 +28,7 @@ core = vs.core
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     assert clip.format
 
@@ -93,6 +94,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     assert clip.format
 
@@ -167,6 +169,7 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def clense(
     clip: vs.VideoNode,
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
@@ -176,15 +179,18 @@ def clense(
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def forward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def backward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def vertical_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
