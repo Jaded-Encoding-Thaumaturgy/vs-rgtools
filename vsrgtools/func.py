@@ -11,9 +11,9 @@ from functools import partial
 from typing import Callable, Sequence
 
 import vapoursynth as vs
-from vsutil import disallow_variable_format, disallow_variable_resolution, fallback
+from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
-from .util import get_neutral_value, mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .util import mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable, List, Sequence, TypeVar, Union, cast
 
 import vapoursynth as vs
-from vsutil import disallow_variable_format, get_depth
 
 core = vs.core
 
@@ -85,26 +84,3 @@ def norm_expr_planes(clip: vs.VideoNode, expr: str | List[str], planes: PlanesT 
     planes = normalise_planes(clip, planes)
 
     return [exp if i in planes else '' for i, exp in enumerate(expr_array, 0)]
-
-
-# Waiting for vsutil 0.6.1 zzzzz
-
-@disallow_variable_format
-def get_lowest_value(clip: vs.VideoNode, chroma: bool = False) -> float:
-    is_float = clip.format.sample_type == vs.FLOAT
-
-    return -0.5 if chroma and is_float else 0.
-
-
-@disallow_variable_format
-def get_neutral_value(clip: vs.VideoNode, chroma: bool = False) -> float:
-    is_float = clip.format.sample_type == vs.FLOAT
-
-    return (0. if chroma else 0.5) if is_float else float(1 << (get_depth(clip) - 1))
-
-
-@disallow_variable_format
-def get_peak_value(clip: vs.VideoNode, chroma: bool = False) -> float:
-    is_float = clip.format.sample_type == vs.FLOAT
-
-    return (0.5 if chroma else 1.) if is_float else (1 << get_depth(clip)) - 1.
