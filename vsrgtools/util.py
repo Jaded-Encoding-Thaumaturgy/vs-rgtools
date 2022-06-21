@@ -58,7 +58,7 @@ def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
     return min_val if val < min_val else max_val if val > max_val else val
 
 
-def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None) -> List[int]:
+def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = True) -> List[int]:
     assert clip.format
 
     if planes is None:
@@ -66,7 +66,10 @@ def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None) -> List[int]:
     elif isinstance(planes, int):
         planes = [planes]
     else:
-        planes = normalise_seq(planes, clip.format.num_planes)
+        planes = list(planes)
+
+    if pad:
+        return normalise_seq(planes, clip.format.num_planes)
 
     return planes
 
