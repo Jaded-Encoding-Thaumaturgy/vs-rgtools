@@ -29,9 +29,13 @@ class MinFilterMode(IntEnum):
     DIFF = 2
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def boxblur(
     clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
+    assert clip.format
+
     if len(weights) != 9:
         raise ValueError('boxblur: weights has to be an array of length 9!')
 
@@ -59,6 +63,8 @@ def boxblur(
     return clip.std.Convolution(weights, planes=planes)
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def blur(
     clip: vs.VideoNode,
     radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
@@ -125,6 +131,10 @@ def sbr(
     radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
     planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+
     neutral = normalise_seq(
         [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
     )

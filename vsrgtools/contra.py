@@ -5,11 +5,13 @@ __all__ = ['contrasharpening', 'contrasharpening_dehalo']
 from typing import Sequence
 
 import vapoursynth as vs
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, iterate, join, split
+from vsutil import (
+    disallow_variable_format, disallow_variable_resolution, get_neutral_value, get_y, iterate, join, split
+)
 
 from .func import blur, boxblur, minblur
 from .rgtools import repair
-from .util import get_neutral_value, normalise_planes, normalise_seq
+from .util import normalise_planes, normalise_seq
 
 core = vs.core
 
@@ -30,6 +32,8 @@ def contrasharpening(
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
+    assert flt.format
+    assert src.format
 
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')
@@ -66,6 +70,7 @@ def contrasharpening(
 
 
 @disallow_variable_format
+@disallow_variable_resolution
 def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: float) -> vs.VideoNode:
     """
     :param dehaloed:    Dehaloed clip
@@ -73,6 +78,8 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
     :param level:       Strengh level
     :return:            Contrasharpened clip
     """
+    assert dehaloed.format
+    assert src.format
 
     if dehaloed.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')

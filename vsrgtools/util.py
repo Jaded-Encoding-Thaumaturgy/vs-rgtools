@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Sequence, TypeVar, Union, cast
+from typing import Callable, List, Sequence, TypeVar, Union
 
 import vapoursynth as vs
 
@@ -41,14 +41,14 @@ def maxfilter(
     ])
 
 
-T = TypeVar('T')
+T = TypeVar('T', bound=Union[int, float, str])
 Nb = TypeVar('Nb', float, int)
 
 
 def normalise_seq(x: T | Sequence[T], length_max: int = 3) -> List[T]:
     if not isinstance(x, Sequence):
         return [x] * length_max
-    x = cast(Sequence[T], x)
+
     x = list(x) + [x[-1]] * (length_max - len(x))
     return x[:length_max]
 
