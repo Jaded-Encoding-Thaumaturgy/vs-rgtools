@@ -21,7 +21,7 @@ from ._expr_rp import (
     aka_repair_expr_18, aka_repair_expr_19, aka_repair_expr_20, aka_repair_expr_21, aka_repair_expr_22,
     aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27, aka_repair_expr_28
 )
-from .func import box_blur
+from .blur import box_blur
 from .util import normalise_seq, pick_rg, wmean_matrix
 
 core = vs.core

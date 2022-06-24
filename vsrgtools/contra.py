@@ -9,7 +9,7 @@ from vsutil import (
     disallow_variable_format, disallow_variable_resolution, get_neutral_value, get_y, iterate, join, split
 )
 
-from .func import blur, box_blur, min_blur
+from .blur import blur, box_blur, min_blur
 from .rgtools import repair
 from .util import normalise_planes, normalise_seq, wmean_matrix
 
