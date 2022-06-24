@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
-    'sbr', 'minblur', 'boxblur', 'blur', 'min_filter',
+    'sbr', 'min_blur', 'box_blur', 'blur', 'min_filter',
     'median_clips', 'median_diff', 'ConvMode', 'MinFilterMode'
 ]
 
@@ -31,13 +31,13 @@ class MinFilterMode(IntEnum):
 
 @disallow_variable_format
 @disallow_variable_resolution
-def boxblur(
+def box_blur(
     clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None
 ) -> vs.VideoNode:
     assert clip.format
 
     if len(weights) != 9:
-        raise ValueError('boxblur: weights has to be an array of length 9!')
+        raise ValueError('box_blur: weights has to be an array of length 9!')
 
     try:
         aka_expr = core.akarin.Expr
@@ -97,7 +97,7 @@ def blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def min_blur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
     """
     MinBlur   by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
@@ -105,18 +105,18 @@ def minblur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | N
     assert clip.format
 
     planes = normalise_planes(clip, planes)
-    pboxblur = partial(boxblur, planes=planes)
+    pbox_blur = partial(box_blur, planes=planes)
 
     median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, planes=planes)
 
     if radius == 0:
         weighted = sbr(clip, planes=planes)
     elif radius == 1:
-        weighted = pboxblur(clip, wmean_matrix)
+        weighted = pbox_blur(clip, wmean_matrix)
     elif radius == 2:
-        weighted = pboxblur(pboxblur(clip, wmean_matrix), mean_matrix)
+        weighted = pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix)
     else:
-        weighted = pboxblur(pboxblur(pboxblur(clip, wmean_matrix), mean_matrix), mean_matrix)
+        weighted = pbox_blur(pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix), mean_matrix)
 
     return core.std.Expr([clip, weighted, median], [
         'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?'

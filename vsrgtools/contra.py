@@ -9,7 +9,7 @@ from vsutil import (
     disallow_variable_format, disallow_variable_resolution, get_neutral_value, get_y, iterate, join, split
 )
 
-from .func import blur, boxblur, minblur
+from .func import blur, box_blur, min_blur
 from .rgtools import repair
 from .util import normalise_planes, normalise_seq
 
@@ -46,7 +46,7 @@ def contrasharpening(
         radius = 2 if flt.width > 1024 or flt.height > 576 else 1
 
     # Damp down remaining spots of the denoised clip
-    mblur = minblur(flt, radius, planes)
+    mblur = min_blur(flt, radius, planes)
 
     rg11 = blur(mblur, radius, planes=planes)
 
@@ -86,7 +86,7 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
 
     dehaloed_y, *chroma = split(dehaloed)
 
-    weighted = boxblur(dehaloed_y, [1, 2, 1, 2, 4, 2, 1, 2, 1])
+    weighted = box_blur(dehaloed_y, [1, 2, 1, 2, 4, 2, 1, 2, 1])
     weighted2 = weighted.ctmf.CTMF(radius=2)
     weighted2 = iterate(weighted2, lambda c: repair(c, weighted, 1), 2)
 
