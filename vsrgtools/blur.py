@@ -52,7 +52,7 @@ def blur(
 @disallow_variable_format
 @disallow_variable_resolution
 def box_blur(
-    clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None
+    clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None, expr: bool | None = False
 ) -> vs.VideoNode:
     assert clip.format
 
@@ -61,9 +61,11 @@ def box_blur(
 
     try:
         aka_expr = core.akarin.Expr
+        expr = True if expr is None else expr
     except AttributeError:
-        pass
-    else:
+        expr = False
+
+    if expr:
         weights_string = ' '.join([
             x.format(w=w) for x, w in zip([
                 'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
@@ -80,6 +82,7 @@ def box_blur(
             expr_string if i in normalise_planes(clip, planes) else ''
             for i in range(clip.format.num_planes)
         ])
+
     return clip.std.Convolution(weights, planes=planes)
 
 
