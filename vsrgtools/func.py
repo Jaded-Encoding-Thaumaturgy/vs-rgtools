@@ -14,19 +14,9 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .util import mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .enum import MinFilterMode
 
 core = vs.core
-
-
-class ConvMode(str, Enum):
-    SQUARE = 'hv'
-    VERTICAL = 'v'
-    HORIZONTAL = 'h'
-
-
-class MinFilterMode(IntEnum):
-    CLIP = 1
-    DIFF = 2
 
 
 @disallow_variable_format
