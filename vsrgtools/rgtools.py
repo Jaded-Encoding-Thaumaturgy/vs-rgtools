@@ -16,13 +16,13 @@ from ._expr_rg import (
     aka_removegrain_expr_26, aka_removegrain_expr_27, aka_removegrain_expr_28
 )
 from ._expr_rp import (
-    aka_repair_expr_1_4, aka_repair_expr_5, aka_repair_expr_6, aka_repair_expr_7, aka_repair_expr_8,
-    aka_repair_expr_9, aka_repair_expr_10, aka_repair_expr_11_14, aka_repair_expr_15, aka_repair_expr_16,
-    aka_repair_expr_17, aka_repair_expr_18, aka_repair_expr_19, aka_repair_expr_20, aka_repair_expr_21,
-    aka_repair_expr_22, aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27,
-    aka_repair_expr_28
+    aka_repair_expr_1_4, aka_repair_expr_5, aka_repair_expr_6, aka_repair_expr_7, aka_repair_expr_8, aka_repair_expr_9,
+    aka_repair_expr_10, aka_repair_expr_11_14, aka_repair_expr_15, aka_repair_expr_16, aka_repair_expr_17,
+    aka_repair_expr_18, aka_repair_expr_19, aka_repair_expr_20, aka_repair_expr_21, aka_repair_expr_22,
+    aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27, aka_repair_expr_28
 )
-from .util import normalise_seq, pick_rg
+from .func import box_blur
+from .util import normalise_seq, pick_rg, wmean_matrix
 
 core = vs.core
 
@@ -131,7 +131,7 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
                 expr.append(aka_removegrain_expr_10())
             elif 11 <= m <= 12:
                 if all(mm == m for mm in mode):
-                    return clip.std.Convolution([1, 2, 1, 2, 4, 2, 1, 2, 1])
+                    return box_blur(clip, wmean_matrix)
                 expr.append(aka_removegrain_expr_11_12())
             elif 13 <= m <= 16:
                 return pick_rg(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)

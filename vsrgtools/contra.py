@@ -11,7 +11,7 @@ from vsutil import (
 
 from .func import blur, box_blur, min_blur
 from .rgtools import repair
-from .util import normalise_planes, normalise_seq
+from .util import normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 
@@ -86,7 +86,7 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
 
     dehaloed_y, *chroma = split(dehaloed)
 
-    weighted = box_blur(dehaloed_y, [1, 2, 1, 2, 4, 2, 1, 2, 1])
+    weighted = box_blur(dehaloed_y, wmean_matrix)
     weighted2 = weighted.ctmf.CTMF(radius=2)
     weighted2 = iterate(weighted2, lambda c: repair(c, weighted, 1), 2)
 
