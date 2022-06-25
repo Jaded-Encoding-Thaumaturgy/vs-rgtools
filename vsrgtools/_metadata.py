@@ -1,4 +1,4 @@
-"""Vapoursynth Wrapper for DVDs stuff"""
+"""Wrapper for RGVS, RGSF, and various other functions"""
 
 __version__ = '0.1.3'
 
