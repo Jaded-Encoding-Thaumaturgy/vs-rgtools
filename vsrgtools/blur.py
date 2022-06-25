@@ -9,6 +9,7 @@ from functools import partial
 from typing import Sequence
 
 import vapoursynth as vs
+from math import ceil, exp, log, pi, sqrt
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value
 
 from .enum import ConvMode
@@ -84,6 +85,60 @@ def box_blur(
         ])
 
     return clip.std.Convolution(weights, planes=planes)
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def gauss_blur(
+    clip: vs.VideoNode,
+    sigma: float | None = 0.5, sharp: float | None = None,
+    mode: ConvMode = ConvMode.SQUARE,
+    planes: int | Sequence[int] | None = None
+) -> vs.VideoNode:
+    assert clip.format
+
+    planes = normalise_planes(clip, planes)
+
+    if sigma is None:
+        if sharp is None:
+            raise ValueError("gauss_blur: sigma and sharp can't be both None!")
+        sigma = sqrt(1.0 / (2.0 * (sharp / 10.0) * log(2)))
+    elif sharp is not None:
+        raise ValueError("gauss_blur: sigma and sharp can't both be float!")
+
+    if sigma >= min(clip.width, clip.height):
+        raise ValueError("gauss_blur: sigma can't be bigger or equal than the smaller size of the clip!")
+
+    if sigma <= 0.333:
+        return clip
+
+    if sigma <= 4.333:
+        taps = ceil(sigma * 6 + 1)
+
+        if not taps % 2:
+            taps += 1
+
+        half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
+        doub_qsigma = 2 * sigma * sigma
+
+        high, *kernel = [
+            half_pisqrt * exp(-(x * x) / doub_qsigma)
+            for x in range(taps // 2)
+        ]
+
+        kernel = [x * 1023 / high for x in kernel]
+        kernel = [*kernel[::-1], 1023, *kernel]
+
+        return clip.std.Convolution(kernel, mode=mode, planes=planes)
+
+    wdown, hdown = [
+        max(round(size / sigma), 2) if char in mode else size
+        for size, char in [(clip.width, 'h'), (clip.height, 'v')]
+    ]
+
+    wdown, hdown = [round(wdown / 2) * 2, round(hdown / 2) * 2]
+    down = clip.resize.Bilinear(wdown, hdown)
+    return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
 
 
 @disallow_variable_format
