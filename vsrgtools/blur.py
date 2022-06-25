@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 __all__ = [
-    'sbr', 'min_blur', 'box_blur', 'blur'
+    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'sbr'
 ]
 
 
 from functools import partial
+from math import ceil, exp, log, pi, sqrt
 from typing import Sequence
 
 import vapoursynth as vs
-from math import ceil, exp, log, pi, sqrt
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value
+from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, join, split
 
 from .enum import ConvMode
 from .util import mean_matrix, normalise_planes, normalise_seq, wmean_matrix
@@ -132,13 +132,22 @@ def gauss_blur(
         return clip.std.Convolution(kernel, mode=mode, planes=planes)
 
     wdown, hdown = [
-        max(round(size / sigma), 2) if char in mode else size
+        round((max(round(size / sigma), 2) if char in mode else size) / 2) * 2
         for size, char in [(clip.width, 'h'), (clip.height, 'v')]
     ]
 
-    wdown, hdown = [round(wdown / 2) * 2, round(hdown / 2) * 2]
-    down = clip.resize.Bilinear(wdown, hdown)
-    return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
+    def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
+        down = clip.resize.Bilinear(wdown, hdown)
+        return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
+
+    different_planes = len(set(range(clip.format.num_planes)) - set(planes))
+
+    if not different_planes:
+        return _fmtc_blur(clip)
+    
+    return join([_fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))])
+
+    
 
 
 @disallow_variable_format
