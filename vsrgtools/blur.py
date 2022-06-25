@@ -144,10 +144,8 @@ def gauss_blur(
 
     if not different_planes:
         return _fmtc_blur(clip)
-    
-    return join([_fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))])
 
-    
+    return join([_fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))])
 
 
 @disallow_variable_format

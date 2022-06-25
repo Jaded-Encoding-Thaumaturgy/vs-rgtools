@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, List, Sequence, TypeVar, Union
 
 import vapoursynth as vs
+from vsutil import disallow_variable_format, disallow_variable_resolution
 
 core = vs.core
 
@@ -14,11 +15,15 @@ wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
 mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FFLOAT:
     assert clip.format
     return func_float if clip.format.sample_type == vs.FLOAT else func_int
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def minfilter(
     src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
 ) -> vs.VideoNode:
@@ -30,6 +35,8 @@ def minfilter(
     )
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def maxfilter(
     clip: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
 ) -> vs.VideoNode:
@@ -57,6 +64,7 @@ def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
     return min_val if val < min_val else max_val if val > max_val else val
 
 
+@disallow_variable_format
 def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = True) -> List[int]:
     assert clip.format
 
@@ -73,6 +81,7 @@ def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = Tru
     return planes
 
 
+@disallow_variable_format
 def norm_expr_planes(clip: vs.VideoNode, expr: str | List[str], planes: PlanesT = None) -> List[str]:
     assert clip.format
 

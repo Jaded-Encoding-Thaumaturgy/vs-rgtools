@@ -54,6 +54,8 @@ def median_clips(clips: Sequence[vs.VideoNode], planes: int | Sequence[int] | No
     )
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def median_diff(
     clip: vs.VideoNode,
     diffa: vs.VideoNode, diffb: vs.VideoNode,
@@ -72,6 +74,8 @@ def median_diff(
     ])
 
 
+@disallow_variable_format
+@disallow_variable_resolution
 def min_median_average(
     clip: vs.VideoNode,
     radius: int = 2, threshold: int = 7, scenechange: int = 24,
