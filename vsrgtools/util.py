@@ -65,7 +65,7 @@ def clamp(val: Nb, min_val: Nb, max_val: Nb) -> Nb:
 
 
 @disallow_variable_format
-def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = True) -> List[int]:
+def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = False) -> List[int]:
     assert clip.format
 
     if planes is None:
