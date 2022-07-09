@@ -22,7 +22,7 @@ from ._expr_rp import (
     aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27, aka_repair_expr_28
 )
 from .blur import box_blur
-from .util import PlanesT, normalise_seq, pick_rg, wmean_matrix
+from .util import PlanesT, normalise_seq, pick_func_stype, wmean_matrix
 
 core = vs.core
 
@@ -90,7 +90,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
         return aka_expr([clip, repairclip], expr)
     if (20 in mode or 23 in mode) and clip.format.sample_type == vs.FLOAT:
         raise ValueError('rgsf is wrong')
-    return pick_rg(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
+    return pick_func_stype(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
 
 
 @disallow_variable_format
@@ -134,7 +134,7 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
                     return box_blur(clip, wmean_matrix)
                 expr.append(aka_removegrain_expr_11_12())
             elif 13 <= m <= 16:
-                return pick_rg(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
+                return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
             elif m == 17:
                 expr.append(aka_removegrain_expr_17())
             elif m == 18:
@@ -175,25 +175,25 @@ def clense(
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:
-    return pick_rg(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
+    return pick_func_stype(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
 def forward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_rg(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
+    return pick_func_stype(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
 def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_rg(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
+    return pick_func_stype(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
 def vertical_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
-    return pick_rg(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
+    return pick_func_stype(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
 
 
 @disallow_variable_format
