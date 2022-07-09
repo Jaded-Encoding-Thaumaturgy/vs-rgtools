@@ -2,8 +2,6 @@ from __future__ import annotations
 
 __all__ = ['contrasharpening', 'contrasharpening_dehalo']
 
-from typing import Sequence
-
 import vapoursynth as vs
 from vsutil import (
     disallow_variable_format, disallow_variable_resolution, get_neutral_value, get_y, iterate, join, split
@@ -11,7 +9,7 @@ from vsutil import (
 
 from .blur import blur, box_blur, min_blur
 from .rgtools import repair
-from .util import norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .util import PlanesT, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 
@@ -19,8 +17,7 @@ core = vs.core
 @disallow_variable_format
 @disallow_variable_resolution
 def contrasharpening(
-    flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None,
-    rep: int = 13, planes: int | Sequence[int] | None = None
+    flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None, rep: int = 13, planes: PlanesT = None
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.

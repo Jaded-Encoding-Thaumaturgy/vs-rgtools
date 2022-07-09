@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ['repair', 'removegrain', 'vertical_cleaner', 'clense', 'backward_clense', 'forward_clense']
 
 import warnings
-from typing import List, Sequence
+from typing import Sequence
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution
@@ -22,7 +22,7 @@ from ._expr_rp import (
     aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27, aka_repair_expr_28
 )
 from .blur import box_blur
-from .util import normalise_seq, pick_rg, wmean_matrix
+from .util import PlanesT, normalise_seq, pick_rg, wmean_matrix
 
 core = vs.core
 
@@ -39,7 +39,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
     except AttributeError:
         pass
     else:
-        expr: List[str] = []
+        expr = list[str]()
         for m in mode:
             if m == 0:
                 expr.append('')
@@ -109,7 +109,7 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     except AttributeError:
         pass
     else:
-        expr: List[str] = []
+        expr = list[str]()
         for idx, m in enumerate(mode):
             if m == 0:
                 expr.append('')
@@ -173,20 +173,20 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
 def clense(
     clip: vs.VideoNode,
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
-    planes: int | Sequence[int] | None = None, grey: bool = False
+    planes: PlanesT = None
 ) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
-def forward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def forward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
-def backward_clense(clip: vs.VideoNode, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
 
 

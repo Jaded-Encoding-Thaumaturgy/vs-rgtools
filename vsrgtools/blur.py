@@ -13,7 +13,7 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, join, split
 
 from .enum import ConvMode
-from .util import mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .util import PlanesT, mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 
@@ -21,9 +21,7 @@ core = vs.core
 @disallow_variable_format
 @disallow_variable_resolution
 def blur(
-    clip: vs.VideoNode,
-    radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
-    planes: int | Sequence[int] | None = None
+    clip: vs.VideoNode, radius: int = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 
@@ -53,7 +51,7 @@ def blur(
 @disallow_variable_format
 @disallow_variable_resolution
 def box_blur(
-    clip: vs.VideoNode, weights: Sequence[float], planes: int | Sequence[int] | None = None, expr: bool | None = False
+    clip: vs.VideoNode, weights: Sequence[float], planes: PlanesT = None, expr: bool | None = False
 ) -> vs.VideoNode:
     assert clip.format
 
@@ -92,8 +90,7 @@ def box_blur(
 def gauss_blur(
     clip: vs.VideoNode,
     sigma: float | None = 0.5, sharp: float | None = None,
-    mode: ConvMode = ConvMode.SQUARE,
-    planes: int | Sequence[int] | None = None
+    mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 
@@ -150,9 +147,9 @@ def gauss_blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def min_blur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.VideoNode:
     """
-    MinBlur   by Didée (http://avisynth.nl/index.php/MinBlur)
+    MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
     """
     assert clip.format
@@ -182,7 +179,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | 
 def sbr(
     clip: vs.VideoNode,
     radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
-    planes: int | Sequence[int] | None = None
+    planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 

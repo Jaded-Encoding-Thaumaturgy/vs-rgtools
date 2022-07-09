@@ -4,22 +4,20 @@ __all__ = [
     'min_filter', 'max_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
 ]
 
-from typing import Callable, Sequence
+from typing import Sequence
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import MinFilterMode
-from .util import PlanesT, norm_expr_planes, normalise_planes, normalise_seq
+from .util import PlanesT, VSFunc, norm_expr_planes, normalise_planes, normalise_seq
 
 core = vs.core
 
 
 @disallow_variable_format
 @disallow_variable_resolution
-def min_filter(
-    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
-) -> vs.VideoNode:
+def min_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return core.std.Expr(
         [src, flt1, flt2], norm_expr_planes(src, 'x z - abs x y - abs < z y ?', planes)
     )
@@ -27,9 +25,7 @@ def min_filter(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def max_filter(
-    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
-) -> vs.VideoNode:
+def max_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return core.std.Expr(
         [src, flt1, flt2], norm_expr_planes(src, 'x z - abs x y - abs > z y ?', planes)
     )
@@ -39,10 +35,8 @@ def max_filter(
 @disallow_variable_resolution
 def minimum_diff(
     clip: vs.VideoNode,
-    clip_func: Callable[[vs.VideoNode], vs.VideoNode],
-    diff_func: Callable[[vs.VideoNode], vs.VideoNode] | None = None,
-    mode: MinFilterMode | None = None,
-    planes: int | Sequence[int] | None = None
+    clip_func: VSFunc, diff_func: VSFunc | None = None,
+    mode: MinFilterMode | None = None, planes: PlanesT = None
 ) -> vs.VideoNode:
     planes = normalise_planes(clip, planes)
 
@@ -66,11 +60,7 @@ def minimum_diff(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def median_diff(
-    clip: vs.VideoNode,
-    diffa: vs.VideoNode, diffb: vs.VideoNode,
-    planes: int | Sequence[int] | None = None
-) -> vs.VideoNode:
+def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
     planes = normalise_planes(clip, planes)
@@ -86,7 +76,7 @@ def median_diff(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def median_clips(clips: Sequence[vs.VideoNode], planes: int | Sequence[int] | None = None) -> vs.VideoNode:
+def median_clips(clips: Sequence[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
     return core.std.Expr(
         list(clips), norm_expr_planes(clips[0], 'x y z min max y z max min', planes)
     )
@@ -95,9 +85,7 @@ def median_clips(clips: Sequence[vs.VideoNode], planes: int | Sequence[int] | No
 @disallow_variable_format
 @disallow_variable_resolution
 def flux_smooth(
-    clip: vs.VideoNode,
-    radius: int = 2, threshold: int = 7, scenechange: int = 24,
-    planes: int | Sequence[int] | None = None,
+    clip: vs.VideoNode, radius: int = 2, threshold: int = 7, scenechange: int = 24, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 

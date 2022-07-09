@@ -12,6 +12,7 @@ core = vs.core
 FINT = TypeVar('FINT', bound=Callable[..., vs.VideoNode])
 FFLOAT = TypeVar('FFLOAT', bound=Callable[..., vs.VideoNode])
 PlanesT = Union[int, Sequence[int], None]
+VSFunc = Callable[[vs.VideoNode], vs.VideoNode]
 
 wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
 mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
