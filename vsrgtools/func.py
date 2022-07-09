@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
-    'min_filter', 'median_clips', 'median_diff', 'min_median_average'
+    'min_filter', 'median_clips', 'median_diff', 'flux_smooth'
 ]
 
 from typing import Callable, Sequence
@@ -76,7 +76,7 @@ def median_diff(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def min_median_average(
+def flux_smooth(
     clip: vs.VideoNode,
     radius: int = 2, threshold: int = 7, scenechange: int = 24,
     planes: int | Sequence[int] | None = None,
