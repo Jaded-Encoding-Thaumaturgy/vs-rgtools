@@ -194,3 +194,9 @@ def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
 @disallow_variable_resolution
 def vertical_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     return pick_rg(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def horizontal_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
+    return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()
