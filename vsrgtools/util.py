@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 from math import ceil, floor
-from typing import Callable, Iterable, List, Sequence, TypeVar, Union
+from typing import Any, Callable, Iterable, List, Sequence, TypeVar, Union
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution
@@ -67,14 +67,21 @@ def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = Fal
 
 
 @disallow_variable_format
-def norm_expr_planes(clip: vs.VideoNode, expr: str | List[str], planes: PlanesT = None) -> List[str]:
+def norm_expr_planes(
+    clip: vs.VideoNode, expr: str | List[str], planes: PlanesT = None, **kwargs: Any
+) -> List[str]:
     assert clip.format
 
     expr_array = normalise_seq(to_arr(expr), clip.format.num_planes)
 
     planes = normalise_planes(clip, planes)
 
-    return [exp if i in planes else '' for i, exp in enumerate(expr_array, 0)]
+    string_args = [(key, normalise_seq(value)) for key, value in kwargs.items()]
+
+    return [
+        exp.format(**{key: value[i] for key, value in string_args})
+        if i in planes else '' for i, exp in enumerate(expr_array, 0)
+    ]
 
 
 def to_arr(array: Sequence[T] | T) -> List[T]:
