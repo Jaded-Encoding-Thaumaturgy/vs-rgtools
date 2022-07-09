@@ -10,9 +10,36 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import MinFilterMode
-from .util import norm_expr_planes, normalise_planes, normalise_seq, minfilter
+from .util import PlanesT, norm_expr_planes, normalise_planes, normalise_seq
 
 core = vs.core
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def minfilter(
+    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
+) -> vs.VideoNode:
+    assert src.format
+
+    return core.std.Expr(
+        [src, flt1, flt2],
+        norm_expr_planes(src, 'x z - abs x y - abs < z y ?', planes)
+    )
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def maxfilter(
+    clip: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
+) -> vs.VideoNode:
+    assert clip.format
+
+    return core.std.Expr([clip, flt1, flt2], [
+        'x z - abs x y - abs > z y ?' if i in normalise_planes(clip, planes) else ''
+        for i in range(clip.format.num_planes)
+    ])
+
 
 
 @disallow_variable_format

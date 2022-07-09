@@ -24,32 +24,6 @@ def pick_rg(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FF
     return func_float if clip.format.sample_type == vs.FLOAT else func_int
 
 
-@disallow_variable_format
-@disallow_variable_resolution
-def minfilter(
-    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
-) -> vs.VideoNode:
-    assert src.format
-
-    return core.std.Expr(
-        [src, flt1, flt2],
-        norm_expr_planes(src, 'x z - abs x y - abs < z y ?', planes)
-    )
-
-
-@disallow_variable_format
-@disallow_variable_resolution
-def maxfilter(
-    clip: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None
-) -> vs.VideoNode:
-    assert clip.format
-
-    return core.std.Expr([clip, flt1, flt2], [
-        'x z - abs x y - abs > z y ?' if i in normalise_planes(clip, planes) else ''
-        for i in range(clip.format.num_planes)
-    ])
-
-
 T = TypeVar('T', bound=Union[int, float, str])
 Nb = TypeVar('Nb', float, int)
 
