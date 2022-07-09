@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-__all__ = ['repair', 'removegrain', 'vertical_cleaner', 'clense', 'backward_clense', 'forward_clense']
+__all__ = [
+    'repair', 'removegrain',
+    'clense', 'backward_clense', 'forward_clense',
+    'vertical_cleaner', 'horizontal_cleaner'
+]
 
 import warnings
 from typing import Sequence
