@@ -13,7 +13,7 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, join, split
 
 from .enum import ConvMode
-from .util import mean_matrix, normalise_planes, normalise_seq, wmean_matrix
+from .util import mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 
@@ -160,7 +160,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | 
     planes = normalise_planes(clip, planes)
     pbox_blur = partial(box_blur, planes=planes)
 
-    median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, planes=planes)
+    median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, None, planes)
 
     if radius == 0:
         weighted = sbr(clip, planes=planes)
@@ -171,10 +171,10 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: int | Sequence[int] | 
     else:
         weighted = pbox_blur(pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix), mean_matrix)
 
-    return core.std.Expr([clip, weighted, median], [
-        'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?'
-        if i in planes else '' for i in range(clip.format.num_planes)
-    ])
+    return core.std.Expr(
+        [clip, weighted, median],
+        norm_expr_planes(clip, 'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?', planes)
+    )
 
 
 @disallow_variable_format
@@ -200,9 +200,10 @@ def sbr(
 
     diff_weighted = blur_func(diff)
 
-    diff = core.std.Expr([diff, diff_weighted], [
-        f'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
-        if i in planes else '' for i, mid in enumerate(neutral, 0)
-    ])
+    diff = core.std.Expr(
+        [diff, diff_weighted], norm_expr_planes(
+            clip, 'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?', planes, mid=neutral
+        )
+    )
 
     return clip.std.MakeDiff(diff, planes)

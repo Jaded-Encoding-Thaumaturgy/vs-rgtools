@@ -11,7 +11,7 @@ from vsutil import (
 
 from .blur import blur, box_blur, min_blur
 from .rgtools import repair
-from .util import normalise_planes, normalise_seq, wmean_matrix
+from .util import norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
 
 core = vs.core
 
@@ -63,10 +63,10 @@ def contrasharpening(
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
-    return core.std.Expr([limit, diff_blur, flt], [
-        f'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
-        if i in planes else '' for i, mid in enumerate(neutral)
-    ])
+    return core.std.Expr(
+        [limit, diff_blur, flt],
+        norm_expr_planes(flt, 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +', planes, mid=neutral)
+    )
 
 
 @disallow_variable_format
@@ -82,7 +82,7 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
     assert src.format
 
     if dehaloed.format.id != src.format.id:
-        raise ValueError('contrasharpening: Clips must be the same format')
+        raise ValueError('contrasharpening_dehalo: Clips must be the same format')
 
     dehaloed_y, *chroma = split(dehaloed)
 
