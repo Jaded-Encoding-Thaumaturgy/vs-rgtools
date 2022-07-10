@@ -1,5 +1,5 @@
 # flake8: noqa
-from . import util
+from . import util, aka_expr
 
 from .blur import *
 from .contra import *

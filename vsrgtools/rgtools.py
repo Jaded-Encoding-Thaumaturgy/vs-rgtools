@@ -6,24 +6,14 @@ __all__ = [
     'vertical_cleaner', 'horizontal_cleaner'
 ]
 
-import warnings
 from typing import Sequence
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
-from ._expr_rg import (
-    aka_removegrain_expr_1, aka_removegrain_expr_2_4, aka_removegrain_expr_5, aka_removegrain_expr_6,
-    aka_removegrain_expr_7, aka_removegrain_expr_8, aka_removegrain_expr_9, aka_removegrain_expr_10,
-    aka_removegrain_expr_11_12, aka_removegrain_expr_17, aka_removegrain_expr_18, aka_removegrain_expr_19,
-    aka_removegrain_expr_20, aka_removegrain_expr_21_22, aka_removegrain_expr_23, aka_removegrain_expr_24,
-    aka_removegrain_expr_26, aka_removegrain_expr_27, aka_removegrain_expr_28
-)
-from ._expr_rp import (
-    aka_repair_expr_1_4, aka_repair_expr_5, aka_repair_expr_6, aka_repair_expr_7, aka_repair_expr_8, aka_repair_expr_9,
-    aka_repair_expr_10, aka_repair_expr_11_14, aka_repair_expr_15, aka_repair_expr_16, aka_repair_expr_17,
-    aka_repair_expr_18, aka_repair_expr_19, aka_repair_expr_20, aka_repair_expr_21, aka_repair_expr_22,
-    aka_repair_expr_23, aka_repair_expr_24, aka_repair_expr_26, aka_repair_expr_27, aka_repair_expr_28
+from .aka_expr import (
+    aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
+    aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
 from .blur import box_blur
 from .util import PlanesT, normalise_seq, pick_func_stype, wmean_matrix
@@ -47,53 +37,20 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | Sequence[in
         for m in mode:
             if m == 0:
                 expr.append('')
-            elif 1 <= m <= 4:
-                expr.append(aka_repair_expr_1_4(m))
-            elif m == 5:
-                expr.append(aka_repair_expr_5())
-            elif m == 6:
-                expr.append(aka_repair_expr_6())
-            elif m == 7:
-                expr.append(aka_repair_expr_7())
-            elif m == 8:
-                expr.append(aka_repair_expr_8())
-            elif m == 9:
-                expr.append(aka_repair_expr_9())
-            elif m == 10:
-                expr.append(aka_repair_expr_10())
-            elif 11 <= m <= 14:
-                expr.append(aka_repair_expr_11_14(m - 10))
-            elif m == 15:
-                expr.append(aka_repair_expr_15())
-            elif m == 16:
-                expr.append(aka_repair_expr_16())
-            elif m == 17:
-                expr.append(aka_repair_expr_17())
-            elif m == 18:
-                expr.append(aka_repair_expr_18())
-            elif m == 19:
-                expr.append(aka_repair_expr_19())
-            elif m == 20:
-                expr.append(aka_repair_expr_20())
-            elif m == 21:
-                expr.append(aka_repair_expr_21())
-            elif m == 22:
-                expr.append(aka_repair_expr_22())
-            elif m == 23:
-                expr.append(aka_repair_expr_23())
-            elif m == 24:
-                expr.append(aka_repair_expr_24())
-            elif m == 25:
-                raise ValueError('repair: invalid mode specified')
-            elif m == 26:
-                expr.append(aka_repair_expr_26())
-            elif m == 27:
-                expr.append(aka_repair_expr_27())
-            elif m == 28:
-                expr.append(aka_repair_expr_28())
+            else:
+                try:
+                    function = repair_aka_exprs[m - 1]
+                    if function is None:
+                        raise ValueError
+                    expr.append(function())
+                except BaseException:
+                    raise ValueError('repair: invalid mode specified')
+
         return aka_expr([clip, repairclip], expr)
+
     if (20 in mode or 23 in mode) and clip.format.sample_type == vs.FLOAT:
-        raise ValueError('rgsf is wrong')
+        raise ValueError('repair: rgsf mode is wrong')
+
     return pick_func_stype(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
 
 
@@ -117,32 +74,12 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
         for idx, m in enumerate(mode):
             if m == 0:
                 expr.append('')
-            if m == 1:
-                expr.append(aka_removegrain_expr_1())
-            elif 2 <= m <= 4:
-                expr.append(aka_removegrain_expr_2_4(m))
-            elif m == 5:
-                expr.append(aka_removegrain_expr_5())
-            elif m == 6:
-                expr.append(aka_removegrain_expr_6())
-            elif m == 7:
-                expr.append(aka_removegrain_expr_7())
-            elif m == 8:
-                expr.append(aka_removegrain_expr_8())
-            elif m == 9:
-                expr.append(aka_removegrain_expr_9())
-            elif m == 10:
-                expr.append(aka_removegrain_expr_10())
             elif 11 <= m <= 12:
                 if all(mm == m for mm in mode):
                     return box_blur(clip, wmean_matrix)
                 expr.append(aka_removegrain_expr_11_12())
             elif 13 <= m <= 16:
                 return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
-            elif m == 17:
-                expr.append(aka_removegrain_expr_17())
-            elif m == 18:
-                expr.append(aka_removegrain_expr_18())
             elif m == 19:
                 if all(mm == 19 for mm in mode):
                     return clip.std.Convolution([1, 1, 1, 1, 0, 1, 1, 1, 1])
@@ -151,23 +88,19 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
                 if all(mm == 20 for mm in mode):
                     return clip.std.Convolution([1] * 9)
                 expr.append(aka_removegrain_expr_20())
-            elif m == 21:
-                expr.append(aka_removegrain_expr_21_22())
-            elif m == 22:
-                expr.append(aka_removegrain_expr_21_22())
             elif m == 23:
                 expr.append(aka_removegrain_expr_23(0 if idx == 0 else -0.5))
             elif m == 24:
                 expr.append(aka_removegrain_expr_24(0 if idx == 0 else -0.5))
-            elif m == 25:
-                expr.append('')
-                warnings.warn('mode 25 isn\'t implemented yet')
-            elif m == 26:
-                expr.append(aka_removegrain_expr_26())
-            elif m == 27:
-                expr.append(aka_removegrain_expr_27())
-            elif m == 28:
-                expr.append(aka_removegrain_expr_28())
+            else:
+                try:
+                    function = removegrain_aka_exprs[m - 1]
+                    if function is None:
+                        raise ValueError
+                    expr.append(function())
+                except BaseException:
+                    raise ValueError('removegrain: invalid mode specified')
+
         return aka_expr(clip, expr).std.SetFrameProps(AkaExpr=mode)
     return clip.rgsf.RemoveGrain(mode)
 
