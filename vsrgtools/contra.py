@@ -5,9 +5,7 @@ from functools import partial
 __all__ = ['contrasharpening', 'contrasharpening_dehalo']
 
 import vapoursynth as vs
-from vsutil import (
-    disallow_variable_format, disallow_variable_resolution, get_neutral_value, get_y, iterate, join, split
-)
+from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
 from .blur import blur, box_blur, min_blur
 from .enum import RepairMode
@@ -21,7 +19,7 @@ core = vs.core
 @disallow_variable_resolution
 def contrasharpening(
     flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None,
-    rep: int | RepairMode = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = None
+    rep: int | RepairMode = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.
@@ -71,7 +69,8 @@ def contrasharpening(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def contrasharpening_dehalo(flt: vs.VideoNode, src: vs.VideoNode, level: float) -> vs.VideoNode:
+def contrasharpening_dehalo(
+        flt: vs.VideoNode, src: vs.VideoNode, level: float = 1.4, planes: PlanesT = 0) -> vs.VideoNode:
     """
     :param dehaloed:    Dehaloed clip
     :param src:         Source clip
@@ -83,27 +82,33 @@ def contrasharpening_dehalo(flt: vs.VideoNode, src: vs.VideoNode, level: float) 
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening_dehalo: Clips must be the same format')
 
-    dehaloed_y, *chroma = split(flt)
+    planes = normalise_planes(flt, planes)
 
-    weighted = box_blur(dehaloed_y, wmean_matrix)
-    weighted2 = weighted.ctmf.CTMF(radius=2)
-    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted, mode=RepairMode.MINMAX_SQUARE1), 2)
+    rep_modes = [
+        i in planes and RepairMode.MINMAX_SQUARE1 or RepairMode.NONE for i in range(flt.format.num_planes)
+    ]
+
+    weighted = box_blur(flt, wmean_matrix, planes)
+    weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
+    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted, mode=rep_modes), 2)
 
     if aka_expr_available:
-        contra_y = core.akarin.Expr(
-            [weighted, weighted2, get_y(src), dehaloed_y],
-            f'x y - 2.49 * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
+        return core.akarin.Expr(
+            [weighted, weighted2, src, flt], norm_expr_planes(
+                flt, f'x y - 2.49 * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +', planes
+            )
         )
-    else:
-        neutral = get_neutral_value(flt)
-        diff = weighted.std.MakeDiff(weighted2).std.Expr(f'x {neutral} - 2.49 * {level} * {neutral} +')
-        diff = core.std.Expr(
-            [diff, get_y(src).std.MakeDiff(dehaloed_y)],
-            f'x {neutral} - y {neutral} - * 0 < {neutral} x {neutral} - abs y {neutral} - abs < x y ? ?'
+
+    neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
+
+    diff = weighted.std.MakeDiff(weighted2, planes).std.Expr(
+        norm_expr_planes(flt, f'x {neutral} - 2.49 * {level} * {neutral} +', planes)
+    )
+
+    diff = core.std.Expr(
+        [diff, src.std.MakeDiff(flt, planes)], norm_expr_planes(
+            flt, 'x {mid} - y {mid} - * 0 < {mid} x {mid} - abs y {mid} - abs < x y ? ?', planes, mid=neutral
         )
-        contra_y = dehaloed_y.std.MergeDiff(diff)
+    )
 
-    if chroma:
-        return join([contra_y] + chroma, flt.format.color_family)
-
-    return contra_y
+    return flt.std.MergeDiff(diff, planes)
