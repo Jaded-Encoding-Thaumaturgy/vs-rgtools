@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import partial
 
 from math import e, log, pi, sin, sqrt
 
@@ -8,7 +9,7 @@ from vsutil import disallow_variable_format, disallow_variable_resolution, get_y
 
 from .blur import gauss_blur
 from .enum import ConvMode
-from .util import PlanesT, norm_expr_planes, normalise_planes
+from .util import PlanesT, VSFunc, norm_expr_planes, normalise_planes
 
 core = vs.core
 
@@ -47,3 +48,20 @@ def replace_low_frequencies(
     final = core.akarin.Expr([work_clip, flt_blur, ref_blur], norm_expr_planes(work_clip, expr, planes))
 
     return final if chroma else core.std.ShufflePlanes([final, flt], [0, 1, 2], vs.YUV)
+
+
+def lehmer_diff_merge(
+    src: vs.VideoNode, flt: vs.VideoNode,
+    low_filter: VSFunc = partial(core.std.BoxBlur, hradius=3, hpasses=2, vradius=3, vpasses=2),
+    high_filter: VSFunc | None = None,
+    planes: PlanesT = None
+) -> vs.VideoNode:
+    if high_filter is None:
+        high_filter = low_filter
+
+    return core.akarin.Expr(
+        [src, flt, low_filter(src), high_filter(flt)],
+        norm_expr_planes(
+            src, 'x z - SD! y a - FD! SD@ 3 pow FD@ 3 pow + SD@ 2 pow FD@ 2 pow 0.0001 + + / x SD@ - +', planes
+        )
+    )
