@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import partial
+
 __all__ = ['contrasharpening', 'contrasharpening_dehalo']
 
 import vapoursynth as vs
@@ -8,8 +10,9 @@ from vsutil import (
 )
 
 from .blur import blur, box_blur, min_blur
+from .enum import RepairMode
 from .rgtools import repair
-from .util import PlanesT, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, wmean_matrix
 
 core = vs.core
 
@@ -17,7 +20,8 @@ core = vs.core
 @disallow_variable_format
 @disallow_variable_resolution
 def contrasharpening(
-    flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None, rep: int = 13, planes: PlanesT = None
+    flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None,
+    rep: int | RepairMode = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = None
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.
@@ -29,13 +33,12 @@ def contrasharpening(
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
-    assert flt.format
-    assert src.format
+    assert flt.format and src.format
 
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')
 
-    neutral = normalise_seq([get_neutral_value(flt), get_neutral_value(flt, True)], flt.format.num_planes)
+    neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
 
     planes = normalise_planes(flt, planes)
 
@@ -68,32 +71,31 @@ def contrasharpening(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: float) -> vs.VideoNode:
+def contrasharpening_dehalo(flt: vs.VideoNode, src: vs.VideoNode, level: float) -> vs.VideoNode:
     """
     :param dehaloed:    Dehaloed clip
     :param src:         Source clip
     :param level:       Strengh level
     :return:            Contrasharpened clip
     """
-    assert dehaloed.format
-    assert src.format
+    assert flt.format and src.format
 
-    if dehaloed.format.id != src.format.id:
+    if flt.format.id != src.format.id:
         raise ValueError('contrasharpening_dehalo: Clips must be the same format')
 
-    dehaloed_y, *chroma = split(dehaloed)
+    dehaloed_y, *chroma = split(flt)
 
     weighted = box_blur(dehaloed_y, wmean_matrix)
     weighted2 = weighted.ctmf.CTMF(radius=2)
-    weighted2 = iterate(weighted2, lambda c: repair(c, weighted, 1), 2)
+    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted, mode=RepairMode.MINMAX_SQUARE1), 2)
 
-    try:
+    if aka_expr_available:
         contra_y = core.akarin.Expr(
             [weighted, weighted2, get_y(src), dehaloed_y],
             f'x y - 2.49 * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
         )
-    except AttributeError:
-        neutral = get_neutral_value(dehaloed)
+    else:
+        neutral = get_neutral_value(flt)
         diff = weighted.std.MakeDiff(weighted2).std.Expr(f'x {neutral} - 2.49 * {level} * {neutral} +')
         diff = core.std.Expr(
             [diff, get_y(src).std.MakeDiff(dehaloed_y)],
@@ -101,7 +103,7 @@ def contrasharpening_dehalo(dehaloed: vs.VideoNode, src: vs.VideoNode, level: fl
         )
         contra_y = dehaloed_y.std.MergeDiff(diff)
 
-    if not chroma:
-        return contra_y
+    if chroma:
+        return join([contra_y] + chroma, flt.format.color_family)
 
-    return join([contra_y] + chroma, dehaloed.format.color_family)
+    return contra_y

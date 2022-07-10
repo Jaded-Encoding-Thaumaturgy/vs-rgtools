@@ -13,7 +13,9 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, join, split
 
 from .enum import ConvMode
-from .util import PlanesT, mean_matrix, norm_expr_planes, normalise_planes, normalise_seq, wmean_matrix
+from .util import (
+    PlanesT, aka_expr_available, mean_matrix, norm_expr_planes, normalise_planes, wmean_matrix
+)
 
 core = vs.core
 
@@ -58,31 +60,27 @@ def box_blur(
     if len(weights) != 9:
         raise ValueError('box_blur: weights has to be an array of length 9!')
 
-    try:
-        aka_expr = core.akarin.Expr
-        expr = True if expr is None else expr
-    except AttributeError:
-        expr = False
+    expr = expr is None and aka_expr_available or expr
 
-    if expr:
-        weights_string = ' '.join([
-            x.format(w=w) for x, w in zip([
-                'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
-                'x[-1,0] {w} *', 'x {w} *', 'x[1,0] {w} *',
-                'x[-1,1] {w} *', 'x[0,1] {w} *', 'x[1,1] {w} *'
-            ], weights)
-        ])
+    if not expr:
+        return clip.std.Convolution(weights, planes=planes)
 
-        add_string = '+ ' * 8
+    weights_string = ' '.join([
+        x.format(w=w) for x, w in zip([
+            'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
+            'x[-1,0] {w} *', 'x {w} *', 'x[1,0] {w} *',
+            'x[-1,1] {w} *', 'x[0,1] {w} *', 'x[1,1] {w} *'
+        ], weights)
+    ])
 
-        expr_string = f'{weights_string} {add_string} {sum(map(float, weights))} /'
+    add_string = '+ ' * 8
 
-        return aka_expr(clip, [
-            expr_string if i in normalise_planes(clip, planes) else ''
-            for i in range(clip.format.num_planes)
-        ])
+    expr_string = f'{weights_string} {add_string} {sum(map(float, weights))} /'
 
-    return clip.std.Convolution(weights, planes=planes)
+    return core.akarin.Expr(clip, [
+        expr_string if i in normalise_planes(clip, planes) else ''
+        for i in range(clip.format.num_planes)
+    ], opt=True)
 
 
 @disallow_variable_format
@@ -168,6 +166,12 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     else:
         weighted = pbox_blur(pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix), mean_matrix)
 
+    if aka_expr_available:
+        return core.akarin.Expr(
+            [clip, weighted, median],
+            norm_expr_planes(clip, 'x y - A! x z - B! A@ B@ * 0 < x A@ abs B@ abs < y z ? ?', planes)
+        )
+
     return core.std.Expr(
         [clip, weighted, median],
         norm_expr_planes(clip, 'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?', planes)
@@ -185,9 +189,7 @@ def sbr(
 
     planes = normalise_planes(clip, planes)
 
-    neutral = normalise_seq(
-        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
-    )
+    neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
     blur_func = partial(blur, radius=radius, mode=mode, planes=planes)
 
@@ -196,6 +198,14 @@ def sbr(
     diff = clip.std.MakeDiff(weighted, planes)
 
     diff_weighted = blur_func(diff)
+
+    if aka_expr_available:
+        return core.akarin.Expr(
+            [diff, diff_weighted, clip], norm_expr_planes(
+                clip, 'x y - A! x {mid} - XD! z A@ XD@ * 0 < {mid} A@ abs XD@ abs < A@ {mid} + x ? ? {mid} - -',
+                planes, mid=neutral
+            )
+        )
 
     diff = core.std.Expr(
         [diff, diff_weighted], norm_expr_planes(

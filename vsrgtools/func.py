@@ -10,7 +10,7 @@ import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import MinFilterMode
-from .util import PlanesT, VSFunc, norm_expr_planes, normalise_planes, normalise_seq
+from .util import PlanesT, VSFunc, norm_expr_planes, normalise_planes
 
 core = vs.core
 
@@ -64,9 +64,7 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     assert clip.format
 
     planes = normalise_planes(clip, planes)
-    neutral = normalise_seq(
-        [get_neutral_value(clip), get_neutral_value(clip, True)], clip.format.num_planes
-    )
+    neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
     return core.std.Expr(
         [clip, diffa, diffb],

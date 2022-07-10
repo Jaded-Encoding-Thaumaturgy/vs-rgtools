@@ -18,6 +18,12 @@ wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
 mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 
+try:
+    aka_expr_available = bool(core.akarin.Expr)
+except AttributeError:
+    aka_expr_available = False
+
+
 @disallow_variable_format
 @disallow_variable_resolution
 def pick_func_stype(clip: vs.VideoNode, func_int: FINT, func_float: FFLOAT) -> FINT | FFLOAT:
@@ -59,12 +65,15 @@ mod4 = partial(mod_x, x=4)
 def normalise_planes(clip: vs.VideoNode, planes: PlanesT = None, pad: bool = False) -> List[int]:
     assert clip.format
 
-    planes = list(range(clip.format.num_planes)) if planes is None else to_arr(planes)
+    if planes is None:
+        planes = list(range(clip.format.num_planes))
+    else:
+        planes = to_arr(planes)
 
     if pad:
         return normalise_seq(planes, clip.format.num_planes)
 
-    return planes
+    return list(set(planes))
 
 
 @disallow_variable_format
