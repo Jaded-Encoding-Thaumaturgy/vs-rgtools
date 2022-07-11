@@ -83,6 +83,20 @@ def box_blur(
     ], opt=True)
 
 
+def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | None, func_name: str) -> float:
+    if sigma is None:
+        if sharp is None:
+            raise ValueError(f"{func_name}: sigma and sharp can't be both None!")
+        sigma = sqrt(1.0 / (2.0 * (sharp / 10.0) * log(2)))
+    elif sharp is not None:
+        raise ValueError(f"{func_name}: sigma and sharp can't both be float!")
+
+    if sigma >= min(clip.width, clip.height):
+        raise ValueError(f"{func_name}: sigma can't be bigger or equal than the smaller size of the clip!")
+
+    return sigma
+
+
 @disallow_variable_format
 @disallow_variable_resolution
 def gauss_blur(
@@ -94,15 +108,7 @@ def gauss_blur(
 
     planes = normalise_planes(clip, planes)
 
-    if sigma is None:
-        if sharp is None:
-            raise ValueError("gauss_blur: sigma and sharp can't be both None!")
-        sigma = sqrt(1.0 / (2.0 * (sharp / 10.0) * log(2)))
-    elif sharp is not None:
-        raise ValueError("gauss_blur: sigma and sharp can't both be float!")
-
-    if sigma >= min(clip.width, clip.height):
-        raise ValueError("gauss_blur: sigma can't be bigger or equal than the smaller size of the clip!")
+    sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_blur')
 
     if sigma <= 0.333:
         return clip
@@ -126,21 +132,50 @@ def gauss_blur(
 
         return clip.std.Convolution(kernel, mode=mode, planes=planes)
 
-    wdown, hdown = [
-        round((max(round(size / sigma), 2) if char in mode else size) / 2) * 2
-        for size, char in [(clip.width, 'h'), (clip.height, 'v')]
-    ]
+    return gauss_fmtc_blur(clip, sigma, sharp, True, mode, planes)
 
-    def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
-        down = clip.resize.Bilinear(wdown, hdown)
-        return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
 
-    different_planes = len(set(range(clip.format.num_planes)) - set(planes))
+@disallow_variable_format
+@disallow_variable_resolution
+def gauss_fmtc_blur(
+    clip: vs.VideoNode,
+    sigma: float | None = 0.5, sharp: float | None = None,
+    strict: bool = True, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+) -> vs.VideoNode:
+    assert clip.format
 
-    if not different_planes:
+    planes = normalise_planes(clip, planes)
+
+    if strict:
+        sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_fmtc_blur')
+        wdown, hdown = [
+            round((max(round(size / sigma), 2) if char in mode else size) / 2) * 2
+            for size, char in [(clip.width, 'h'), (clip.height, 'v')]
+        ]
+
+        def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
+            down = clip.resize.Bilinear(wdown, hdown)
+            return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
+    else:
+        if sigma is None or sigma < 1.0 or sigma > 100.0:
+            raise ValueError('gauss_fmtc_blur: With strict=True sigma has to be > 1 and < 100!')
+        elif sharp is None:
+            sharp = 100
+        elif sharp < 1.0 or sharp > 100.0:
+            raise ValueError('gauss_fmtc_blur: With strict=True sharp has to be > 1 and < 100!')
+
+        def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
+            down = clip.fmtc.resample(
+                clip.width * 2, clip.height * 2, kernel='gauss', a1=sharp
+            )
+            return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=sigma)
+
+    if not {*range(clip.format.num_planes)} - {*planes}:
         return _fmtc_blur(clip)
 
-    return join([_fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))])
+    return join([
+        _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))
+    ])
 
 
 @disallow_variable_format
