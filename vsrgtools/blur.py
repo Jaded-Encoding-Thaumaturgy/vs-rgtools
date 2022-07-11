@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
-    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'sbr'
+    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'gauss_fmtc_blur', 'sbr'
 ]
 
 
