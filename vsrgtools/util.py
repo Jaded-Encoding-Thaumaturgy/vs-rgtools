@@ -107,3 +107,19 @@ def flatten(items: Iterable[T]) -> Iterable[T]:
                 yield sub_x
         else:
             yield val  # type: ignore
+
+
+IT = TypeVar('IT')
+IR = TypeVar('IR')
+
+
+def iterate(base: IT, function: Callable[[IT | IR], IT | IR], count: int, *args: Any, **kwargs: Any) -> IT | IR:
+    if count <= 0:
+        return base
+
+    func = partial(function, **kwargs)
+
+    def _iterate(x: IT | IR, n: int) -> IT | IR:
+        return n and _iterate(func(x, *args), n - 1) or x
+
+    return _iterate(base, count)
