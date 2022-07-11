@@ -10,12 +10,12 @@ from math import ceil, exp, log, pi, sqrt
 from typing import Sequence
 
 import vapoursynth as vs
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, join, split
+from vsutil import (
+    depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
+)
 
 from .enum import ConvMode
-from .util import (
-    PlanesT, aka_expr_available, mean_matrix, norm_expr_planes, normalise_planes, wmean_matrix
-)
+from .util import PlanesT, aka_expr_available, mean_matrix, norm_expr_planes, normalise_planes, wmean_matrix
 
 core = vs.core
 
@@ -171,11 +171,16 @@ def gauss_fmtc_blur(
             return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=sigma)
 
     if not {*range(clip.format.num_planes)} - {*planes}:
-        return _fmtc_blur(clip)
+        blurred = _fmtc_blur(clip)
+    else:
+        blurred = join([
+            _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))
+        ])
 
-    return join([
-        _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))
-    ])
+    if (bits := get_depth(clip)) != get_depth(blurred):
+        return depth(blurred, bits)
+
+    return blurred
 
 
 @disallow_variable_format
