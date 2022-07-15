@@ -8,7 +8,7 @@ from typing import Any, Literal
 import vapoursynth as vs
 from vsutil import EXPR_VARS
 from vsutil import Range as CRange
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, scale_value, split
+from vsutil import disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, scale_value, split
 
 from .blur import box_blur, gauss_blur
 from .enum import ConvMode
@@ -83,29 +83,34 @@ def diff_merge(
 
 def lehmer_diff_merge(
     src: vs.VideoNode, flt: vs.VideoNode,
-    low_filter: VSFunc = partial(box_blur, radius=3, passes=2),
+    filter: VSFunc = partial(box_blur, radius=3, passes=2),
     high_filter: VSFunc | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:
     if high_filter is None:
-        high_filter = low_filter
+        high_filter = filter
 
-    low_filtered = low_filter(src)
-    high_filtered = high_filter(flt)
+    src_high = filter(src)
+    flt_high = high_filter(flt)
 
     if aka_expr_available:
         return core.akarin.Expr(
-            [src, flt, low_filtered, high_filtered],
+            [src, flt, src_high, flt_high],
             norm_expr_planes(
                 src, 'x z - SD! y a - FD! SD@ 3 pow FD@ 3 pow + SD@ 2 pow FD@ 2 pow 0.0001 + + / x SD@ - +', planes
             )
         )
 
-    src_high, flt_high = src.std.MakeDiff(low_filtered), flt.std.MakeDiff(high_filtered)
+    peak = get_peak_value(src)
 
-    flt_high = core.std.Expr(
-        [src_high, flt_high],
-        'x 32768 - 3 pow y 32768 - 3 pow + x 32768 - 2 pow y 32768 - 2 pow 0.0001 + + / 32768 +'
+    src_high_diff = src.std.MakeDiff(src_high, planes)
+    flt_high_diff = flt.std.MakeDiff(flt_high, planes)
+
+    flt_high_diff = core.std.Expr(
+        [src_high_diff, flt_high_diff],
+        norm_expr_planes(
+            src, f'x {peak} - 3 pow y {peak} - 3 pow + x {peak} - 2 pow y {peak} - 2 pow 0.0001 + + / {peak} +', planes
+        )
     )
 
-    return src.std.MakeDiff(src_high).std.MergeDiff(flt_high)
+    return src.std.MakeDiff(src_high_diff, planes).std.MergeDiff(flt_high_diff, planes)
