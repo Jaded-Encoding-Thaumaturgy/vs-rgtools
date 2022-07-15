@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from functools import partial
+from itertools import count
 from math import e, log, pi, sin, sqrt
+from typing import Any, Literal
 
 import vapoursynth as vs
+from vsutil import EXPR_VARS
 from vsutil import Range as CRange
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, scale_value, split
 
@@ -51,6 +53,32 @@ def replace_low_frequencies(
     )
 
     return final if chroma else core.std.ShufflePlanes([final, flt], [0, 1, 2], vs.YUV)
+
+
+def diff_merge(
+    *clips: vs.VideoNode, filter: VSFunc = partial(box_blur, radius=1, passes=3),
+    operator: Literal['<', '>'] = '>', abs_diff: bool = True, **kwargs: Any
+) -> vs.VideoNode:
+    if len(clips) < 2:
+        raise ValueError('diff_merge: you must pass at least two clips!')
+
+    blurs = [filter(clip, **kwargs) for clip in clips]
+
+    expr_string = ''
+    n_clips = len(clips)
+
+    for src, flt in zip(EXPR_VARS[:n_clips], EXPR_VARS[n_clips:n_clips * 2]):
+        expr_string += f'{src} {flt} - {abs_diff and "abs" or ""} {src.upper()}D! '
+
+    for i, src, srcn in zip(count(), EXPR_VARS[:n_clips], EXPR_VARS[1:n_clips]):
+        expr_string += f'{src.upper()}D@ {srcn.upper()}D@ {operator} {src} '
+
+        if i == n_clips - 2:
+            expr_string += f'{srcn} '
+
+    expr_string += '? ' * (n_clips - 1)
+
+    return core.akarin.Expr([*clips, *blurs], expr_string)
 
 
 def lehmer_diff_merge(
