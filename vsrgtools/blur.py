@@ -7,7 +7,6 @@ __all__ = [
 
 from functools import partial
 from math import ceil, exp, log, pi, sqrt
-from typing import Sequence
 
 import vapoursynth as vs
 from vsutil import (
@@ -52,35 +51,20 @@ def blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def box_blur(
-    clip: vs.VideoNode, weights: Sequence[float], planes: PlanesT = None, expr: bool | None = False
-) -> vs.VideoNode:
+def box_blur(clip: vs.VideoNode, radius: int, passes: int, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
-    if len(weights) != 9:
-        raise ValueError('box_blur: weights has to be an array of length 9!')
+    planes = normalise_planes(clip, planes)
 
-    expr = expr is None and aka_expr_available or expr
+    if radius > 12:
+        blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
+    else:
+        matrix_size = radius * 2 | 1
+        blurred = clip
+        for _ in range(passes):
+            blurred = blurred.std.Convolution([1] * matrix_size, mode=ConvMode.SQUARE)
 
-    if not expr:
-        return clip.std.Convolution(weights, planes=planes)
-
-    weights_string = ' '.join([
-        x.format(w=w) for x, w in zip([
-            'x[-1,-1] {w} *', 'x[0,-1] {w} *', 'x[1,-1] {w} *',
-            'x[-1,0] {w} *', 'x {w} *', 'x[1,0] {w} *',
-            'x[-1,1] {w} *', 'x[0,1] {w} *', 'x[1,1] {w} *'
-        ], weights)
-    ])
-
-    add_string = '+ ' * 8
-
-    expr_string = f'{weights_string} {add_string} {sum(map(float, weights))} /'
-
-    return core.akarin.Expr(clip, [
-        expr_string if i in normalise_planes(clip, planes) else ''
-        for i in range(clip.format.num_planes)
-    ], opt=True)
+    return blurred
 
 
 def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | None, func_name: str) -> float:
@@ -193,18 +177,18 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     assert clip.format
 
     planes = normalise_planes(clip, planes)
-    pbox_blur = partial(box_blur, planes=planes)
+    pconv = partial(core.std.Convolution, planes=planes)
 
     median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, None, planes)
 
     if radius == 0:
         weighted = sbr(clip, planes=planes)
     elif radius == 1:
-        weighted = pbox_blur(clip, wmean_matrix)
+        weighted = pconv(clip, wmean_matrix)
     elif radius == 2:
-        weighted = pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix)
+        weighted = pconv(pconv(clip, wmean_matrix), mean_matrix)
     else:
-        weighted = pbox_blur(pbox_blur(pbox_blur(clip, wmean_matrix), mean_matrix), mean_matrix)
+        weighted = pconv(pconv(pconv(clip, wmean_matrix), mean_matrix), mean_matrix)
 
     if aka_expr_available:
         return core.akarin.Expr(

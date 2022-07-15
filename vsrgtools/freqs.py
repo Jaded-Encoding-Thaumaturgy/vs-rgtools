@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import partial
 from math import e, log, pi, sin, sqrt
 
@@ -7,7 +8,7 @@ import vapoursynth as vs
 from vsutil import Range as CRange
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_y, scale_value, split
 
-from .blur import gauss_blur
+from .blur import box_blur, gauss_blur
 from .enum import ConvMode
 from .util import PlanesT, VSFunc, aka_expr_available, norm_expr_planes, normalise_planes
 
@@ -54,7 +55,7 @@ def replace_low_frequencies(
 
 def lehmer_diff_merge(
     src: vs.VideoNode, flt: vs.VideoNode,
-    low_filter: VSFunc = partial(core.std.BoxBlur, hradius=3, hpasses=2, vradius=3, vpasses=2),
+    low_filter: VSFunc = partial(box_blur, radius=3, passes=2),
     high_filter: VSFunc | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:

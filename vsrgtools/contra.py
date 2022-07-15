@@ -7,7 +7,7 @@ __all__ = ['contrasharpening', 'contrasharpening_dehalo']
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
-from .blur import blur, box_blur, min_blur
+from .blur import blur, min_blur
 from .enum import RepairMode
 from .rgtools import repair
 from .util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, wmean_matrix
@@ -88,7 +88,7 @@ def contrasharpening_dehalo(
         i in planes and RepairMode.MINMAX_SQUARE1 or RepairMode.NONE for i in range(flt.format.num_planes)
     ]
 
-    weighted = box_blur(flt, wmean_matrix, planes)
+    weighted = flt.std.Convolution(wmean_matrix, planes=planes)
     weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted, mode=rep_modes), 2)
 

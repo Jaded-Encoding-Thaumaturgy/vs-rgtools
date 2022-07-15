@@ -17,7 +17,6 @@ from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .blur import box_blur
 from .util import PlanesT, aka_expr_available, mean_matrix, normalise_seq, pick_func_stype, wmean_matrix
 
 core = vs.core
@@ -69,17 +68,17 @@ def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
     for idx, m in enumerate(mode):
         if m == RemoveGrainMode.SQUARE_BLUR:
             if all(mm == m for mm in mode):
-                return box_blur(clip, wmean_matrix)
+                return clip.std.Convolution(wmean_matrix)
             expr.append(aka_removegrain_expr_11_12())
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
             return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
         elif m == RemoveGrainMode.CIRCLE_BLUR:
             if set(mode) == {RemoveGrainMode.CIRCLE_BLUR}:
-                return box_blur(clip, [1, 1, 1, 1, 0, 1, 1, 1, 1])
+                return clip.std.Convolution([1, 1, 1, 1, 0, 1, 1, 1, 1])
             expr.append(aka_removegrain_expr_19())
         elif m == RemoveGrainMode.BOX_BLUR:
             if set(mode) == {RemoveGrainMode.BOX_BLUR}:
-                return box_blur(clip, mean_matrix)
+                return clip.std.Convolution(mean_matrix)
             expr.append(aka_removegrain_expr_20())
         elif m == RemoveGrainMode.EDGE_DEHALO:
             expr.append(aka_removegrain_expr_23(0 if idx == 0 else -0.5))
