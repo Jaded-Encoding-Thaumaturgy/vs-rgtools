@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from vsrgtools.enum import RemoveGrainMode, RepairMode
-
 __all__ = [
     'repair', 'removegrain',
     'clense', 'backward_clense', 'forward_clense',
@@ -18,6 +16,7 @@ from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
+from .enum import RemoveGrainMode, RepairMode
 from .util import mean_matrix, pick_func_stype, wmean_matrix
 
 core = vs.core

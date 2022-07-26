@@ -52,7 +52,7 @@ def blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def box_blur(clip: vs.VideoNode, radius: int, passes: int, planes: PlanesT = None) -> vs.VideoNode:
+def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
     planes = normalise_planes(clip, planes)
