@@ -6,13 +6,13 @@ from math import e, log, pi, sin, sqrt
 from typing import Any, Literal
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, VSFunction, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import EXPR_VARS
 from vsutil import Range as CRange
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, scale_value, split
 
 from .blur import box_blur, gauss_blur
 from .enum import ConvMode
-from .util import PlanesT, VSFunc, aka_expr_available, norm_expr_planes, normalise_planes
 
 core = vs.core
 
@@ -56,7 +56,7 @@ def replace_low_frequencies(
 
 
 def diff_merge(
-    *clips: vs.VideoNode, filter: VSFunc = partial(box_blur, radius=1, passes=3),
+    *clips: vs.VideoNode, filter: VSFunction = partial(box_blur, radius=1, passes=3),
     operator: Literal['<', '>'] = '>', abs_diff: bool = True, **kwargs: Any
 ) -> vs.VideoNode:
     if len(clips) < 2:
@@ -83,8 +83,8 @@ def diff_merge(
 
 def lehmer_diff_merge(
     src: vs.VideoNode, flt: vs.VideoNode,
-    filter: VSFunc = partial(box_blur, radius=3, passes=2),
-    high_filter: VSFunc | None = None,
+    filter: VSFunction = partial(box_blur, radius=3, passes=2),
+    high_filter: VSFunction | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:
     if high_filter is None:

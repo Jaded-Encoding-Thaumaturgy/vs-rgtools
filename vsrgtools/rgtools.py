@@ -11,13 +11,14 @@ __all__ = [
 from typing import Sequence
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, aka_expr_available, normalise_seq
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .util import PlanesT, aka_expr_available, mean_matrix, normalise_seq, pick_func_stype, wmean_matrix
+from .util import mean_matrix, pick_func_stype, wmean_matrix
 
 core = vs.core
 

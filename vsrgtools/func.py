@@ -7,10 +7,10 @@ __all__ = [
 from typing import Sequence
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, VSFunction, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import MinFilterMode
-from .util import PlanesT, VSFunc, norm_expr_planes, normalise_planes
 
 core = vs.core
 
@@ -35,7 +35,7 @@ def max_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes
 @disallow_variable_resolution
 def minimum_diff(
     clip: vs.VideoNode,
-    clip_func: VSFunc, diff_func: VSFunc | None = None,
+    clip_func: VSFunction, diff_func: VSFunction | None = None,
     mode: MinFilterMode | None = None, planes: PlanesT = None
 ) -> vs.VideoNode:
     planes = normalise_planes(clip, planes)

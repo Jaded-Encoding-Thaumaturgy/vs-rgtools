@@ -6,12 +6,13 @@ from typing import Callable, List
 __all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median', 'contrasharpening_repair']
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
 from .blur import blur, box_blur, min_blur
 from .enum import RemoveGrainMode, RepairMode
 from .rgtools import removegrain, repair
-from .util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, wmean_matrix
+from .util import wmean_matrix
 
 core = vs.core
 

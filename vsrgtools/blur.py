@@ -9,12 +9,13 @@ from functools import partial
 from math import ceil, exp, log, pi, sqrt
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )
 
 from .enum import ConvMode
-from .util import PlanesT, aka_expr_available, mean_matrix, norm_expr_planes, normalise_planes, wmean_matrix
+from .util import mean_matrix, wmean_matrix
 
 core = vs.core
 
