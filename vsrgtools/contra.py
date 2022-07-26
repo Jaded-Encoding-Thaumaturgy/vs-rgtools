@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import partial
 from typing import Callable, List
 
-__all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median']
+__all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median', 'contrasharpening_repair']
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
@@ -139,4 +139,34 @@ def contrasharpening_median(
     return core.std.Expr(
         [flt, src, blur],
         norm_expr_planes(flt, 'x y < x x + z - x max y min x x + z - x min y max ?', planes)
+    )
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def contrasharpening_repair(
+    flt: vs.VideoNode, src: vs.VideoNode,
+    rep: int | RemoveGrainMode | List[int | RemoveGrainMode] = [
+        RemoveGrainMode.BOX_BLUR, RemoveGrainMode.SQUARE_BLUR
+    ], planes: PlanesT = 0
+) -> vs.VideoNode:
+    """
+    :param flt:         Filtered clip
+    :param src:         Source clip
+    :param rep:         Mode of rgvs.Repair to limit the difference
+    :param planes:      Planes to process, defaults to None
+    :return:            Contrasharpened clip
+    """
+    assert flt.format and src.format
+
+    if flt.format.id != src.format.id:
+        raise ValueError('contrasharpening: Clips must be the same format')
+
+    planes = normalise_planes(flt, planes)
+    rmgrain = removegrain(flt, rep if isinstance(rep, list) else [
+        rep if i in planes else 0 for i in range(flt.format.num_planes)
+    ])
+
+    return core.std.Expr(
+        [flt, src, rmgrain], norm_expr_planes(flt, 'x dup + z - x y min max x y max min', planes)
     )
