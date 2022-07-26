@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from functools import partial
+from typing import Callable, List
 
-__all__ = ['contrasharpening', 'contrasharpening_dehalo']
+__all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median']
 
 import vapoursynth as vs
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
-from .blur import blur, min_blur
-from .enum import RepairMode
-from .rgtools import repair
+from .blur import blur, box_blur, min_blur
+from .enum import RemoveGrainMode, RepairMode
+from .rgtools import removegrain, repair
 from .util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, wmean_matrix
 
 core = vs.core
@@ -112,3 +113,30 @@ def contrasharpening_dehalo(
     )
 
     return flt.std.MergeDiff(diff, planes)
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def contrasharpening_median(
+    flt: vs.VideoNode, src: vs.VideoNode, blur_func: Callable[..., vs.VideoNode] = box_blur, planes: PlanesT = 0
+) -> vs.VideoNode:
+    """
+    :param flt:         Filtered clip
+    :param src:         Source clip
+    :param blur_func:   Function used to blur the filtered clip
+    :param planes:      Planes to process, defaults to None
+    :return:            Contrasharpened clip
+    """
+    assert flt.format and src.format
+
+    if flt.format.id != src.format.id:
+        raise ValueError('contrasharpening: Clips must be the same format')
+
+    planes = normalise_planes(flt, planes)
+
+    blur = blur_func(flt, planes=planes)
+
+    return core.std.Expr(
+        [flt, src, blur],
+        norm_expr_planes(flt, 'x y < x x + z - x max y min x x + z - x min y max ?', planes)
+    )
