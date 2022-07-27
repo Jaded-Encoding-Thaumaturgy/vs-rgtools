@@ -84,7 +84,7 @@ def flux_smooth(
     assert clip.format
 
     if radius < 1 or radius > 7:
-        raise ValueError('min_median_average: radius must be between 1 and 7 (inclusive)!')
+        raise ValueError('flux_smooth: radius must be between 1 and 7 (inclusive)!')
 
     planes = normalise_planes(clip, planes, False)
 
