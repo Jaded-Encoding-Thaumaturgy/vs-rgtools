@@ -38,7 +38,10 @@ def contrasharpening(
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')
 
-    neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
+    if flt.format.sample_type == vs.INTEGER:
+        neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
+    else:
+        neutral = [0.0]
 
     planes = normalise_planes(flt, planes)
 
