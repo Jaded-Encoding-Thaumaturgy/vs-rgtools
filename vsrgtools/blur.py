@@ -10,9 +10,8 @@ from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )
 
-from vsrgtools.func import limit_filter
-
 from .enum import ConvMode, LimitFilterMode
+from .limit import limit_filter
 from .util import mean_matrix, wmean_matrix
 
 __all__ = [
@@ -193,7 +192,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     else:
         weighted = pconv(pconv(pconv(clip, wmean_matrix), mean_matrix), mean_matrix)
 
-    return limit_filter(clip, weighted, median, LimitFilterMode.DIFF_MIN, planes)
+    return limit_filter(weighted, clip, median, LimitFilterMode.DIFF_MIN, planes)
 
 
 @disallow_variable_format

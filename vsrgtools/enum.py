@@ -17,15 +17,25 @@ class ConvMode(str, Enum):
     HORIZONTAL = 'h'
 
 
-class LimitFilterMode(IntEnum):
+class LimitFilterModeMeta:
+    force_expr = True
+
+
+class LimitFilterMode(LimitFilterModeMeta, IntEnum):
     SIMPLE_MIN = 0
     SIMPLE_MAX = 1
     DIFF_MIN = 1
     DIFF_MAX = 2
+    CLAMPING = 3
 
     @property
     def op(self) -> str:
         return '<' if 'MIN' in self._name_ else '>'
+
+    def __call__(self, force_expr: bool = True) -> LimitFilterMode:
+        self.force_expr = force_expr
+
+        return self
 
 
 class RemoveGrainMode(IntEnum):
