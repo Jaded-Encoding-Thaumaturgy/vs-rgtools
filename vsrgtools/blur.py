@@ -4,6 +4,7 @@ from functools import partial
 from math import ceil, exp, log, pi, sqrt
 
 import vapoursynth as vs
+from vsexprtools import expr_func
 from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
@@ -216,18 +217,19 @@ def sbr(
 
     diff_weighted = blur_func(diff)
 
-    if aka_expr_available:
-        return core.akarin.Expr(
-            [diff, diff_weighted, clip], norm_expr_planes(
-                clip, 'x y - A! x {mid} - XD! z A@ XD@ * 0 < {mid} A@ abs XD@ abs < A@ {mid} + x ? ? {mid} - -',
-                planes, mid=neutral
-            )
-        )
+    clips = [diff, diff_weighted]
 
-    diff = core.std.Expr(
-        [diff, diff_weighted], norm_expr_planes(
-            clip, 'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?', planes, mid=neutral
-        )
-    )
+    if aka_expr_available:
+        clips.append(clip)
+        expr = 'x y - A! x {mid} - XD! z A@ XD@ * 0 < {mid} A@ abs XD@ abs < A@ {mid} + x ? ? {mid} - -'
+    else:
+        expr = 'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
+
+    normalized_expr = norm_expr_planes(clip, expr, planes, mid=neutral)
+
+    diff = expr_func(clips, normalized_expr)
+
+    if aka_expr_available:
+        return diff
 
     return clip.std.MakeDiff(diff, planes)
