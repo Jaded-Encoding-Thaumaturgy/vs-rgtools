@@ -1,6 +1,6 @@
 """Wrapper for RGVS, RGSF, and various other functions"""
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 
 __author__ = 'Irrational Encoding Wizardry <wizards@encode.moe>'
 __maintainer__ = 'Setsugen no ao <setsugen@setsugen.dev>'
