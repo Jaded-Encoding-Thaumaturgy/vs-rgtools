@@ -14,7 +14,8 @@ from .rgtools import removegrain, repair
 from .util import norm_rmode_planes, wmean_matrix
 
 __all__ = [
-    'contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median'
+    'contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median',
+    'contra', 'contra_dehalo', 'contra_median'
 ]
 
 core = vs.core
@@ -151,3 +152,8 @@ def contrasharpening_median(
         expr = 'x dup + z - x y min max x y max min'
 
     return expr_func([flt, src, repaired], norm_expr_planes(flt, expr, planes))
+
+
+contra = contrasharpening
+contra_dehalo = contrasharpening_dehalo
+contra_median = contrasharpening_median
