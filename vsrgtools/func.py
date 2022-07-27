@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-__all__ = [
-    'min_filter', 'max_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
-]
-
 from typing import Sequence
 
 import vapoursynth as vs
@@ -11,6 +7,10 @@ from vsexprtools.util import PlanesT, VSFunction, norm_expr_planes, normalise_pl
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import MinFilterMode
+
+__all__ = [
+    'min_filter', 'max_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
+]
 
 core = vs.core
 

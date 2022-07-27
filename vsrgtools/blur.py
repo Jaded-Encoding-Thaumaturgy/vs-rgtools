@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-__all__ = [
-    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'gauss_fmtc_blur', 'sbr'
-]
-
-
 from functools import partial
 from math import ceil, exp, log, pi, sqrt
 
@@ -16,6 +11,10 @@ from vsutil import (
 
 from .enum import ConvMode
 from .util import mean_matrix, wmean_matrix
+
+__all__ = [
+    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'gauss_fmtc_blur', 'sbr'
+]
 
 core = vs.core
 

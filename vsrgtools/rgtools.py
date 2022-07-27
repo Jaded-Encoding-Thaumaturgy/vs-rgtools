@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-__all__ = [
-    'repair', 'removegrain',
-    'clense', 'backward_clense', 'forward_clense',
-    'vertical_cleaner', 'horizontal_cleaner'
-]
-
 import vapoursynth as vs
 from vsexprtools.util import PlanesT, aka_expr_available, normalise_seq
 from vsutil import disallow_variable_format, disallow_variable_resolution
@@ -16,6 +10,12 @@ from .aka_expr import (
 )
 from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
 from .util import mean_matrix, pick_func_stype, wmean_matrix
+
+__all__ = [
+    'repair', 'removegrain',
+    'clense', 'backward_clense', 'forward_clense',
+    'vertical_cleaner', 'horizontal_cleaner'
+]
 
 core = vs.core
 

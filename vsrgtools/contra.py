@@ -13,7 +13,9 @@ from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
 from .util import norm_rmode_planes, wmean_matrix
 
-__all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median']
+__all__ = [
+    'contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median'
+]
 
 core = vs.core
 
@@ -61,7 +63,7 @@ def contrasharpening(
     diff_flt = src.std.MakeDiff(flt, planes)
 
     # Limit the difference to the max of what the filtering removed locally
-    limit = repair(diff_blur, diff_flt, norm_rmode_planes(flt, rep, planes))
+    limit = repair(diff_blur, diff_flt, norm_rmode_planes(flt, mode, planes))
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
@@ -138,10 +140,10 @@ def contrasharpening_median(
 
     planes = normalise_planes(flt, planes)
 
-    if isinstance(rep, (int, list, RemoveGrainMode)):
-        repaired = removegrain(flt, norm_rmode_planes(flt, rep, planes))
+    if isinstance(mode, (int, list, RemoveGrainMode)):
+        repaired = removegrain(flt, norm_rmode_planes(flt, mode, planes))
     else:
-        repaired = rep(flt, planes=planes)
+        repaired = mode(flt, planes=planes)
 
     if aka_expr_available:
         expr = 'x dup + z - D! x y < D@ x y clamp D@ y x clamp ?'
