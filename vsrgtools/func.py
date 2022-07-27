@@ -6,8 +6,6 @@ import vapoursynth as vs
 from vsexprtools.util import PlanesT, VSFunction, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
-from .enum import MinFilterMode
-
 __all__ = [
     'min_filter', 'max_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
 ]
@@ -36,17 +34,15 @@ def max_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes
 def minimum_diff(
     clip: vs.VideoNode,
     clip_func: VSFunction, diff_func: VSFunction | None = None,
-    mode: MinFilterMode | None = None, planes: PlanesT = None
+    diff: bool | None = None, planes: PlanesT = None
 ) -> vs.VideoNode:
     planes = normalise_planes(clip, planes)
 
-    mode = fallback(
-        mode, MinFilterMode.DIFF if diff_func is None else MinFilterMode.CLIP
-    )
+    diff = fallback(diff, diff_func is None)
 
     diff_func = fallback(diff_func, clip_func)
 
-    if mode == MinFilterMode.CLIP:
+    if not diff:
         return median_clips([clip, clip_func(clip), diff_func(clip)], planes)
 
     filtered = clip_func(clip)
