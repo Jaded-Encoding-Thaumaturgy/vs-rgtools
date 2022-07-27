@@ -7,7 +7,7 @@ from vsexprtools import expr_func
 from vsexprtools.util import aka_expr_available, PlanesT, VSFunction, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
-from vsrgtools.enum import LimitFilterMode
+from .enum import LimitFilterMode
 
 __all__ = [
     'limit_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'

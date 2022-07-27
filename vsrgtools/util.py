@@ -7,7 +7,7 @@ import vapoursynth as vs
 from vsexprtools.util import PlanesT, normalise_planes, normalise_seq, to_arr
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
-from vsrgtools.enum import RemoveGrainMode, RepairMode
+from .enum import RemoveGrainMode, RepairMode
 
 core = vs.core
 
