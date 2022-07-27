@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-__all__ = [
-    'ConvMode', 'MinFilterMode', 'RemoveGrainMode', 'RepairMode', 'VerticalCleanerMode'
-]
-
 from enum import Enum, IntEnum
+from typing import List
+
+__all__ = [
+    'ConvMode', 'MinFilterMode',
+    'RemoveGrainMode', 'RemoveGrainModeT',
+    'RepairMode', 'RepairModeT',
+    'VerticalCleanerMode', 'VerticalCleanerModeT'
+]
 
 
 class ConvMode(str, Enum):
@@ -49,6 +53,9 @@ class RemoveGrainMode(IntEnum):
     SMART_RGCL2 = 28
 
 
+RemoveGrainModeT = int | RemoveGrainMode | List[int | RemoveGrainMode]
+
+
 class RepairMode(IntEnum):
     NONE = 0
     MINMAX_SQUARE1 = 1
@@ -80,7 +87,13 @@ class RepairMode(IntEnum):
     CLIP_REF_RG28 = 28
 
 
+RepairModeT = int | RepairMode | List[int | RepairMode]
+
+
 class VerticalCleanerMode(IntEnum):
     NONE = 0
     MEDIAN = 1
     PRESERVING = 2
+
+
+VerticalCleanerModeT = int | VerticalCleanerMode | List[int | VerticalCleanerMode]
