@@ -3,11 +3,14 @@ from __future__ import annotations
 from typing import Sequence
 
 import vapoursynth as vs
-from vsexprtools.util import PlanesT, VSFunction, norm_expr_planes, normalise_planes
+from vsexprtools import expr_func
+from vsexprtools.util import aka_expr_available, PlanesT, VSFunction, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
+from vsrgtools.enum import LimitFilterMode
+
 __all__ = [
-    'min_filter', 'max_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
+    'limit_filter', 'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
 ]
 
 core = vs.core
@@ -15,17 +18,21 @@ core = vs.core
 
 @disallow_variable_format
 @disallow_variable_resolution
-def min_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return core.std.Expr(
-        [src, flt1, flt2], norm_expr_planes(src, 'x z - abs x y - abs < z y ?', planes)
-    )
+def limit_filter(
+    src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode,
+    mode: LimitFilterMode = LimitFilterMode.SIMPLE_MIN,
+    planes: PlanesT = None
+) -> vs.VideoNode:
+    if mode in {LimitFilterMode.SIMPLE_MIN, LimitFilterMode.SIMPLE_MAX}:
+        expr = 'x z - abs x y - abs {op} z y ?'
+    else:
+        if aka_expr_available:
+            expr = 'x y - A! x z - B! A@ B@ xor x A@ abs B@ abs {op} y z ? ?'
+        else:
+            expr = 'x y - x z - xor x x y - abs x z - abs {op} y z ? ?'
 
-
-@disallow_variable_format
-@disallow_variable_resolution
-def max_filter(src: vs.VideoNode, flt1: vs.VideoNode, flt2: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return core.std.Expr(
-        [src, flt1, flt2], norm_expr_planes(src, 'x z - abs x y - abs > z y ?', planes)
+    return expr_func(
+        [src, flt1, flt2], norm_expr_planes(src, expr, planes, op=mode.op)
     )
 
 
@@ -97,4 +104,4 @@ def flux_smooth(
         radius, threshold, cthreshold, scenechange
     )
 
-    return min_filter(clip, average, median, planes)
+    return limit_filter(clip, average, median, LimitFilterMode.DIFF_MIN, planes)

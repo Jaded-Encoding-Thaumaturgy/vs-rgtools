@@ -9,7 +9,9 @@ from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )
 
-from .enum import ConvMode
+from vsrgtools.func import limit_filter
+
+from .enum import ConvMode, LimitFilterMode
 from .util import mean_matrix, wmean_matrix
 
 __all__ = [
@@ -190,16 +192,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     else:
         weighted = pconv(pconv(pconv(clip, wmean_matrix), mean_matrix), mean_matrix)
 
-    if aka_expr_available:
-        return core.akarin.Expr(
-            [clip, weighted, median],
-            norm_expr_planes(clip, 'x y - A! x z - B! A@ B@ * 0 < x A@ abs B@ abs < y z ? ?', planes)
-        )
-
-    return core.std.Expr(
-        [clip, weighted, median],
-        norm_expr_planes(clip, 'x y - x z - * 0 < x x y - abs x z - abs < y z ? ?', planes)
-    )
+    return limit_filter(clip, weighted, median, LimitFilterMode.DIFF_MIN, planes)
 
 
 @disallow_variable_format

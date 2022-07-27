@@ -4,7 +4,7 @@ from enum import Enum, IntEnum
 from typing import List
 
 __all__ = [
-    'ConvMode', 'MinFilterMode',
+    'ConvMode', 'LimitFilterMode',
     'RemoveGrainMode', 'RemoveGrainModeT',
     'RepairMode', 'RepairModeT',
     'VerticalCleanerMode', 'VerticalCleanerModeT'
@@ -17,9 +17,15 @@ class ConvMode(str, Enum):
     HORIZONTAL = 'h'
 
 
-class MinFilterMode(IntEnum):
-    CLIP = 1
-    DIFF = 2
+class LimitFilterMode(IntEnum):
+    SIMPLE_MIN = 0
+    SIMPLE_MAX = 1
+    DIFF_MIN = 1
+    DIFF_MAX = 2
+
+    @property
+    def op(self) -> str:
+        return '<' if 'MIN' in self._name_ else '>'
 
 
 class RemoveGrainMode(IntEnum):
