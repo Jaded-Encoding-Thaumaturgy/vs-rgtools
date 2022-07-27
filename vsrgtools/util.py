@@ -4,9 +4,9 @@ from functools import partial
 from typing import Any, Callable, List, TypeVar, cast
 
 import vapoursynth as vs
+from vsexprtools.util import PlanesT, normalise_planes, normalise_seq, to_arr
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
-from vsexprtools.util import to_arr, normalise_seq, normalise_planes, PlanesT
 from vsrgtools.enum import RemoveGrainMode, RepairMode
 
 core = vs.core
@@ -30,7 +30,7 @@ RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 
 def norm_rmode_planes(
     clip: vs.VideoNode, mode: int | RModeT | List[int | RModeT], planes: PlanesT = None, **kwargs: Any
-) -> List[RModeT]:
+) -> List[int]:
     assert clip.format
 
     modes_array = normalise_seq(to_arr(mode), clip.format.num_planes)
