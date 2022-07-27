@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Callable, List
+from typing import Callable
 
 import vapoursynth as vs
 from vsexprtools import expr_func
@@ -9,9 +9,9 @@ from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, norm
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
 from .blur import blur, box_blur, min_blur
-from .enum import RemoveGrainMode, RepairMode
+from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
-from .util import wmean_matrix
+from .util import norm_rmode_planes, wmean_matrix
 
 __all__ = ['contrasharpening', 'contrasharpening_dehalo', 'contrasharpening_median']
 
@@ -22,7 +22,7 @@ core = vs.core
 @disallow_variable_resolution
 def contrasharpening(
     flt: vs.VideoNode, src: vs.VideoNode, radius: int | None = None,
-    rep: int | RepairMode = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = 0
+    mode: RepairModeT = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.
@@ -30,7 +30,7 @@ def contrasharpening(
     :param flt:         Filtered clip
     :param src:         Source clip
     :param radius:      Spatial radius for contra-sharpening (1-3). Default is 2 for HD / 1 for SD.
-    :param rep:         Mode of rgvs.Repair to limit the difference
+    :param mode:        Mode of rgvs.Repair to limit the difference
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
@@ -61,9 +61,7 @@ def contrasharpening(
     diff_flt = src.std.MakeDiff(flt, planes)
 
     # Limit the difference to the max of what the filtering removed locally
-    limit = repair(diff_blur, diff_flt, [
-        rep if i in planes else 0 for i in range(flt.format.num_planes)
-    ])
+    limit = repair(diff_blur, diff_flt, norm_rmode_planes(flt, rep, planes))
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
@@ -91,9 +89,7 @@ def contrasharpening_dehalo(
 
     planes = normalise_planes(flt, planes)
 
-    rep_modes = [
-        i in planes and RepairMode.MINMAX_SQUARE1 or RepairMode.NONE for i in range(flt.format.num_planes)
-    ]
+    rep_modes = norm_rmode_planes(flt, RepairMode.MINMAX_SQUARE1, planes)
 
     weighted = flt.std.Convolution(wmean_matrix, planes=planes)
     weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
@@ -125,13 +121,13 @@ def contrasharpening_dehalo(
 @disallow_variable_resolution
 def contrasharpening_median(
     flt: vs.VideoNode, src: vs.VideoNode,
-    rep: int | RemoveGrainMode | List[int | RemoveGrainMode] | Callable[..., vs.VideoNode] = box_blur,
+    mode: RemoveGrainModeT | Callable[..., vs.VideoNode] = box_blur,
     planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     :param flt:         Filtered clip
     :param src:         Source clip
-    :param rep:         Function or the RemoveGrain mode used to blur/repair the filtered clip.
+    :param mode:        Function or the RemoveGrain mode used to blur/repair the filtered clip.
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
@@ -143,9 +139,7 @@ def contrasharpening_median(
     planes = normalise_planes(flt, planes)
 
     if isinstance(rep, (int, list, RemoveGrainMode)):
-        repaired = removegrain(flt, rep if isinstance(rep, list) else [
-            rep if i in planes else 0 for i in range(flt.format.num_planes)
-        ])
+        repaired = removegrain(flt, norm_rmode_planes(flt, rep, planes))
     else:
         repaired = rep(flt, planes=planes)
 

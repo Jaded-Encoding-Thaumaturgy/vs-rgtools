@@ -6,8 +6,6 @@ __all__ = [
     'vertical_cleaner', 'horizontal_cleaner'
 ]
 
-from typing import Sequence
-
 import vapoursynth as vs
 from vsexprtools.util import PlanesT, aka_expr_available, normalise_seq
 from vsutil import disallow_variable_format, disallow_variable_resolution
@@ -16,7 +14,7 @@ from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .enum import RemoveGrainMode, RepairMode
+from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
 from .util import mean_matrix, pick_func_stype, wmean_matrix
 
 core = vs.core
@@ -24,9 +22,7 @@ core = vs.core
 
 @disallow_variable_format
 @disallow_variable_resolution
-def repair(
-    clip: vs.VideoNode, repairclip: vs.VideoNode, mode: int | RepairMode | Sequence[int | RepairMode]
-) -> vs.VideoNode:
+def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> vs.VideoNode:
     assert clip.format
 
     is_float = clip.format.sample_type == vs.FLOAT
@@ -48,7 +44,7 @@ def repair(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def removegrain(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
+def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     assert clip.format
 
     mode = normalise_seq(mode, clip.format.num_planes)
@@ -114,11 +110,11 @@ def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
 
 @disallow_variable_format
 @disallow_variable_resolution
-def vertical_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
+def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
     return pick_func_stype(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
 
 
 @disallow_variable_format
 @disallow_variable_resolution
-def horizontal_cleaner(clip: vs.VideoNode, mode: int | Sequence[int]) -> vs.VideoNode:
+def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
     return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()
