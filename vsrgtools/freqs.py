@@ -13,6 +13,11 @@ from vsutil import disallow_variable_format, disallow_variable_resolution, get_p
 from .blur import box_blur, gauss_blur
 from .enum import ConvMode
 
+__all__ = [
+    'replace_low_frequencies',
+    'diff_merge', 'lehmer_diff_merge'
+]
+
 core = vs.core
 
 

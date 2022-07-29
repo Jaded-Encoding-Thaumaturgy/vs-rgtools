@@ -9,6 +9,13 @@ from vsutil import disallow_variable_format, disallow_variable_resolution
 
 from .enum import RemoveGrainMode, RepairMode
 
+__all__ = [
+    'wmean_matrix', 'mean_matrix',
+    'pick_func_stype',
+    'norm_rmode_planes',
+    'iterate'
+]
+
 core = vs.core
 
 FINT = TypeVar('FINT', bound=Callable[..., vs.VideoNode])

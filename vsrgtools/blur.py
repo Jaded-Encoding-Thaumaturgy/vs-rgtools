@@ -14,7 +14,9 @@ from .limit import limit_filter
 from .util import mean_matrix, wmean_matrix
 
 __all__ = [
-    'blur', 'min_blur', 'box_blur', 'gauss_blur', 'gauss_fmtc_blur', 'sbr'
+    'blur', 'box_blur',
+    'gauss_blur', 'gauss_fmtc_blur',
+    'min_blur', 'sbr'
 ]
 
 core = vs.core

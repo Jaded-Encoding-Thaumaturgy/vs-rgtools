@@ -1,5 +1,5 @@
-from collections.abc import Callable
 from functools import partial
+from typing import Callable
 
 from ._rg import *  # noqa: F401, F403
 from ._rg import (  # noqa: F401

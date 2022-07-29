@@ -10,7 +10,9 @@ from .enum import LimitFilterMode
 from .limit import limit_filter
 
 __all__ = [
-    'minimum_diff', 'median_diff', 'median_clips', 'flux_smooth'
+    'minimum_diff', 'median_diff',
+    'median_clips',
+    'flux_smooth'
 ]
 
 core = vs.core

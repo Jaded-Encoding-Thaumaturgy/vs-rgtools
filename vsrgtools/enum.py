@@ -4,7 +4,8 @@ from enum import Enum, IntEnum
 from typing import List
 
 __all__ = [
-    'ConvMode', 'LimitFilterMode',
+    'ConvMode',
+    'LimitFilterMode',
     'RemoveGrainMode', 'RemoveGrainModeT',
     'RepairMode', 'RepairModeT',
     'VerticalCleanerMode', 'VerticalCleanerModeT'
