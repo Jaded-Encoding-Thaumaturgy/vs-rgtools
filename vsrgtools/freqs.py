@@ -6,8 +6,7 @@ from math import e, log, pi, sin, sqrt
 from typing import Any, Literal
 
 import vapoursynth as vs
-from vsexprtools.util import PlanesT, VSFunction, aka_expr_available, norm_expr_planes, normalise_planes
-from vsutil import EXPR_VARS
+from vsexprtools import EXPR_VARS, PlanesT, VSFunction, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import Range as CRange
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, scale_value, split
 

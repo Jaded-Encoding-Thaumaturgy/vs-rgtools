@@ -4,8 +4,7 @@ from functools import partial
 from math import ceil, exp, log, pi, sqrt
 
 import vapoursynth as vs
-from vsexprtools import expr_func
-from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
+from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )

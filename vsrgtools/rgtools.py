@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import vapoursynth as vs
-from vsexprtools.util import PlanesT, aka_expr_available, normalise_seq
+from vsexprtools import PlanesT, aka_expr_available, normalise_seq
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
 from .aka_expr import (

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Sequence
 
 import vapoursynth as vs
-from vsexprtools.util import PlanesT, VSFunction, norm_expr_planes, normalise_planes
+from vsexprtools import PlanesT, VSFunction, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import LimitFilterMode

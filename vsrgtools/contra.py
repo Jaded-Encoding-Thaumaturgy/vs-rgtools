@@ -4,8 +4,7 @@ from functools import partial
 from typing import Callable
 
 import vapoursynth as vs
-from vsexprtools import expr_func
-from vsexprtools.util import PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
+from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
 
 from .blur import blur, box_blur, min_blur

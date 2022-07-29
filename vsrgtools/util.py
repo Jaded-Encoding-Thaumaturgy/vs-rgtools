@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, Callable, List, TypeVar, cast
 
 import vapoursynth as vs
-from vsexprtools.util import PlanesT, normalise_planes, normalise_seq, to_arr
+from vsexprtools import PlanesT, normalise_planes, normalise_seq, to_arr
 from vsutil import disallow_variable_format, disallow_variable_resolution
 
 from .enum import RemoveGrainMode, RepairMode
