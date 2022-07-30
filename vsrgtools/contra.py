@@ -143,8 +143,10 @@ def contrasharpening_median(
 
     if isinstance(mode, (int, list, RemoveGrainMode)):
         repaired = removegrain(flt, norm_rmode_planes(flt, mode, planes))
-    else:
+    elif callable(mode):
         repaired = mode(flt, planes=planes)
+    else:
+        raise ValueError('contrasharpening_median: invalid mode/function passed!')
 
     if aka_expr_available:
         expr = 'x dup + z - D! x y < D@ x y clamp D@ y x clamp ?'
