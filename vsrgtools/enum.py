@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, IntEnum
-from typing import List
+from typing import Sequence
 
 __all__ = [
     'ConvMode',
@@ -70,7 +70,7 @@ class RemoveGrainMode(IntEnum):
     SMART_RGCL2 = 28
 
 
-RemoveGrainModeT = int | RemoveGrainMode | List[int | RemoveGrainMode]
+RemoveGrainModeT = int | RemoveGrainMode | Sequence[int | RemoveGrainMode]
 
 
 class RepairMode(IntEnum):
@@ -104,7 +104,7 @@ class RepairMode(IntEnum):
     CLIP_REF_RG28 = 28
 
 
-RepairModeT = int | RepairMode | List[int | RepairMode]
+RepairModeT = int | RepairMode | Sequence[int | RepairMode]
 
 
 class VerticalCleanerMode(IntEnum):
@@ -113,4 +113,4 @@ class VerticalCleanerMode(IntEnum):
     PRESERVING = 2
 
 
-VerticalCleanerModeT = int | VerticalCleanerMode | List[int | VerticalCleanerMode]
+VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleanerMode]

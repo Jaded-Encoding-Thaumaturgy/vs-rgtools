@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Callable, List, TypeVar, cast
+from typing import Any, Callable, List, Sequence, TypeVar, cast
 
 import vapoursynth as vs
 from vsexprtools import PlanesT, normalise_planes, normalise_seq, to_arr
@@ -36,7 +36,7 @@ RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 
 
 def norm_rmode_planes(
-    clip: vs.VideoNode, mode: int | RModeT | List[int | RModeT], planes: PlanesT = None, **kwargs: Any
+    clip: vs.VideoNode, mode: int | RModeT | Sequence[int | RModeT], planes: PlanesT = None
 ) -> List[int]:
     assert clip.format
 
