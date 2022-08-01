@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import partial
 
 from typing import Callable
 
@@ -76,7 +77,7 @@ def contrasharpening(
 @disallow_variable_format
 @disallow_variable_resolution
 def contrasharpening_dehalo(
-    flt: vs.VideoNode, src: vs.VideoNode, level: float = 1.4, planes: PlanesT = 0
+    flt: vs.VideoNode, src: vs.VideoNode, level: float = 1.4, alpha: float = 2.49, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     :param dehaloed:    Dehaloed clip
@@ -95,28 +96,25 @@ def contrasharpening_dehalo(
 
     weighted = flt.std.Convolution(wmean_matrix, planes=planes)
     weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
-    weighted2 = iterate(weighted2, repair, 2, repairclip=weighted, mode=rep_modes)
-
-    if aka_expr_available:
-        return core.akarin.Expr(
-            [weighted, weighted2, src, flt], norm_expr_planes(
-                flt, f'x y - 2.49 * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +', planes
-            )
-        )
+    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 
     neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
 
-    diff = weighted.std.MakeDiff(weighted2, planes).std.Expr(
-        norm_expr_planes(flt, f'x {neutral} - 2.49 * {level} * {neutral} +', planes)
-    )
+    if aka_expr_available:
+        return core.akarin.Expr(
+            [weighted, weighted2, src, flt],
+            norm_expr_planes(
+                flt, f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ xor 0 D@ abs DY@ abs < D@ DY@ ? ? a +', planes
+            )
+        )
 
     diff = core.std.Expr(
-        [diff, src.std.MakeDiff(flt, planes)], norm_expr_planes(
-            flt, 'x {mid} - y {mid} - * 0 < {mid} x {mid} - abs y {mid} - abs < x y ? ?', planes, mid=neutral
-        )
+        [weighted, weighted2], norm_expr_planes(flt, f'x y - {alpha} * {level} * {{mid}} +', planes, mid=neutral)
     )
 
-    return flt.std.MergeDiff(diff, planes)
+    expr = 'x {mid} - y z - xor 0 x {mid} - abs y z - abs < x {mid} - y z - ? ? z +'
+
+    return core.std.Expr([diff, src, flt], norm_expr_planes(flt, expr, planes, mid=neutral))
 
 
 @disallow_variable_format
