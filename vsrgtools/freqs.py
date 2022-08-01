@@ -6,9 +6,13 @@ from math import e, log, pi, sin, sqrt
 from typing import Any, Literal
 
 import vapoursynth as vs
-from vsexprtools import EXPR_VARS, PlanesT, VSFunction, aka_expr_available, norm_expr_planes, normalise_planes
+from vsexprtools import (
+    EXPR_VARS, PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+)
 from vsutil import Range as CRange
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, scale_value, split
+from vsutil import (
+    disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join, scale_value, split
+)
 
 from .blur import box_blur, gauss_blur
 from .enum import ConvMode
@@ -52,11 +56,15 @@ def replace_low_frequencies(
     flt_blur = gauss_blur(work_clip, LFR, None, mode)
     ref_blur = gauss_blur(ref_work_clip, LFR, None, mode)
 
-    final = core.akarin.Expr(
-        [work_clip, flt_blur, ref_blur], norm_expr_planes(work_clip, expr, planes)
+    final = expr_func(
+        [work_clip, flt_blur, ref_blur], norm_expr_planes(work_clip, expr, planes),
+        force_akarin='vsrgtools.replace_low_frequencies'
     )
 
-    return final if chroma else core.std.ShufflePlanes([final, flt], [0, 1, 2], vs.YUV)
+    if not chroma:
+        return final
+
+    return join([final, *chroma], flt.format.color_family)
 
 
 def diff_merge(
@@ -82,7 +90,7 @@ def diff_merge(
 
     expr_string += '? ' * (n_clips - 1)
 
-    return core.akarin.Expr([*clips, *blurs], expr_string)
+    return expr_func([*clips, *blurs], expr_string, force_akarin='vsrgtools.diff_merge')
 
 
 def lehmer_diff_merge(

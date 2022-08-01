@@ -71,7 +71,7 @@ def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
         raise ValueError('median_clip: You must pass at least 3 clips!')
 
     if n_clips == 3:
-        return core.std.Expr(clips, 'x y z min max y z max min')
+        return expr_func(clips, 'x y z min max y z max min')
 
     all_clips = ' '.join(EXPR_VARS[i] for i in range(1, n_clips))
 

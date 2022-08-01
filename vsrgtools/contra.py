@@ -101,22 +101,18 @@ def contrasharpening_dehalo(
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 
     neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
+    norm_func = partial(norm_expr_planes, flt, planes=planes, mid=neutral)
 
     if aka_expr_available:
-        return core.akarin.Expr(
-            [weighted, weighted2, src, flt],
-            norm_expr_planes(
-                flt, f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ xor 0 D@ abs DY@ abs < D@ DY@ ? ? a +', planes
-            )
-        )
+        clips = [weighted, weighted2, src, flt]
+        expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ xor 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
+    else:
+        diff = expr_func([weighted, weighted2], norm_func(f'x y - {alpha} * {level} * {{mid}} +'))
 
-    diff = core.std.Expr(
-        [weighted, weighted2], norm_expr_planes(flt, f'x y - {alpha} * {level} * {{mid}} +', planes, mid=neutral)
-    )
+        clips = [diff, src, flt]
+        expr = 'x {mid} - y z - xor 0 x {mid} - abs y z - abs < x {mid} - y z - ? ? z +'
 
-    expr = 'x {mid} - y z - xor 0 x {mid} - abs y z - abs < x {mid} - y z - ? ? z +'
-
-    return core.std.Expr([diff, src, flt], norm_expr_planes(flt, expr, planes, mid=neutral))
+    return expr_func(clips, norm_func(expr))
 
 
 @disallow_variable_format
