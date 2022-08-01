@@ -12,7 +12,6 @@ from vsutil import (
 
 from .enum import ConvMode, LimitFilterMode
 from .limit import limit_filter
-from .util import mean_matrix, wmean_matrix
 
 __all__ = [
     'blur', 'box_blur', 'side_box_blur',
@@ -253,18 +252,13 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     assert clip.format
 
     planes = normalise_planes(clip, planes)
-    pconv = partial(core.std.Convolution, planes=planes)
 
     median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, None, planes)
 
-    if radius == 0:
-        weighted = sbr(clip, planes=planes)
-    elif radius == 1:
-        weighted = pconv(clip, wmean_matrix)
-    elif radius == 2:
-        weighted = pconv(pconv(clip, wmean_matrix), mean_matrix)
+    if radius:
+        weighted = blur(clip, radius)
     else:
-        weighted = pconv(pconv(pconv(clip, wmean_matrix), mean_matrix), mean_matrix)
+        weighted = sbr(clip, planes=planes)
 
     return limit_filter(weighted, clip, median, LimitFilterMode.DIFF_MIN, planes)
 
