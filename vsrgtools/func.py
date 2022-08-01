@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Sequence
-
 import vapoursynth as vs
-from vsexprtools import PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+from vsexprtools import (
+    EXPR_VARS, ExprOp, PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+)
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import LimitFilterMode
@@ -32,7 +32,7 @@ def minimum_diff(
     diff_func = fallback(diff_func, clip_func)
 
     if not diff:
-        return median_clips([clip, clip_func(clip), diff_func(clip)], planes)
+        return median_clips(clip, clip_func(clip), diff_func(clip), planes=planes)
 
     filtered = clip_func(clip)
 
@@ -61,10 +61,34 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
 
 @disallow_variable_format
 @disallow_variable_resolution
-def median_clips(clips: Sequence[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
-    return core.std.Expr(
-        list(clips), norm_expr_planes(clips[0], 'x y z min max y z max min', planes)
-    )
+def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
+    n_clips = len(clips)
+
+    if n_clips > 26:
+        raise ValueError('median_clip: You can pass only up to 26 clips!')
+
+    if n_clips < 3:
+        raise ValueError('median_clip: You must pass at least 3 clips!')
+
+    if n_clips == 3:
+        return core.std.Expr(clips, 'x y z min max y z max min')
+
+    all_clips = ' '.join(EXPR_VARS[i] for i in range(1, n_clips))
+
+    n_ops = n_clips - 2
+
+    all_clips_min, all_clips_max = [
+        all_clips + f' {op}' * n_ops for op in (ExprOp.MIN, ExprOp.MAX)
+    ]
+
+    header = ''
+    if aka_expr_available:
+        header = f'{all_clips_min} YZMIN! {all_clips_max} YZMAX! '
+        yzmin, yzmax = 'YZMIN@', 'YZMAX@'
+
+    expr = f'{header} x {yzmin} min x = {yzmin} x {yzmax} max x = {yzmax} x ? ?'
+
+    return expr_func(clips, norm_expr_planes(clips[0], expr, planes))
 
 
 @disallow_variable_format
