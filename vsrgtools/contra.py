@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from functools import partial
 from typing import Callable
 
 import vapoursynth as vs
-from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate
+from vsexprtools import PlanesT, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value
 
 from .blur import blur, box_blur, min_blur
 from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
-from .util import norm_rmode_planes, wmean_matrix
+from .util import iterate, norm_rmode_planes, wmean_matrix
 
 __all__ = [
     'contrasharpening', 'contra',
@@ -96,7 +95,7 @@ def contrasharpening_dehalo(
 
     weighted = flt.std.Convolution(wmean_matrix, planes=planes)
     weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
-    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted, mode=rep_modes), 2)
+    weighted2 = iterate(weighted2, repair, 2, repairclip=weighted, mode=rep_modes)
 
     if aka_expr_available:
         return core.akarin.Expr(
