@@ -27,6 +27,8 @@ class LimitFilterMode(LimitFilterModeMeta, IntEnum):
     SIMPLE_MIN = auto()
     SIMPLE_MAX = auto()
     """One source, two filtered"""
+    SIMPLE2_MIN = auto()
+    SIMPLE2_MAX = auto()
     DIFF_MIN = auto()
     DIFF_MAX = auto()
     """One/Two sources, one filtered"""

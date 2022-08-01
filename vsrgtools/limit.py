@@ -139,6 +139,8 @@ def _limit_filter_expr(
 ) -> str:
     if mode in {LimitFilterMode.SIMPLE_MIN, LimitFilterMode.SIMPLE_MAX}:
         return f'y z - abs y x - abs {mode.op} z x ?'
+    elif mode in {LimitFilterMode.SIMPLE2_MIN, LimitFilterMode.SIMPLE2_MAX}:
+        return f'y x - abs z x - abs {mode.op} y z ?'
     elif mode in {LimitFilterMode.DIFF_MIN, LimitFilterMode.DIFF_MAX}:
         if aka_expr_available:
             return f'y x - A! y z - B! A@ B@ xor y A@ abs B@ abs {mode.op} x z ? ?'
