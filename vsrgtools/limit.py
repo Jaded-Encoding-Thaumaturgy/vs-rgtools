@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Tuple
 
 import vapoursynth as vs
-from vsexprtools import EXPR_VARS, PlanesT, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+from vsexprtools import EXPR_VARS, PlanesT, aka_expr_available, norm_expr, normalise_planes
 from vsutil import get_neutral_value, get_peak_value
 
 from vsrgtools.enum import LimitFilterMode
@@ -67,10 +67,10 @@ def limit_filter(
         if ref:
             clips.append(ref)
 
-        return expr_func(clips, norm_expr_planes(flt, [
+        return norm_expr(clips, (
             _limit_filter_expr(got_ref, thr, elast, bright_thr, peak, mode),
             _limit_filter_expr(got_ref, thrc, elast, thrc, peak, mode)
-        ]))
+        ))
 
     diff = flt.std.MakeDiff(src, planes)
 

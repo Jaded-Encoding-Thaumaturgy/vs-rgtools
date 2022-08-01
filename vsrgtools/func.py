@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import vapoursynth as vs
-from vsexprtools import (
-    EXPR_VARS, ExprOp, PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
-)
+from vsexprtools import EXPR_VARS, ExprOp, PlanesT, VSFunction, aka_expr_available, norm_expr, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import LimitFilterMode
@@ -56,7 +54,7 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     else:
         expr = 'x y z - y min {mid} max y z - {mid} min y max - -'
 
-    return expr_func([clip, diffa, diffb], norm_expr_planes(clip, expr, planes, mid=neutral))
+    return norm_expr([clip, diffa, diffb], expr, planes, mid=neutral)
 
 
 @disallow_variable_format
@@ -71,7 +69,7 @@ def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
         raise ValueError('median_clip: You must pass at least 3 clips!')
 
     if n_clips == 3:
-        return expr_func(clips, 'x y z min max y z max min')
+        return norm_expr(clips, 'x y z min max y z max min')
 
     all_clips = ' '.join(EXPR_VARS[i] for i in range(1, n_clips))
 
@@ -88,7 +86,7 @@ def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
 
     expr = f'{header} x {yzmin} min x = {yzmin} x {yzmax} max x = {yzmax} x ? ?'
 
-    return expr_func(clips, norm_expr_planes(clips[0], expr, planes))
+    return norm_expr(clips, expr, planes)
 
 
 @disallow_variable_format

@@ -4,7 +4,7 @@ from functools import partial
 from typing import Callable
 
 import vapoursynth as vs
-from vsexprtools import PlanesT, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+from vsexprtools import PlanesT, aka_expr_available, norm_expr, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value
 
 from .blur import blur, box_blur, min_blur
@@ -73,7 +73,7 @@ def contrasharpening(
     else:
         expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
 
-    return expr_func([limit, diff_blur, flt], norm_expr_planes(flt, expr, planes, mid=neutral))
+    return norm_expr([limit, diff_blur, flt], expr, planes, mid=neutral)
 
 
 @disallow_variable_format
@@ -101,18 +101,17 @@ def contrasharpening_dehalo(
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 
     neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
-    norm_func = partial(norm_expr_planes, flt, planes=planes, mid=neutral)
 
     if aka_expr_available:
         clips = [weighted, weighted2, src, flt]
         expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ xor 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
     else:
-        diff = expr_func([weighted, weighted2], norm_func(f'x y - {alpha} * {level} * {{mid}} +'))
+        diff = norm_expr([weighted, weighted2], f'x y - {alpha} * {level} * {{mid}} +', planes, mid=neutral)
 
         clips = [diff, src, flt]
         expr = 'x {mid} - y z - xor 0 x {mid} - abs y z - abs < x {mid} - y z - ? ? z +'
 
-    return expr_func(clips, norm_func(expr))
+    return norm_expr(clips, expr, planes, mid=neutral)
 
 
 @disallow_variable_format
@@ -148,7 +147,7 @@ def contrasharpening_median(
     else:
         expr = 'x dup + z - x y min max x y max min'
 
-    return expr_func([flt, src, repaired], norm_expr_planes(flt, expr, planes))
+    return norm_expr([flt, src, repaired], expr, planes)
 
 
 contra = contrasharpening

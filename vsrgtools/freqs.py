@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 import vapoursynth as vs
 from vsexprtools import (
-    EXPR_VARS, PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
+    EXPR_VARS, PlanesT, VSFunction, aka_expr_available, norm_expr, norm_expr_planes, normalise_planes
 )
 from vsutil import Range as CRange
 from vsutil import (
@@ -56,9 +56,8 @@ def replace_low_frequencies(
     flt_blur = gauss_blur(work_clip, LFR, None, mode)
     ref_blur = gauss_blur(ref_work_clip, LFR, None, mode)
 
-    final = expr_func(
-        [work_clip, flt_blur, ref_blur], norm_expr_planes(work_clip, expr, planes),
-        force_akarin='vsrgtools.replace_low_frequencies'
+    final = norm_expr(
+        [work_clip, flt_blur, ref_blur], expr, planes, force_akarin='vsrgtools.replace_low_frequencies'
     )
 
     if not chroma:
@@ -90,7 +89,7 @@ def diff_merge(
 
     expr_string += '? ' * (n_clips - 1)
 
-    return expr_func([*clips, *blurs], expr_string, force_akarin='vsrgtools.diff_merge')
+    return norm_expr([*clips, *blurs], expr_string, force_akarin='vsrgtools.diff_merge')
 
 
 def lehmer_diff_merge(

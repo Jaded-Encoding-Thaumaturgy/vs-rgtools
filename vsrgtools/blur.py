@@ -5,7 +5,7 @@ from itertools import count
 from math import ceil, exp, log, pi, sqrt
 
 import vapoursynth as vs
-from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, EXPR_VARS
+from vsexprtools import EXPR_VARS, PlanesT, aka_expr_available, norm_expr, normalise_planes
 from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )
@@ -125,9 +125,7 @@ def side_box_blur(
         else:
             clips = [clip, *intermediates]
 
-        cum = expr_func(
-            clips, norm_expr_planes(clip, cum_expr, planes), force_akarin='vsrgtools.side_box_blur'
-        )
+        cum = norm_expr(clips, cum_expr, planes, force_akarin='vsrgtools.side_box_blur')
     else:
         cum = intermediates[0]
         for new in intermediates[1:]:
@@ -292,9 +290,7 @@ def sbr(
     else:
         expr = 'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
 
-    normalized_expr = norm_expr_planes(clip, expr, planes, mid=neutral)
-
-    diff = expr_func(clips, normalized_expr)
+    diff = norm_expr(clips, expr, planes, mid=neutral)
 
     if aka_expr_available:
         return diff
