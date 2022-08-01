@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Sequence
 
 import vapoursynth as vs
-from vsexprtools import PlanesT, VSFunction, norm_expr_planes, normalise_planes
+from vsexprtools import PlanesT, VSFunction, aka_expr_available, expr_func, norm_expr_planes, normalise_planes
 from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
 
 from .enum import LimitFilterMode
@@ -51,10 +51,12 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     planes = normalise_planes(clip, planes)
     neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
-    return core.std.Expr(
-        [clip, diffa, diffb],
-        norm_expr_planes(clip, 'x 0 y {mid} y z - min max y {mid} y z - max min -', planes, mid=neutral)
-    )
+    if aka_expr_available:
+        expr = 'y z - D! x D@ y {mid} clamp D@ {mid} y clamp - -'
+    else:
+        expr = 'x y z - y min {mid} max y z - {mid} min y max - -'
+
+    return expr_func([clip, diffa, diffb], norm_expr_planes(clip, expr, planes, mid=neutral))
 
 
 @disallow_variable_format
