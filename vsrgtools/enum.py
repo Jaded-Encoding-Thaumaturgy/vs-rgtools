@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, auto
 from typing import Sequence
 
 __all__ = [
@@ -23,11 +23,14 @@ class LimitFilterModeMeta:
 
 
 class LimitFilterMode(LimitFilterModeMeta, IntEnum):
-    SIMPLE_MIN = 0
-    SIMPLE_MAX = 1
-    DIFF_MIN = 1
-    DIFF_MAX = 2
-    CLAMPING = 3
+    """Two sources, one filtered"""
+    SIMPLE_MIN = auto()
+    SIMPLE_MAX = auto()
+    """One source, two filtered"""
+    DIFF_MIN = auto()
+    DIFF_MAX = auto()
+    """One/Two sources, one filtered"""
+    CLAMPING = auto()
 
     @property
     def op(self) -> str:

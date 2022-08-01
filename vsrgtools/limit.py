@@ -42,6 +42,9 @@ def limit_filter(
         if var < l:
             raise ValueError(f'limit_filter: {name} must be >= 0')
 
+    if ref is None and mode != LimitFilterMode.CLAMPING:
+        raise ValueError(f'limit_filter: with mode={mode._name_} you need to specify ref!')
+
     force_expr = mode.force_expr
 
     if any([
