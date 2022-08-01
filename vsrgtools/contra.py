@@ -1,6 +1,6 @@
 from __future__ import annotations
-from functools import partial
 
+from functools import partial
 from typing import Callable
 
 import vapoursynth as vs
@@ -68,10 +68,12 @@ def contrasharpening(
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
-    return core.std.Expr(
-        [limit, diff_blur, flt],
-        norm_expr_planes(flt, 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +', planes, mid=neutral)
-    )
+    if aka_expr_available:
+        expr = 'x {mid} - LD! y {mid} - BD@ LD@ abs BD@ abs < LD@ BD@ ? z +'
+    else:
+        expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
+
+    return expr_func([limit, diff_blur, flt], norm_expr_planes(flt, expr, planes, mid=neutral))
 
 
 @disallow_variable_format
