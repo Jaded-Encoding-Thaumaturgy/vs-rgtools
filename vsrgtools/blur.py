@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from functools import partial
+from itertools import count
 from math import ceil, exp, log, pi, sqrt
 
 import vapoursynth as vs
-from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes
+from vsexprtools import expr_func, PlanesT, aka_expr_available, norm_expr_planes, normalise_planes, EXPR_VARS
 from vsutil import (
     depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
 )
@@ -14,7 +15,7 @@ from .limit import limit_filter
 from .util import mean_matrix, wmean_matrix
 
 __all__ = [
-    'blur', 'box_blur',
+    'blur', 'box_blur', 'side_box_blur',
     'gauss_blur', 'gauss_fmtc_blur',
     'min_blur', 'sbr'
 ]
@@ -68,6 +69,78 @@ def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: Plane
             blurred = blurred.std.Convolution([1] * matrix_size, mode=ConvMode.SQUARE)
 
     return blurred
+
+
+@disallow_variable_format
+@disallow_variable_resolution
+def side_box_blur(
+    clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None, inverse: bool = False, expr: bool | None = None
+) -> vs.VideoNode:
+    planes = normalise_planes(clip, planes)
+
+    half_kernel = [(1 if i <= 0 else 0) for i in range(-radius, radius + 1)]
+
+    conv_m1 = partial(core.std.Convolution, matrix=half_kernel, planes=planes)
+    conv_m2 = partial(core.std.Convolution, matrix=half_kernel[::-1], planes=planes)
+    blur_pt = partial(core.std.BoxBlur, planes=planes)
+
+    vrt_filters, hrz_filters = [
+        [
+            partial(conv_m1, mode=mode), partial(conv_m2, mode=mode),
+            partial(blur_pt, hradius=hr, vradius=vr, hpasses=h, vpasses=v)
+        ] for h, hr, v, vr, mode in [
+            (0, None, 1, radius, ConvMode.VERTICAL), (1, radius, 0, None, ConvMode.HORIZONTAL)
+        ]
+    ]
+
+    # process
+    vrt_intermediates = (vrt_flt(clip) for vrt_flt in vrt_filters)
+    intermediates = list(
+        hrz_flt(vrt_intermediate)
+        for i, vrt_intermediate in enumerate(vrt_intermediates)
+        for j, hrz_flt in enumerate(hrz_filters) if not i == j == 2
+    )
+
+    comp_blur = None if inverse else box_blur(clip, radius, 1, planes)
+
+    if aka_expr_available if expr is None else expr:
+        template = '{cum} x - abs {new} x - abs < {cum} {new} ?'
+
+        cum_expr, cumc = '', 'y'
+        n_inter = len(intermediates)
+
+        for i, newc, var in zip(count(), EXPR_VARS[2:], EXPR_VARS[4:]):
+            if i == n_inter - 1:
+                break
+
+            cum_expr += template.format(cum=cumc, new=newc)
+
+            if i != n_inter - 2:
+                cumc = var.upper()
+                cum_expr += f' {cumc}! '
+                cumc = f'{cumc}@'
+
+        if comp_blur:
+            clips = [clip, *intermediates, comp_blur]
+            cum_expr = f'x {cum_expr} - {EXPR_VARS[n_inter + 1]} +'
+        else:
+            clips = [clip, *intermediates]
+
+        cum = expr_func(
+            clips, norm_expr_planes(clip, cum_expr, planes), force_akarin='vsrgtools.side_box_blur'
+        )
+    else:
+        cum = intermediates[0]
+        for new in intermediates[1:]:
+            cum = limit_filter(clip, cum, new, LimitFilterMode.SIMPLE2_MIN, planes)
+
+        if comp_blur:
+            cum = clip.std.MakeDiff(cum).std.MergeDiff(comp_blur)
+
+    if comp_blur:
+        return box_blur(cum, 1, min(radius // 2, 1))
+
+    return cum
 
 
 def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | None, func_name: str) -> float:
