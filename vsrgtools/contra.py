@@ -69,7 +69,7 @@ def contrasharpening(
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
     if aka_expr_available:
-        expr = 'x {mid} - LD! y {mid} - BD@ LD@ abs BD@ abs < LD@ BD@ ? z +'
+        expr = 'x {mid} - LD! y {mid} - BD! LD@ abs BD@ abs < LD@ BD@ ? z +'
     else:
         expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
 
