@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from enum import Enum, IntEnum, auto
+from enum import IntEnum, auto
 from typing import Sequence
+from vsexprtools import ConvMode
 
 __all__ = [
     'ConvMode',
@@ -10,12 +11,6 @@ __all__ = [
     'RepairMode', 'RepairModeT',
     'VerticalCleanerMode', 'VerticalCleanerModeT'
 ]
-
-
-class ConvMode(str, Enum):
-    SQUARE = 'hv'
-    VERTICAL = 'v'
-    HORIZONTAL = 'h'
 
 
 class LimitFilterModeMeta:
