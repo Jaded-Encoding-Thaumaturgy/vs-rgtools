@@ -144,3 +144,5 @@ vardautomation/shaders.py
 
 # Video test file
 *.mkv
+
+vsrgtools/.test
