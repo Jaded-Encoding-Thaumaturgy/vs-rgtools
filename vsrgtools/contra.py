@@ -104,7 +104,7 @@ def contrasharpening_dehalo(
 
     if aka_expr_available:
         clips = [weighted, weighted2, src, flt]
-        expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ xor 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
+        expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
     else:
         diff = norm_expr([weighted, weighted2], f'x y - {alpha} * {level} * {{mid}} +', planes, mid=neutral)
 
