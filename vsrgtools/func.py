@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import vapoursynth as vs
-from vsexprtools import EXPR_VARS, ExprOp, PlanesT, VSFunction, aka_expr_available, norm_expr, normalise_planes
-from vsutil import disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value
+from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
+from vstools import (
+    PlanesT, VSFunction, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
+    normalize_planes, vs, core
+)
 
 from .enum import LimitFilterMode
 from .limit import limit_filter
@@ -13,8 +15,6 @@ __all__ = [
     'flux_smooth'
 ]
 
-core = vs.core
-
 
 @disallow_variable_format
 @disallow_variable_resolution
@@ -23,7 +23,7 @@ def minimum_diff(
     clip_func: VSFunction, diff_func: VSFunction | None = None,
     diff: bool | None = None, planes: PlanesT = None
 ) -> vs.VideoNode:
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     diff = fallback(diff, diff_func is None)
 
@@ -46,7 +46,7 @@ def minimum_diff(
 def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
     neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
     if aka_expr_available:
@@ -99,7 +99,7 @@ def flux_smooth(
     if radius < 1 or radius > 7:
         raise ValueError('flux_smooth: radius must be between 1 and 7 (inclusive)!')
 
-    planes = normalise_planes(clip, planes, False)
+    planes = normalize_planes(clip, planes, False)
 
     threshold = threshold << clip.format.bits_per_sample - 8
 

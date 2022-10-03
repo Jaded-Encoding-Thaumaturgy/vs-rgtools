@@ -5,24 +5,18 @@ from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Any, Literal
 
-import vapoursynth as vs
-from vsexprtools import (
-    EXPR_VARS, PlanesT, VSFunction, aka_expr_available, norm_expr, norm_expr_planes, normalise_planes
-)
-from vsutil import Range as CRange
-from vsutil import (
-    disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join, scale_value, split
+from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr, norm_expr_planes
+from vstools import (
+    ColorRange, ConvMode, PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution,
+    get_peak_value, get_y, join, normalize_planes, scale_value, split, vs
 )
 
 from .blur import box_blur, gauss_blur
-from .enum import ConvMode
 
 __all__ = [
     'replace_low_frequencies',
     'diff_merge', 'lehmer_diff_merge'
 ]
-
-core = vs.core
 
 
 @disallow_variable_format
@@ -33,7 +27,7 @@ def replace_low_frequencies(
 ) -> vs.VideoNode:
     assert flt.format
 
-    planes = normalise_planes(flt, planes)
+    planes = normalize_planes(flt, planes)
     work_clip, *chroma = split(flt) if planes == [0] else (flt, )
     assert work_clip.format
 
@@ -46,7 +40,7 @@ def replace_low_frequencies(
     LFR = freq_sample / (k * 2 * pi)                            # Frequency Cutoff for Gaussian Sigma
     sec0 = sin(e) + 0.1
 
-    sec = scale_value(sec0, 8, work_clip.format.bits_per_sample, range=CRange.FULL)
+    sec = scale_value(sec0, 8, work_clip.format.bits_per_sample, range_out=ColorRange.FULL)
 
     expr = 'x y - z + '
 

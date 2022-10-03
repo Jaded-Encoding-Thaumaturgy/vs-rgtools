@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-import vapoursynth as vs
-from vsexprtools import PlanesT, aka_expr_available, normalise_seq
-from vsutil import disallow_variable_format, disallow_variable_resolution
+from vsexprtools import aka_expr_available
+from vstools import (
+    PlanesT, core, disallow_variable_format, disallow_variable_resolution, normalize_seq, pick_func_stype, vs
+)
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
 from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
-from .util import mean_matrix, pick_func_stype, wmean_matrix
+from .util import mean_matrix, wmean_matrix
 
 __all__ = [
     'repair', 'removegrain',
     'clense', 'backward_clense', 'forward_clense',
     'vertical_cleaner', 'horizontal_cleaner'
 ]
-
-core = vs.core
 
 
 @disallow_variable_format
@@ -26,7 +25,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
     assert clip.format
 
     is_float = clip.format.sample_type == vs.FLOAT
-    mode = normalise_seq(mode, clip.format.num_planes)
+    mode = normalize_seq(mode, clip.format.num_planes)
 
     if not sum(mode):
         return clip
@@ -47,7 +46,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
 def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     assert clip.format
 
-    mode = normalise_seq(mode, clip.format.num_planes)
+    mode = normalize_seq(mode, clip.format.num_planes)
     mode = list(map(RemoveGrainMode, mode))
 
     if not sum(mode):

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import IntEnum, auto
+from enum import auto
 from typing import Sequence
-from vsexprtools import ConvMode
+
+from vstools import CustomIntEnum
 
 __all__ = [
-    'ConvMode',
     'LimitFilterMode',
     'RemoveGrainMode', 'RemoveGrainModeT',
     'RepairMode', 'RepairModeT',
@@ -17,7 +17,7 @@ class LimitFilterModeMeta:
     force_expr = True
 
 
-class LimitFilterMode(LimitFilterModeMeta, IntEnum):
+class LimitFilterMode(LimitFilterModeMeta, CustomIntEnum):
     """Two sources, one filtered"""
     SIMPLE_MIN = auto()
     SIMPLE_MAX = auto()
@@ -39,7 +39,7 @@ class LimitFilterMode(LimitFilterModeMeta, IntEnum):
         return self
 
 
-class RemoveGrainMode(IntEnum):
+class RemoveGrainMode(CustomIntEnum):
     NONE = 0
     MINMAX_AROUND1 = 1
     MINMAX_AROUND2 = 2
@@ -73,7 +73,7 @@ class RemoveGrainMode(IntEnum):
 RemoveGrainModeT = int | RemoveGrainMode | Sequence[int | RemoveGrainMode]
 
 
-class RepairMode(IntEnum):
+class RepairMode(CustomIntEnum):
     NONE = 0
     MINMAX_SQUARE1 = 1
     MINMAX_SQUARE2 = 2
@@ -107,7 +107,7 @@ class RepairMode(IntEnum):
 RepairModeT = int | RepairMode | Sequence[int | RepairMode]
 
 
-class VerticalCleanerMode(IntEnum):
+class VerticalCleanerMode(CustomIntEnum):
     NONE = 0
     MEDIAN = 1
     PRESERVING = 2

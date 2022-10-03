@@ -3,22 +3,21 @@ from __future__ import annotations
 from functools import partial
 from typing import Callable
 
-import vapoursynth as vs
-from vsexprtools import PlanesT, aka_expr_available, norm_expr, normalise_planes
-from vsutil import disallow_variable_format, disallow_variable_resolution, get_neutral_value
+from vsexprtools import aka_expr_available, norm_expr
+from vstools import (
+    PlanesT, disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, vs
+)
 
 from .blur import blur, box_blur, min_blur
 from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
-from .util import iterate, norm_rmode_planes, wmean_matrix
+from .util import norm_rmode_planes, wmean_matrix
 
 __all__ = [
     'contrasharpening', 'contra',
     'contrasharpening_dehalo', 'contra_dehalo',
     'contrasharpening_median', 'contra_median'
 ]
-
-core = vs.core
 
 
 @disallow_variable_format
@@ -47,7 +46,7 @@ def contrasharpening(
     else:
         neutral = [0.0]
 
-    planes = normalise_planes(flt, planes)
+    planes = normalize_planes(flt, planes)
 
     if radius is None:
         radius = 2 if flt.width > 1024 or flt.height > 576 else 1
@@ -92,7 +91,7 @@ def contrasharpening_dehalo(
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening_dehalo: Clips must be the same format')
 
-    planes = normalise_planes(flt, planes)
+    planes = normalize_planes(flt, planes)
 
     rep_modes = norm_rmode_planes(flt, RepairMode.MINMAX_SQUARE1, planes)
 
@@ -133,7 +132,7 @@ def contrasharpening_median(
     if flt.format.id != src.format.id:
         raise ValueError('contrasharpening: Clips must be the same format')
 
-    planes = normalise_planes(flt, planes)
+    planes = normalize_planes(flt, planes)
 
     if isinstance(mode, (int, list, RemoveGrainMode)):
         repaired = removegrain(flt, norm_rmode_planes(flt, mode, planes))

@@ -2,17 +2,14 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-import vapoursynth as vs
-from vsexprtools import EXPR_VARS, PlanesT, aka_expr_available, norm_expr, normalise_planes
-from vsutil import get_neutral_value, get_peak_value
+from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
+from vstools import PlanesT, get_neutral_value, get_peak_value, normalize_planes, vs, core
 
 from vsrgtools.enum import LimitFilterMode
 
 __all__ = [
     'limit_filter'
 ]
-
-core = vs.core
 
 
 def limit_filter(
@@ -22,7 +19,7 @@ def limit_filter(
 ) -> vs.VideoNode:
     assert flt.format and src.format
 
-    planes = normalise_planes(flt, planes)
+    planes = normalize_planes(flt, planes)
 
     is_yuv = flt.format.color_family == vs.YUV
 

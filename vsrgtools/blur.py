@@ -4,13 +4,13 @@ from functools import partial
 from itertools import count
 from math import ceil, exp, log, pi, sqrt
 
-import vapoursynth as vs
-from vsexprtools import EXPR_VARS, PlanesT, aka_expr_available, norm_expr, normalise_planes
-from vsutil import (
-    depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join, split
+from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
+from vstools import (
+    ConvMode, PlanesT, core, depth, disallow_variable_format, disallow_variable_resolution, get_depth,
+    get_neutral_value, join, normalize_planes, split, vs
 )
 
-from .enum import ConvMode, LimitFilterMode
+from .enum import LimitFilterMode
 from .limit import limit_filter
 
 __all__ = [
@@ -18,8 +18,6 @@ __all__ = [
     'gauss_blur', 'gauss_fmtc_blur',
     'min_blur', 'sbr'
 ]
-
-core = vs.core
 
 
 @disallow_variable_format
@@ -29,7 +27,7 @@ def blur(
 ) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     if mode == ConvMode.SQUARE:
         matrix2 = [1, 3, 4, 3, 1]
@@ -57,7 +55,7 @@ def blur(
 def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     if radius > 12:
         blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
@@ -75,7 +73,7 @@ def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: Plane
 def side_box_blur(
     clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None, inverse: bool = False, expr: bool | None = None
 ) -> vs.VideoNode:
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     half_kernel = [(1 if i <= 0 else 0) for i in range(-radius, radius + 1)]
 
@@ -163,7 +161,7 @@ def gauss_blur(
 ) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_blur')
 
@@ -201,7 +199,7 @@ def gauss_fmtc_blur(
 ) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     if strict:
         sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_fmtc_blur')
@@ -249,7 +247,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     """
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, None, planes)
 
@@ -270,7 +268,7 @@ def sbr(
 ) -> vs.VideoNode:
     assert clip.format
 
-    planes = normalise_planes(clip, planes)
+    planes = normalize_planes(clip, planes)
 
     neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
