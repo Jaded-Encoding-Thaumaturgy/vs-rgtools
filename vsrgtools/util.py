@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence, TypeVar, cast
+from typing import Sequence, TypeVar, cast
 
 from vstools import PlanesT, normalize_planes, normalize_seq, to_arr, vs
 
@@ -19,7 +19,7 @@ RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 
 def norm_rmode_planes(
     clip: vs.VideoNode, mode: int | RModeT | Sequence[int | RModeT], planes: PlanesT = None
-) -> List[int]:
+) -> list[int]:
     assert clip.format
 
     modes_array = normalize_seq(to_arr(mode), clip.format.num_planes)  # type: ignore[var-annotated,arg-type]

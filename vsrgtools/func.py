@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
 from vstools import (
-    PlanesT, VSFunction, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
-    normalize_planes, vs, core
+    PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
+    normalize_planes, vs
 )
 
 from .enum import LimitFilterMode

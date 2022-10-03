@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-
 from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
-from vstools import PlanesT, get_neutral_value, get_peak_value, normalize_planes, vs, core
+from vstools import PlanesT, core, get_neutral_value, get_peak_value, normalize_planes, vs
 
 from vsrgtools.enum import LimitFilterMode
 
@@ -15,7 +13,7 @@ __all__ = [
 def limit_filter(
     flt: vs.VideoNode, src: vs.VideoNode, ref: vs.VideoNode | None = None,
     mode: LimitFilterMode = LimitFilterMode.CLAMPING, planes: PlanesT = None,
-    thr: int | Tuple[int, int] = 1, elast: float = 2.0, bright_thr: int | None = None
+    thr: int | tuple[int, int] = 1, elast: float = 2.0, bright_thr: int | None = None
 ) -> vs.VideoNode:
     assert flt.format and src.format
 
@@ -80,7 +78,7 @@ def limit_filter(
 
 
 def _limit_filter_lut(
-    diff: vs.VideoNode, elast: float, thr: float, largen_thr: float, planes: List[int]
+    diff: vs.VideoNode, elast: float, thr: float, largen_thr: float, planes: list[int]
 ) -> vs.VideoNode:
     assert diff.format
 
