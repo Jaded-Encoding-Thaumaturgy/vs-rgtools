@@ -5,10 +5,11 @@ from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Any, Literal
 
-from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr, norm_expr_planes
+from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes
 from vstools import (
-    ColorRange, ConvMode, PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution,
-    get_peak_value, get_y, join, normalize_planes, scale_value, split, vs
+    EXPR_VARS, ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, core,
+    disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join, normalize_planes, scale_value,
+    split, vs
 )
 
 from .blur import box_blur, gauss_blur
@@ -61,13 +62,28 @@ def replace_low_frequencies(
 
 
 def diff_merge(
-    *clips: vs.VideoNode, filter: VSFunction = partial(box_blur, radius=1, passes=3),
+    *clips: vs.VideoNode, filter: VSFunction | list[VSFunction] = partial(box_blur, radius=1, passes=3),
     operator: Literal['<', '>'] = '>', abs_diff: bool = True, **kwargs: Any
 ) -> vs.VideoNode:
-    if len(clips) < 2:
-        raise ValueError('diff_merge: you must pass at least two clips!')
+    n_clips = len(clips)
 
-    blurs = [filter(clip, **kwargs) for clip in clips]
+    if n_clips > 13:
+        raise CustomIndexError(f'Too many clips passed! ({n_clips})', diff_merge)
+    elif n_clips < 2:
+        raise CustomIndexError(f'You must pass at lest two clips! ({n_clips})', diff_merge)
+
+    if not filter:
+        raise CustomValueError('You must pass at least one filter!', diff_merge)
+
+    if not isinstance(filter, list):
+        filter = [filter]
+
+    if (lf := len(filter)) < n_clips:
+        filter.extend(filter[-1:] * (n_clips - lf))
+    elif lf > n_clips:
+        filter = filter[:n_clips]
+
+    blurs = [filt(clip, **kwargs) for filt, clip in zip(filter, clips)]
 
     expr_string = ''
     n_clips = len(clips)
