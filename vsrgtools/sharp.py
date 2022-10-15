@@ -44,7 +44,7 @@ def unsharp_masked(clip: vs.VideoNode, radius: int = 1, strength: float = 100.0)
     if get_sample_type(clip) == 0:
         all_matrices = [[x * 1.0] for x in range(1, 1024)]
 
-        for x in range(2 ** 10):
+        for x in range((2 ** 10) - 1):
             while len(all_matrices[x]) < radius * 2 + 1:
                 all_matrices[x].append(all_matrices[x][-1] / weight)
 
