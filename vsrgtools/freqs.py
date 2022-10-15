@@ -103,24 +103,74 @@ def diff_merge(
 
 
 def lehmer_diff_merge(
-    src: vs.VideoNode, flt: vs.VideoNode,
-    filter: VSFunction = partial(box_blur, radius=3, passes=2),
-    high_filter: VSFunction | None = None,
+    *clips: vs.VideoNode,
+    filter: VSFunction | list[VSFunction] = partial(box_blur, radius=3, passes=2),
     planes: PlanesT = None
 ) -> vs.VideoNode:
-    if high_filter is None:
-        high_filter = filter
+    """
+    Merge multiple sources.
 
-    src_high = filter(src)
-    flt_high = high_filter(flt)
+    :param clips:           Clips to be merged together.
+                            If using multiple sources, first should be the "best" one,
+                            then the other a lowpassed or worse source overall.
+                            If the clips are filtered, first is src and
+                            others the denoised/debanded/whatever.
+    :param filter:          Filter to be applied to clips to isolate high frequencies.
+                            If a list, each filter will be mapped to corresponding clip at same index.
+                            If not enough filters are passed, the last one will be reused.
+    :param planes:          Planes to be processed.
+
+    :return:                Merged clips.
+    """
+    n_clips = len(clips)
+
+    if n_clips > 13:
+        raise CustomIndexError(f'Too many clips passed! ({n_clips})', lehmer_diff_merge)
+    elif n_clips < 2:
+        raise CustomIndexError(f'You must pass at lest two clips! ({n_clips})', lehmer_diff_merge)
+    elif n_clips > 2 and not aka_expr_available:
+        raise CustomIndexError(f'You can pass at most 2 clips without akarin plugin! ({n_clips})', lehmer_diff_merge)
+
+    if not filter:
+        raise CustomValueError('You must pass at least one filter!', lehmer_diff_merge)
+
+    if not isinstance(filter, list):
+        filter = [filter]
+
+    if (lf := len(filter)) < n_clips:
+        filter.extend(filter[-1:] * (n_clips - lf))
+    elif lf > n_clips:
+        filter = filter[:n_clips]
+
+    blurred_clips = [filt(clip) for filt, clip in zip(filter, clips)]
 
     if aka_expr_available:
-        return core.akarin.Expr(
-            [src, flt, src_high, flt_high],
-            norm_expr_planes(
-                src, 'x z - SD! y a - FD! SD@ 3 pow FD@ 3 pow + SD@ 2 pow FD@ 2 pow 0.0001 + + / x SD@ - +', planes
-            )
-        )
+        counts = range(n_clips)
+
+        clip_vars, blur_vars = EXPR_VARS[:n_clips], EXPR_VARS[n_clips:n_clips * 2]
+
+        n_op = n_clips - 1
+
+        expr = StrList([
+            [f'{clip} {blur} - D{i}!' for i, clip, blur in zip(counts, clip_vars, blur_vars)],
+        ])
+
+        for y in range(2):
+            expr.extend([
+                [f'D{i}@ {3 - y} pow' for i in counts],
+                ExprOp.ADD * n_op, f'P{y + 1}!'
+            ])
+
+        expr.extend([
+            'P2@ 0 = 0 P1@ P2@ / ?',
+            blur_vars, ExprOp.ADD * n_op,
+            n_clips, ExprOp.DIV, ExprOp.ADD
+        ])
+
+        return norm_expr([*clips, *blurred_clips], expr, planes)
+
+    src, flt = clips
+    src_high, flt_high = blurred_clips
 
     peak = get_peak_value(src)
 
