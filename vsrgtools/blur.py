@@ -63,7 +63,9 @@ def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: Plane
         matrix_size = radius * 2 | 1
         blurred = clip
         for _ in range(passes):
-            blurred = blurred.std.Convolution([1] * matrix_size, mode=ConvMode.SQUARE)
+            blurred = blurred.std.Convolution(
+                [1] * matrix_size, planes=planes, mode=ConvMode.SQUARE
+            )
 
     return blurred
 
