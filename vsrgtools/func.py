@@ -3,7 +3,7 @@ from __future__ import annotations
 from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
 from vstools import (
     PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
-    normalize_planes, vs
+    normalize_planes, vs, CustomOverflowError, CustomIndexError
 )
 
 from .enum import LimitFilterMode
@@ -63,10 +63,10 @@ def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     n_clips = len(clips)
 
     if n_clips > 26:
-        raise ValueError('median_clip: You can pass only up to 26 clips!')
+        raise CustomOverflowError('You can pass only up to 26 clips!', median_clips, reason=n_clips)
 
     if n_clips < 3:
-        raise ValueError('median_clip: You must pass at least 3 clips!')
+        raise CustomIndexError('You must pass at least 3 clips!', median_clips, reason=n_clips)
 
     if n_clips == 3:
         return norm_expr(clips, 'x y z min max y z max min')
@@ -97,7 +97,7 @@ def flux_smooth(
     assert clip.format
 
     if radius < 1 or radius > 7:
-        raise ValueError('flux_smooth: radius must be between 1 and 7 (inclusive)!')
+        raise CustomIndexError('Radius must be between 1 and 7 (inclusive)!', flux_smooth, reason=radius)
 
     planes = normalize_planes(clip, planes, False)
 

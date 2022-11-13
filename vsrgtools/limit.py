@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
-from vstools import PlanesT, core, get_neutral_value, get_peak_value, normalize_planes, vs
+from vstools import (
+    CustomIndexError, CustomValueError, PlanesT, core, get_neutral_value, get_peak_value, normalize_planes, vs
+)
 
-from vsrgtools.enum import LimitFilterMode
+from .enum import LimitFilterMode
 
 __all__ = [
     'limit_filter'
@@ -35,10 +37,10 @@ def limit_filter(
         (thr, 'thr', 0), (thrc, 'thrc', 0), (bright_thr, 'bright_thr', 0), (elast, 'elast', 1)
     ]:
         if var < l:
-            raise ValueError(f'limit_filter: {name} must be >= 0')
+            raise CustomIndexError(f'{name} must be >= {l}', limit_filter, reason=var)
 
     if ref is None and mode != LimitFilterMode.CLAMPING:
-        raise ValueError(f'limit_filter: with mode={mode._name_} you need to specify ref!')
+        raise CustomValueError('You need to specify ref!', limit_filter, reason='mode={mode}', mode=mode)
 
     force_expr = mode.force_expr
 

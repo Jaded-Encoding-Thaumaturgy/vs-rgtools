@@ -5,7 +5,8 @@ from typing import Callable
 
 from vsexprtools import aka_expr_available, norm_expr
 from vstools import (
-    PlanesT, disallow_variable_format, disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, vs
+    PlanesT, check_ref_clip, check_variable, disallow_variable_format, disallow_variable_resolution, get_neutral_value,
+    iterate, normalize_planes, vs, CustomValueError
 )
 
 from .blur import blur, box_blur, min_blur
@@ -36,10 +37,10 @@ def contrasharpening(
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
-    assert flt.format and src.format
 
-    if flt.format.id != src.format.id:
-        raise ValueError('contrasharpening: Clips must be the same format')
+    assert check_variable(src, contrasharpening)
+    assert check_variable(flt, contrasharpening)
+    check_ref_clip(src, flt, contrasharpening)
 
     if flt.format.sample_type == vs.INTEGER:
         neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
@@ -86,10 +87,9 @@ def contrasharpening_dehalo(
     :param level:       Strengh level
     :return:            Contrasharpened clip
     """
-    assert flt.format and src.format
-
-    if flt.format.id != src.format.id:
-        raise ValueError('contrasharpening_dehalo: Clips must be the same format')
+    assert check_variable(src, contrasharpening)
+    assert check_variable(flt, contrasharpening)
+    check_ref_clip(src, flt, contrasharpening)
 
     planes = normalize_planes(flt, planes)
 
@@ -127,10 +127,9 @@ def contrasharpening_median(
     :param planes:      Planes to process, defaults to None
     :return:            Contrasharpened clip
     """
-    assert flt.format and src.format
-
-    if flt.format.id != src.format.id:
-        raise ValueError('contrasharpening: Clips must be the same format')
+    assert check_variable(src, contrasharpening)
+    assert check_variable(flt, contrasharpening)
+    check_ref_clip(src, flt, contrasharpening)
 
     planes = normalize_planes(flt, planes)
 
@@ -139,7 +138,7 @@ def contrasharpening_median(
     elif callable(mode):
         repaired = mode(flt, planes=planes)
     else:
-        raise ValueError('contrasharpening_median: invalid mode/function passed!')
+        raise CustomValueError('Invalid mode or function passed!', contrasharpening_median)
 
     if aka_expr_available:
         expr = 'x dup + z - D! x y < D@ x y clamp D@ y x clamp ?'

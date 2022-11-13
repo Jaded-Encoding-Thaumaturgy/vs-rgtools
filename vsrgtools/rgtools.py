@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from vsexprtools import aka_expr_available
-from vstools import (
-    PlanesT, core, disallow_variable_format, disallow_variable_resolution, normalize_seq, pick_func_stype, vs
-)
+from vstools import (PlanesT, core, disallow_variable_format, disallow_variable_resolution,
+                     normalize_seq, pick_func_stype, vs, NotFoundEnumValue)
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
@@ -32,7 +31,9 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
 
     if not aka_expr_available:
         if (RepairMode.CLIP_REF_RG20 in mode or RepairMode.CLIP_REF_RG23 in mode) and is_float:
-            raise ValueError('repair: rgsf mode is wrong')
+            raise NotFoundEnumValue(
+                'Specified RepairMode for rgsf is not implemented!', repair, reason=iter(mode)
+            )
 
         return pick_func_stype(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
 

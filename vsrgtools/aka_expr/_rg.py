@@ -260,7 +260,7 @@ def aka_removegrain_expr_24(peak_min: float) -> str:
 
 
 def aka_removegrain_expr_25() -> str:
-    raise ValueError
+    raise NotImplementedError
 
 
 def aka_removegrain_expr_26() -> str:

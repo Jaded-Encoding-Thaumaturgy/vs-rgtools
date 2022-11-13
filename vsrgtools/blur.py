@@ -6,8 +6,9 @@ from math import ceil, exp, log, pi, sqrt
 
 from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
 from vstools import (
-    ConvMode, PlanesT, core, depth, disallow_variable_format, disallow_variable_resolution, get_depth,
-    get_neutral_value, join, normalize_planes, split, vs
+    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, NotFoundEnumValue, PlanesT,
+    core, depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join,
+    normalize_planes, split, vs
 )
 
 from .enum import LimitFilterMode
@@ -40,7 +41,7 @@ def blur(
         matrix2 = [1, 6, 15, 20, 15, 6, 1]
         matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
     else:
-        raise ValueError('blur: invalid mode specified!')
+        raise NotFoundEnumValue('Invalid mode specified!', blur)
 
     if radius == 1:
         matrix = [1, 2, 1]
@@ -49,7 +50,7 @@ def blur(
     elif radius == 3:
         matrix = matrix3
     else:
-        raise ValueError('blur: invalid radius')
+        raise CustomNotImplementedError('This radius isn\'t supported!', blur)
 
     return clip.std.Convolution(matrix, planes=planes, mode=mode)
 
@@ -103,7 +104,6 @@ def side_box_blur(
         ]
     ]
 
-    # process
     vrt_intermediates = (vrt_flt(clip) for vrt_flt in vrt_filters)
     intermediates = list(
         hrz_flt(vrt_intermediate)
@@ -151,16 +151,16 @@ def side_box_blur(
     return cum
 
 
-def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | None, func_name: str) -> float:
+def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | None, func: FuncExceptT) -> float:
     if sigma is None:
         if sharp is None:
-            raise ValueError(f"{func_name}: sigma and sharp can't be both None!")
+            raise CustomValueError("Sigma and sharp can't be both None!", func)
         sigma = sqrt(1.0 / (2.0 * (sharp / 10.0) * log(2)))
     elif sharp is not None:
-        raise ValueError(f"{func_name}: sigma and sharp can't both be float!")
+        raise CustomValueError("Sigma and sharp can't both be float!", func)
 
     if sigma >= min(clip.width, clip.height):
-        raise ValueError(f"{func_name}: sigma can't be bigger or equal than the smaller size of the clip!")
+        raise CustomOverflowError("Sigma can't be bigger or equal than the smaller size of the clip!", func)
 
     return sigma
 
@@ -181,7 +181,7 @@ def gauss_blur(
     elif isinstance(sharp, list):
         return normalize_radius(clip, gauss_blur, ('sharp', sharp), planes, mode=mode)
 
-    sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_blur')
+    sigma = _norm_gauss_sigma(clip, sigma, sharp, gauss_blur)
 
     if sigma <= 0.333:
         return clip
@@ -225,7 +225,7 @@ def gauss_fmtc_blur(
         return normalize_radius(clip, gauss_blur, ('sharp', sharp), planes, strict=strict, mode=mode)
 
     if strict:
-        sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_fmtc_blur')
+        sigma = _norm_gauss_sigma(clip, sigma, sharp, gauss_fmtc_blur)
         wdown, hdown = [
             round((max(round(size / sigma), 2) if char in mode else size) / 2) * 2
             for size, char in [(clip.width, 'h'), (clip.height, 'v')]
@@ -236,11 +236,11 @@ def gauss_fmtc_blur(
             return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
     else:
         if sigma is None or sigma < 1.0 or sigma > 100.0:
-            raise ValueError('gauss_fmtc_blur: With strict=True sigma has to be > 1 and < 100!')
+            raise CustomValueError('Sigma has to be > 1 and < 100!', gauss_fmtc_blur, reason='strict=True')
         elif sharp is None:
             sharp = 100
         elif sharp < 1.0 or sharp > 100.0:
-            raise ValueError('gauss_fmtc_blur: With strict=True sharp has to be > 1 and < 100!')
+            raise CustomValueError('Sharp has to be > 1 and < 100!', gauss_fmtc_blur, reason='strict=True')
 
         def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
             down = clip.fmtc.resample(
