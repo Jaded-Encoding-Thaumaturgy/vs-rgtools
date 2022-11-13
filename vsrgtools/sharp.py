@@ -13,7 +13,7 @@ __all__ = [
 
 
 def unsharpen(
-    clip: vs.VideoNode, strength: float = 1.0, sigma: float = 1.5,
+    clip: vs.VideoNode, strength: float = 1.0, sigma: float | list[float] = 1.5,
     prefilter: vs.VideoNode | VSFunction | None = None
 ) -> vs.VideoNode:
     assert check_variable(clip, unsharpen)
