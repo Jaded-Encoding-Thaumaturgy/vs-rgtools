@@ -12,6 +12,7 @@ from vstools import (
 
 from .enum import LimitFilterMode
 from .limit import limit_filter
+from .util import normalize_radius
 
 __all__ = [
     'blur', 'box_blur', 'side_box_blur',
@@ -23,11 +24,14 @@ __all__ = [
 @disallow_variable_format
 @disallow_variable_resolution
 def blur(
-    clip: vs.VideoNode, radius: int = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 
     planes = normalize_planes(clip, planes)
+
+    if isinstance(radius, list):
+        return normalize_radius(clip, blur, radius, planes, mode=mode)
 
     if mode == ConvMode.SQUARE:
         matrix2 = [1, 3, 4, 3, 1]
@@ -52,10 +56,13 @@ def blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
+def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
     assert clip.format
 
     planes = normalize_planes(clip, planes)
+
+    if isinstance(radius, list):
+        return normalize_radius(clip, box_blur, radius, planes, passes=passes)
 
     if radius > 12:
         blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
@@ -73,9 +80,13 @@ def box_blur(clip: vs.VideoNode, radius: int = 1, passes: int = 1, planes: Plane
 @disallow_variable_format
 @disallow_variable_resolution
 def side_box_blur(
-    clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None, inverse: bool = False, expr: bool | None = None
+    clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None,
+    inverse: bool = False, expr: bool | None = None
 ) -> vs.VideoNode:
     planes = normalize_planes(clip, planes)
+
+    if isinstance(radius, list):
+        return normalize_radius(clip, side_box_blur, radius, planes, inverse=inverse, expr=expr)
 
     half_kernel = [(1 if i <= 0 else 0) for i in range(-radius, radius + 1)]
 
@@ -158,12 +169,17 @@ def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | No
 @disallow_variable_resolution
 def gauss_blur(
     clip: vs.VideoNode,
-    sigma: float | None = 0.5, sharp: float | None = None,
+    sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
     mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 
     planes = normalize_planes(clip, planes)
+
+    if isinstance(sigma, list):
+        return normalize_radius(clip, gauss_blur, ('sigma', sigma), planes, mode=mode)
+    elif isinstance(sharp, list):
+        return normalize_radius(clip, gauss_blur, ('sharp', sharp), planes, mode=mode)
 
     sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_blur')
 
@@ -196,12 +212,17 @@ def gauss_blur(
 @disallow_variable_resolution
 def gauss_fmtc_blur(
     clip: vs.VideoNode,
-    sigma: float | None = 0.5, sharp: float | None = None,
+    sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
     strict: bool = True, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
 
     planes = normalize_planes(clip, planes)
+
+    if isinstance(sigma, list):
+        return normalize_radius(clip, gauss_blur, ('sigma', sigma), planes, strict=strict, mode=mode)
+    elif isinstance(sharp, list):
+        return normalize_radius(clip, gauss_blur, ('sharp', sharp), planes, strict=strict, mode=mode)
 
     if strict:
         sigma = _norm_gauss_sigma(clip, sigma, sharp, 'gauss_fmtc_blur')
@@ -242,7 +263,7 @@ def gauss_fmtc_blur(
 
 @disallow_variable_format
 @disallow_variable_resolution
-def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.VideoNode:
+def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None) -> vs.VideoNode:
     """
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
@@ -250,6 +271,9 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
     assert clip.format
 
     planes = normalize_planes(clip, planes)
+
+    if isinstance(radius, list):
+        return normalize_radius(clip, min_blur, radius, planes)
 
     median = clip.std.Median(planes) if radius in {0, 1} else clip.ctmf.CTMF(radius, None, planes)
 
@@ -265,7 +289,7 @@ def min_blur(clip: vs.VideoNode, radius: int = 1, planes: PlanesT = None) -> vs.
 @disallow_variable_resolution
 def sbr(
     clip: vs.VideoNode,
-    radius: int = 1, mode: ConvMode = ConvMode.SQUARE,
+    radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE,
     planes: PlanesT = None
 ) -> vs.VideoNode:
     assert clip.format
