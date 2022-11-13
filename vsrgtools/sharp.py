@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from math import log2
 from vsexprtools import norm_expr
-from vstools import vs, check_variable, get_sample_type, VSFunction, check_ref_clip
+from vstools import vs, check_variable, get_sample_type, VSFunction, check_ref_clip, PlanesT, normalize_planes
 
 from .blur import gauss_blur
+from .util import normalize_radius
 
 __all__ = [
     'unsharpen',
@@ -36,7 +37,14 @@ def unsharpen(
     return unsharp.std.MergeDiff(clip.std.MakeDiff(den))
 
 
-def unsharp_masked(clip: vs.VideoNode, radius: int = 1, strength: float = 100.0) -> vs.VideoNode:
+def unsharp_masked(
+    clip: vs.VideoNode, radius: int | list[int] = 1, strength: float = 100.0, planes: PlanesT = None
+) -> vs.VideoNode:
+    planes = normalize_planes(clip, planes)
+
+    if isinstance(radius, int):
+        return normalize_radius(clip, unsharp_masked, radius, planes, strength=strength)
+
     strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
 
     weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
@@ -63,6 +71,6 @@ def unsharp_masked(clip: vs.VideoNode, radius: int = 1, strength: float = 100.0)
 
     matrix = [matrix[x] for x in indices]
 
-    blurred = clip.std.Convolution(matrix)
+    blurred = clip.std.Convolution(matrix, planes=planes)
 
-    return clip.std.MergeDiff(clip.std.MakeDiff(blurred))
+    return clip.std.MergeDiff(clip.std.MakeDiff(blurred, planes=planes), planes=planes)
