@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Sequence, TypeVar, cast
 
-from vstools import Nb, PlanesT, VSFunction, join, normalize_planes, normalize_seq, plane, to_arr, vs, KwargsT
+from vstools import (
+    KwargsT, Nb, PlanesT, VSFunction, check_variable, check_variable_format, join, normalize_planes, normalize_seq,
+    plane, to_arr, vs
+)
 
 from .enum import RemoveGrainMode, RepairMode
 
@@ -21,7 +24,7 @@ RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 def norm_rmode_planes(
     clip: vs.VideoNode, mode: int | RModeT | Sequence[int | RModeT], planes: PlanesT = None
 ) -> list[int]:
-    assert clip.format
+    assert check_variable(clip, norm_rmode_planes)
 
     modes_array = normalize_seq(to_arr(mode), clip.format.num_planes)  # type: ignore[var-annotated,arg-type]
 
@@ -35,6 +38,8 @@ def norm_rmode_planes(
 def normalize_radius(
     clip: vs.VideoNode, func: VSFunction, radius: list[Nb] | tuple[str, list[Nb]], planes: list[int], **kwargs: Any
 ) -> vs.VideoNode:
+    assert check_variable_format(clip, normalize_radius)
+
     name, radius = radius if isinstance(radius, tuple) else ('radius', radius)
 
     radius = normalize_seq(radius, clip.format.num_planes)

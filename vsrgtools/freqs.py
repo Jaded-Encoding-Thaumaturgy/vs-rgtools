@@ -7,9 +7,9 @@ from typing import Any, Literal
 
 from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes
 from vstools import (
-    EXPR_VARS, ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, core,
-    disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join, normalize_planes, scale_value,
-    split, vs
+    EXPR_VARS, ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
+    check_variable, core, disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join,
+    normalize_planes, scale_value, split, vs
 )
 
 from .blur import box_blur, gauss_blur
@@ -26,11 +26,12 @@ def replace_low_frequencies(
     flt: vs.VideoNode, ref: vs.VideoNode, LFR: float, DCTFlicker: bool = False,
     planes: PlanesT = None, mode: ConvMode = ConvMode.SQUARE
 ) -> vs.VideoNode:
-    assert flt.format
+    assert check_variable(flt, replace_low_frequencies)
+    check_ref_clip(flt, ref, replace_low_frequencies)
 
     planes = normalize_planes(flt, planes)
     work_clip, *chroma = split(flt) if planes == [0] else (flt, )
-    assert work_clip.format
+    assert check_variable(work_clip, replace_low_frequencies)
 
     ref_work_clip = get_y(ref) if work_clip.format.num_planes == 1 else ref
 

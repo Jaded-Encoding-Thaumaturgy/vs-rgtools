@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from vsexprtools import aka_expr_available
-from vstools import (PlanesT, core, disallow_variable_format, disallow_variable_resolution,
-                     normalize_seq, pick_func_stype, vs, NotFoundEnumValue)
+from vstools import (
+    NotFoundEnumValue, PlanesT, check_variable, core, disallow_variable_format, disallow_variable_resolution,
+    normalize_seq, pick_func_stype, vs
+)
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
@@ -21,7 +23,8 @@ __all__ = [
 @disallow_variable_format
 @disallow_variable_resolution
 def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, repair)
+    assert check_variable(repairclip, repair)
 
     is_float = clip.format.sample_type == vs.FLOAT
     mode = normalize_seq(mode, clip.format.num_planes)
@@ -45,7 +48,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
 @disallow_variable_format
 @disallow_variable_resolution
 def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, removegrain)
 
     mode = normalize_seq(mode, clip.format.num_planes)
     mode = list(map(RemoveGrainMode, mode))

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
 from vstools import (
-    CustomIndexError, CustomValueError, PlanesT, core, get_neutral_value, get_peak_value, normalize_planes, vs
+    CustomIndexError, CustomValueError, PlanesT, check_ref_clip, check_variable, core, get_neutral_value,
+    get_peak_value, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
@@ -17,7 +18,13 @@ def limit_filter(
     mode: LimitFilterMode = LimitFilterMode.CLAMPING, planes: PlanesT = None,
     thr: int | tuple[int, int] = 1, elast: float = 2.0, bright_thr: int | None = None
 ) -> vs.VideoNode:
-    assert flt.format and src.format
+    assert check_variable(src, limit_filter)
+    assert check_variable(flt, limit_filter)
+    check_ref_clip(src, flt, limit_filter)
+    check_ref_clip(flt, ref, limit_filter)
+
+    if ref is not None:
+        assert check_variable(ref, limit_filter)
 
     planes = normalize_planes(flt, planes)
 
@@ -82,7 +89,7 @@ def limit_filter(
 def _limit_filter_lut(
     diff: vs.VideoNode, elast: float, thr: float, largen_thr: float, planes: list[int]
 ) -> vs.VideoNode:
-    assert diff.format
+    assert check_variable(diff, limit_filter)
 
     neutral = int(get_neutral_value(diff))
     peak = int(get_peak_value(diff))

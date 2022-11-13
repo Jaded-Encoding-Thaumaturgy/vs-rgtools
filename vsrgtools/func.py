@@ -3,7 +3,7 @@ from __future__ import annotations
 from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
 from vstools import (
     PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
-    normalize_planes, vs, CustomOverflowError, CustomIndexError
+    normalize_planes, vs, CustomOverflowError, CustomIndexError, check_variable
 )
 
 from .enum import LimitFilterMode
@@ -44,7 +44,7 @@ def minimum_diff(
 @disallow_variable_format
 @disallow_variable_resolution
 def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, median_diff)
 
     planes = normalize_planes(clip, planes)
     neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
@@ -94,7 +94,7 @@ def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
 def flux_smooth(
     clip: vs.VideoNode, radius: int = 2, threshold: int = 7, scenechange: int = 24, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, flux_smooth)
 
     if radius < 1 or radius > 7:
         raise CustomIndexError('Radius must be between 1 and 7 (inclusive)!', flux_smooth, reason=radius)

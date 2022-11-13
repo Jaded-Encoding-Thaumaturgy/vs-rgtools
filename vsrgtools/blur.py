@@ -8,7 +8,7 @@ from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, NotFoundEnumValue, PlanesT,
     core, depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join,
-    normalize_planes, split, vs
+    normalize_planes, split, vs, check_variable
 )
 
 from .enum import LimitFilterMode
@@ -27,7 +27,7 @@ __all__ = [
 def blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, blur)
 
     planes = normalize_planes(clip, planes)
 
@@ -58,7 +58,7 @@ def blur(
 @disallow_variable_format
 @disallow_variable_resolution
 def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, box_blur)
 
     planes = normalize_planes(clip, planes)
 
@@ -172,7 +172,7 @@ def gauss_blur(
     sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
     mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, gauss_blur)
 
     planes = normalize_planes(clip, planes)
 
@@ -215,7 +215,7 @@ def gauss_fmtc_blur(
     sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
     strict: bool = True, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, gauss_fmtc_blur)
 
     planes = normalize_planes(clip, planes)
 
@@ -268,7 +268,7 @@ def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = 
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
     """
-    assert clip.format
+    assert check_variable(clip, min_blur)
 
     planes = normalize_planes(clip, planes)
 
@@ -292,7 +292,7 @@ def sbr(
     radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE,
     planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert clip.format
+    assert check_variable(clip, sbr)
 
     planes = normalize_planes(clip, planes)
 
