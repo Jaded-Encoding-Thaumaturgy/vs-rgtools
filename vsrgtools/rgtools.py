@@ -57,7 +57,7 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
         return clip
 
     # rgvs is faster for integer clips
-    if clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
+    if hasattr(core, 'rgvs') and clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
         return clip.rgvs.RemoveGrain(mode)
 
     if not aka_expr_available:
