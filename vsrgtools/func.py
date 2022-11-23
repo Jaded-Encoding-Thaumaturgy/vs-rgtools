@@ -66,10 +66,9 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if n_clips > 26:
-        raise CustomOverflowError('You can pass only up to 26 clips!', median_clips, reason=n_clips)
-
-    if n_clips < 3:
+    if not aka_expr_available and n_clips > 26:
+        raise CustomOverflowError('You can pass only up to 26 clips without akarin Expr!', median_clips, reason=n_clips)
+    elif n_clips < 3:
         raise CustomIndexError('You must pass at least 3 clips!', median_clips, reason=n_clips)
 
     if n_clips == 3:

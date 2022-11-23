@@ -71,7 +71,7 @@ def diff_merge(
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if n_clips > 13:
+    if not aka_expr_available and n_clips > 13:
         raise CustomIndexError(f'Too many clips passed! ({n_clips})', diff_merge)
     elif n_clips < 2:
         raise CustomIndexError(f'You must pass at lest two clips! ({n_clips})', diff_merge)
@@ -130,12 +130,10 @@ def lehmer_diff_merge(
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if n_clips > 13:
-        raise CustomIndexError(f'Too many clips passed! ({n_clips})', lehmer_diff_merge)
+    if not aka_expr_available and n_clips > 2:
+        raise CustomIndexError('You can pass at most 2 clips without akarin plugin!', lehmer_diff_merge, n_clips)
     elif n_clips < 2:
-        raise CustomIndexError(f'You must pass at lest two clips! ({n_clips})', lehmer_diff_merge)
-    elif n_clips > 2 and not aka_expr_available:
-        raise CustomIndexError(f'You can pass at most 2 clips without akarin plugin! ({n_clips})', lehmer_diff_merge)
+        raise CustomIndexError('You must pass at lest two clips!', lehmer_diff_merge, n_clips)
 
     if not filter:
         raise CustomValueError('You must pass at least one filter!', lehmer_diff_merge)
