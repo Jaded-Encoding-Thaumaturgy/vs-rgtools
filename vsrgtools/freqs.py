@@ -3,12 +3,12 @@ from __future__ import annotations
 from functools import partial
 from itertools import count
 from math import e, log, pi, sin, sqrt
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes
 from vstools import (
     EXPR_VARS, ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
-    check_variable, core, disallow_variable_format, disallow_variable_resolution, get_peak_value, get_y, join,
+    check_variable, core, disallow_variable_format, disallow_variable_resolution, flatten, get_peak_value, get_y, join,
     normalize_planes, scale_value, split, vs
 )
 
@@ -63,9 +63,12 @@ def replace_low_frequencies(
 
 
 def diff_merge(
-    *clips: vs.VideoNode, filter: VSFunction | list[VSFunction] = partial(box_blur, radius=1, passes=3),
+    *_clips: vs.VideoNode | Iterable[vs.VideoNode],
+    filter: VSFunction | list[VSFunction] = partial(box_blur, radius=1, passes=3),
     operator: Literal['<', '>'] = '>', abs_diff: bool = True, **kwargs: Any
 ) -> vs.VideoNode:
+
+    clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
     if n_clips > 13:
@@ -104,7 +107,7 @@ def diff_merge(
 
 
 def lehmer_diff_merge(
-    *clips: vs.VideoNode,
+    *_clips: vs.VideoNode | Iterable[vs.VideoNode],
     filter: VSFunction | list[VSFunction] = partial(box_blur, radius=3, passes=2),
     planes: PlanesT = None
 ) -> vs.VideoNode:
@@ -123,6 +126,8 @@ def lehmer_diff_merge(
 
     :return:                Merged clips.
     """
+
+    clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
     if n_clips > 13:

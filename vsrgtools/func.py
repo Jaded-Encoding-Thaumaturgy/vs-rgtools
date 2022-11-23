@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Iterable
+
 from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
 from vstools import (
-    PlanesT, VSFunction, core, disallow_variable_format, disallow_variable_resolution, fallback, get_neutral_value,
-    normalize_planes, vs, CustomOverflowError, CustomIndexError, check_variable
+    CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, disallow_variable_format,
+    disallow_variable_resolution, fallback, flatten, get_neutral_value, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
@@ -59,7 +61,9 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
 
 @disallow_variable_format
 @disallow_variable_resolution
-def median_clips(*clips: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
+def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
+
+    clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
     if n_clips > 26:
