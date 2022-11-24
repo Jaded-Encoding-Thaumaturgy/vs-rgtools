@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any, Sequence, TypeVar, cast
 
 from vstools import (
-    KwargsT, Nb, PlanesT, VSFunction, check_variable, check_variable_format, join, normalize_planes, normalize_seq,
-    plane, to_arr, vs
+    GenericVSFunction, KwargsT, Nb, PlanesT, check_variable, check_variable_format, join, normalize_planes,
+    normalize_seq, plane, to_arr, vs
 )
 
 from .enum import RemoveGrainMode, RepairMode
@@ -36,7 +36,8 @@ def norm_rmode_planes(
 
 
 def normalize_radius(
-    clip: vs.VideoNode, func: VSFunction, radius: list[Nb] | tuple[str, list[Nb]], planes: list[int], **kwargs: Any
+    clip: vs.VideoNode, func: GenericVSFunction, radius: list[Nb] | tuple[str, list[Nb]],
+    planes: list[int], **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable_format(clip, normalize_radius)
 
@@ -53,8 +54,8 @@ def normalize_radius(
                 func(plane(clip, i), **_get_kwargs(rad)) for i, rad in enumerate(radius)
             ])
 
-        radius = radius[planes[0]]
+        radius_i = radius[planes[0]]
     else:
-        radius = radius[0]
+        radius_i = radius[0]
 
-    return func(clip, **_get_kwargs(radius))
+    return func(clip, **_get_kwargs(radius_i))

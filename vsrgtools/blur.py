@@ -248,11 +248,11 @@ def gauss_fmtc_blur(
             )
             return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=sigma)
 
-    if not {*range(clip.format.num_planes)} - {*planes}:
+    if not {*range(clip.format.num_planes)} - {*planes}:  # type: ignore
         blurred = _fmtc_blur(clip)
     else:
         blurred = join([
-            _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))
+            _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))  # type: ignore
         ])
 
     if (bits := get_depth(clip)) != get_depth(blurred):
