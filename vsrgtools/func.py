@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from vsexprtools import EXPR_VARS, ExprOp, aka_expr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
 from vstools import (
     CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, disallow_variable_format,
     disallow_variable_resolution, fallback, flatten, get_neutral_value, normalize_planes, vs
@@ -74,7 +74,7 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
     if n_clips == 3:
         return norm_expr(clips, 'x y z min max y z max min')
 
-    all_clips = ' '.join(EXPR_VARS[i] for i in range(1, n_clips))
+    all_clips = str(ExprVars(1, n_clips))
 
     n_ops = n_clips - 2
 

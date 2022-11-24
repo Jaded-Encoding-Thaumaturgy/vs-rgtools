@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
+from vsexprtools import ExprVars, aka_expr_available, norm_expr
 from vstools import (
     CustomIndexError, CustomValueError, PlanesT, check_ref_clip, check_variable, core, get_neutral_value,
     get_peak_value, normalize_planes, vs
@@ -151,7 +151,7 @@ def _limit_filter_expr(
 
         return f'y x - y z - xor y y x - abs y z - abs {mode.op} x z ? ?'
 
-    ref = EXPR_VARS[1 + got_ref]
+    ref = ExprVars[1 + got_ref]
 
     header = ''
 

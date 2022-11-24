@@ -5,9 +5,9 @@ from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Any, Iterable, Literal
 
-from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes
+from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes, ExprVars
 from vstools import (
-    EXPR_VARS, ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
+    ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
     check_variable, core, disallow_variable_format, disallow_variable_resolution, flatten, get_peak_value, get_y, join,
     normalize_planes, scale_value, split, vs
 )
@@ -92,10 +92,10 @@ def diff_merge(
     expr_string = ''
     n_clips = len(clips)
 
-    for src, flt in zip(EXPR_VARS[:n_clips], EXPR_VARS[n_clips:n_clips * 2]):
+    for src, flt in zip(ExprVars(n_clips), ExprVars(n_clips, n_clips * 2)):
         expr_string += f'{src} {flt} - {abs_diff and "abs" or ""} {src.upper()}D! '
 
-    for i, src, srcn in zip(count(), EXPR_VARS[:n_clips], EXPR_VARS[1:n_clips]):
+    for i, src, srcn in zip(count(), ExprVars(n_clips), ExprVars(1, n_clips)):
         expr_string += f'{src.upper()}D@ {srcn.upper()}D@ {operator} {src} '
 
         if i == n_clips - 2:
@@ -151,7 +151,7 @@ def lehmer_diff_merge(
     if aka_expr_available:
         counts = range(n_clips)
 
-        clip_vars, blur_vars = EXPR_VARS[:n_clips], EXPR_VARS[n_clips:n_clips * 2]
+        clip_vars, blur_vars = ExprVars(n_clips), ExprVars(n_clips, n_clips * 2)
 
         n_op = n_clips - 1
 

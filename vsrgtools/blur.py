@@ -4,11 +4,11 @@ from functools import partial
 from itertools import count
 from math import ceil, exp, log, pi, sqrt
 
-from vsexprtools import EXPR_VARS, aka_expr_available, norm_expr
+from vsexprtools import ExprVars, aka_expr_available, norm_expr
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, NotFoundEnumValue, PlanesT,
-    core, depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value, join,
-    normalize_planes, split, vs, check_variable
+    check_variable, core, depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value,
+    join, normalize_planes, split, vs
 )
 
 from .enum import LimitFilterMode
@@ -119,7 +119,7 @@ def side_box_blur(
         cum_expr, cumc = '', 'y'
         n_inter = len(intermediates)
 
-        for i, newc, var in zip(count(), EXPR_VARS[2:], EXPR_VARS[4:]):
+        for i, newc, var in zip(count(), ExprVars[2:], ExprVars[4:]):
             if i == n_inter - 1:
                 break
 
@@ -132,7 +132,7 @@ def side_box_blur(
 
         if comp_blur:
             clips = [clip, *intermediates, comp_blur]
-            cum_expr = f'x {cum_expr} - {EXPR_VARS[n_inter + 1]} +'
+            cum_expr = f'x {cum_expr} - {ExprVars[n_inter + 1]} +'
         else:
             clips = [clip, *intermediates]
 
