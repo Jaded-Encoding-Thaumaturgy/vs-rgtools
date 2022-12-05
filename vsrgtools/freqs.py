@@ -9,7 +9,7 @@ from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes,
 from vstools import (
     ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
     check_variable, core, disallow_variable_format, disallow_variable_resolution, flatten, get_peak_value, get_y, join,
-    normalize_planes, scale_value, split, vs
+    normalize_planes, scale_value, split, vs, get_video_format
 )
 
 from .blur import box_blur, gauss_blur
@@ -137,6 +137,11 @@ def lehmer_diff_merge(
 
     if not filter:
         raise CustomValueError('You must pass at least one filter!', lehmer_diff_merge)
+
+    formats = {get_video_format(clip).id for clip in clips}
+
+    if len(formats) > 1:
+        raise CustomValueError('All clips must have the same format!', lehmer_diff_merge)
 
     if not isinstance(filter, list):
         filter = [filter]
