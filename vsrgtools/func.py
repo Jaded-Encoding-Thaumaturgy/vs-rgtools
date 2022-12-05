@@ -62,7 +62,6 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
 @disallow_variable_format
 @disallow_variable_resolution
 def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
-
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
