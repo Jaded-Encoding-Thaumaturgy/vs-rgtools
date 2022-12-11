@@ -4,11 +4,11 @@ from functools import partial
 from itertools import count
 from math import ceil, exp, log, pi, sqrt
 
-from vsexprtools import ExprVars, aka_expr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, NotFoundEnumValue, PlanesT,
-    check_variable, core, depth, disallow_variable_format, disallow_variable_resolution, get_depth, get_neutral_value,
-    join, normalize_planes, split, vs, DitherType
+    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, DitherType, FuncExceptT,
+    NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
+    disallow_variable_resolution, get_depth, get_neutral_value, join, normalize_planes, split, to_arr, vs
 )
 
 from .enum import LimitFilterMode
@@ -18,7 +18,7 @@ from .util import normalize_radius
 __all__ = [
     'blur', 'box_blur', 'side_box_blur',
     'gauss_blur', 'gauss_fmtc_blur',
-    'min_blur', 'sbr'
+    'min_blur', 'sbr', 'median_blur'
 ]
 
 
@@ -327,3 +327,21 @@ def sbr(
         return diff
 
     return clip.std.MakeDiff(diff, planes)
+
+
+def median_blur(
+    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+) -> vs.VideoNode:
+    def _get_vals(radius: int) -> tuple[StrList, int, int, int]:
+        matrix = ExprOp.matrix('x', radius, mode, [(0, 0)])
+        rb = len(matrix) + 1
+        st = rb - 1
+        sp = rb // 2 - 1
+        dp = st - 2
+
+        return matrix, st, sp, dp
+
+    return norm_expr(clip, (
+        f"{matrix} sort{st} swap{sp} min! swap{sp} max! drop{dp} x min@ max@ clip"
+        for matrix, st, sp, dp in map(_get_vals, to_arr(radius))
+    ), planes, force_akarin=median_blur)
