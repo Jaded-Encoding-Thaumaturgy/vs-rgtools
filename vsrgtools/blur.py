@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from functools import partial
+from functools import lru_cache, partial
 from itertools import count
-from math import ceil, exp, log, pi, sqrt
+from math import ceil, e, exp, log, log2, pi, sqrt
+from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
+from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, DitherType, FuncExceptT,
     NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
-    disallow_variable_resolution, get_depth, get_neutral_value, join, normalize_planes, split, to_arr, vs
+    disallow_variable_resolution, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
+    to_arr, vs
 )
 
 from .enum import LimitFilterMode
@@ -18,7 +21,8 @@ from .util import normalize_radius
 __all__ = [
     'blur', 'box_blur', 'side_box_blur',
     'gauss_blur', 'gauss_fmtc_blur',
-    'min_blur', 'sbr', 'median_blur'
+    'min_blur', 'sbr', 'median_blur',
+    'bilateral'
 ]
 
 
@@ -345,3 +349,74 @@ def median_blur(
         f"{matrix} sort{st} swap{sp} min! swap{sp} max! drop{dp} x min@ max@ clip"
         for matrix, st, sp, dp in map(_get_vals, to_arr(radius))
     ), planes, force_akarin=median_blur)
+
+
+class BilateralFilter(PyPluginCuda[None]):
+    cuda_kernel = 'bilateral'
+    filter_mode = FilterMode.Parallel
+
+    input_per_plane = True
+    output_per_plane = True
+
+    @PyPluginCuda.process(ProcessMode.SingleSrcIPP)
+    def _(self, src: BilateralFilter.DT, dst: BilateralFilter.DT, f: vs.VideoFrame, plane: int, n: int) -> None:
+        self.kernel.bilateral[plane](src, dst)
+
+    @lru_cache
+    def get_kernel_shared_mem(
+        self, plane: int, func_name: str, blk_size_w: int, blk_size_h: int, dtype_size: int
+    ) -> int:
+        return (2 * self.bil_radius[plane] + blk_size_w) * (2 * self.bil_radius[plane] + blk_size_h) * dtype_size
+
+    def __init__(
+        self, clip: vs.VideoNode, sigmaS: float | list[float], sigmaR: float | list[float],
+        radius: int | list[int] | None, **kwargs: Any
+    ) -> None:
+        sigmaS, sigmaR = normalize_seq(sigmaS), normalize_seq(sigmaR)
+
+        sigmaS_scaled, sigmaR_scaled = [
+            [(-0.5 / (val * val)) * log2(e) for val in vals]
+            for vals in (sigmaS, sigmaR)
+        ]
+
+        if radius is None:
+            radius = [max(1, round(s * 3)) for s in sigmaS]
+
+        self.bil_radius = normalize_seq(radius)
+
+        return super().__init__(
+            clip, kernel_planes_kwargs=[
+                dict(sigmaS=s, sigmaR=r, radius=rad)
+                for s, r, rad in zip(sigmaS_scaled, sigmaR_scaled, self.bil_radius)
+            ], **kwargs
+        )
+
+
+def bilateral(
+    clip: vs.VideoNode, sigmaS: float | list[float] = 3.0, sigmaR: float | list[float] = 0.02,
+    ref: vs.VideoNode | None = None, radius: int | list[int] | None = None,
+    device_id: int = 0, num_streams: int | None = None, use_shared_memory: bool = True,
+    block_x: int | None = None, block_y: int | None = None
+) -> vs.VideoNode:
+    if not ref:
+        if PyPluginCuda.backend.is_available:
+            block_x = fallback(block_x, block_y, 16)
+            block_y = fallback(block_y, block_x)
+
+            return BilateralFilter(
+                clip, sigmaS, sigmaR, radius,
+                kernel_size=(block_x, block_y),
+                use_shared_memory=use_shared_memory
+            ).invoke()
+
+        if hasattr(core, 'bilateralgpu_rtc'):
+            return clip.bilateralgpu_rtc.Bilateral(
+                sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory, block_x, block_y
+            )
+
+        if hasattr(core, 'bilateralgpu'):
+            return clip.bilateralgpu.Bilateral(
+                sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory
+            )
+
+    return clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
