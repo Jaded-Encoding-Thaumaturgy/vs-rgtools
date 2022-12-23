@@ -396,9 +396,9 @@ def bilateral(
     clip: vs.VideoNode, sigmaS: float | list[float] = 3.0, sigmaR: float | list[float] = 0.02,
     ref: vs.VideoNode | None = None, radius: int | list[int] | None = None,
     device_id: int = 0, num_streams: int | None = None, use_shared_memory: bool = True,
-    block_x: int | None = None, block_y: int | None = None
+    block_x: int | None = None, block_y: int | None = None, *, gpu: bool | None = None
 ) -> vs.VideoNode:
-    if not ref:
+    if not ref and gpu is not False:
         if PyPluginCuda.backend.is_available:
             block_x = fallback(block_x, block_y, 16)
             block_y = fallback(block_y, block_x)
