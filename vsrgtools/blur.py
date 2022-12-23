@@ -399,7 +399,7 @@ def bilateral(
     block_x: int | None = None, block_y: int | None = None, *, gpu: bool | None = None
 ) -> vs.VideoNode:
     if not ref and gpu is not False:
-        if PyPluginCuda.backend.is_available:
+        if min(to_arr(sigmaS)) < 4 and PyPluginCuda.backend.is_available:
             block_x = fallback(block_x, block_y, 16)
             block_y = fallback(block_y, block_x)
 
