@@ -409,14 +409,28 @@ def bilateral(
                 use_shared_memory=use_shared_memory
             ).invoke()
 
-        if hasattr(core, 'bilateralgpu_rtc'):
-            return clip.bilateralgpu_rtc.Bilateral(
-                sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory, block_x, block_y
-            )
+        try:
+            if hasattr(core, 'bilateralgpu_rtc'):
+                return clip.bilateralgpu_rtc.Bilateral(
+                    sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory, block_x, block_y
+                )
+            if hasattr(core, 'bilateralgpu'):
+                try:
+                    return clip.bilateralgpu.Bilateral(
+                        sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory
+                    )
+                except vs.Error:
+                    # Old versions
+                    return clip.bilateralgpu.Bilateral(sigmaS, sigmaR, radius, device_id)
+        except vs.Error as e:
+            # has the plugin but no cuda GPU available
+            if 'cudaGetDeviceCount' in str(e):
+                pass
 
-        if hasattr(core, 'bilateralgpu'):
-            return clip.bilateralgpu.Bilateral(
-                sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory
-            )
+    if (bits := get_depth(clip)) > 16:
+        clip = depth(clip, 16)
 
-    return clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
+    if ref and clip.format != ref.format:
+        ref = depth(ref, clip)
+
+    return depth(clip.bilateral.Bilateral(ref, sigmaS, sigmaR), bits)
