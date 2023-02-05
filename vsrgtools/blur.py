@@ -8,7 +8,7 @@ from typing import Any
 from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, DitherType, FuncExceptT,
+    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, DitherType, FuncExceptT, FunctionUtil,
     NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
     disallow_variable_resolution, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
     to_arr, vs
@@ -396,10 +396,15 @@ def bilateral(
     clip: vs.VideoNode, sigmaS: float | list[float] = 3.0, sigmaR: float | list[float] = 0.02,
     ref: vs.VideoNode | None = None, radius: int | list[int] | None = None,
     device_id: int = 0, num_streams: int | None = None, use_shared_memory: bool = True,
-    block_x: int | None = None, block_y: int | None = None, *, gpu: bool | None = None
+    block_x: int | None = None, block_y: int | None = None, planes: PlanesT = None,
+    *, gpu: bool | None = None
 ) -> vs.VideoNode:
+    func = FunctionUtil(clip, bilateral, planes)
+
+    sigmaS, sigmaR = func.norm_seq(sigmaS), func.norm_seq(sigmaR)
+
     if not ref and gpu is not False:
-        if min(to_arr(sigmaS)) < 4 and PyPluginCuda.backend.is_available:
+        if min(sigmaS) < 4 and PyPluginCuda.backend.is_available:
             block_x = fallback(block_x, block_y, 16)
             block_y = fallback(block_y, block_x)
 
