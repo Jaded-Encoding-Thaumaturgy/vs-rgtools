@@ -32,7 +32,10 @@ setuptools.setup(
         package_name, f'{package_name}.aka_expr'
     ],
     package_data={
-        package_name: ['py.typed']
+        package_name: [
+            'bilateral.cu',
+            'py.typed'
+        ]
     },
     classifiers=[
         'Programming Language :: Python :: 3',
