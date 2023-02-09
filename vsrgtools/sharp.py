@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from math import log2
+
 from vsexprtools import norm_expr
-from vstools import vs, check_variable, get_sample_type, VSFunction, check_ref_clip, PlanesT, normalize_planes, core, CustomTypeError
+from vstools import (
+    CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, get_sample_type, normalize_planes, vs
+)
 
 from .blur import gauss_blur, min_blur
 from .limit import limit_filter
-from .util import normalize_radius, wmean_matrix, mean_matrix
+from .util import mean_matrix, normalize_radius, wmean_matrix
 
 __all__ = [
     'unsharpen',
@@ -21,10 +24,7 @@ def unsharpen(
 ) -> vs.VideoNode:
     assert check_variable(clip, unsharpen)
 
-    if callable(prefilter):
-        ref = prefilter(clip)
-    else:
-        ref = prefilter
+    ref = prefilter(clip) if callable(prefilter) else prefilter
 
     check_ref_clip(clip, ref)
 
@@ -58,18 +58,19 @@ def unsharp_masked(
             while len(all_matrices[x]) < radius * 2 + 1:
                 all_matrices[x].append(all_matrices[x][-1] / weight)
 
-        error = list(map(sum, ([abs(x - round(x)) for x in matrix[1:]] for matrix in all_matrices)))
-        matrix = list(map(float, map(round, all_matrices[error.index(min(error))])))
+        error = list(map(sum, ([abs(x - round(x)) for x in matrix[1:]] for matrix in all_matrices)))  # type: ignore
+        matrix = list(map(float, map(round, all_matrices[error.index(min(error))])))  # type: ignore
     else:
         matrix = [1.0]
 
         while len(matrix) < radius * 2 + 1:
             matrix.append(matrix[-1] / weight)
 
-    if radius == 1:
-        indices = (2, 1, 2, 1, 0, 1, 2, 1, 2)
-    else:
-        indices = (4, 3, 2, 3, 4, 3, 2, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3, 4, 3, 2, 3, 4)
+    indices = (
+        2, 1, 2, 1, 0, 1, 2, 1, 2
+    ) if radius == 1 else (
+        4, 3, 2, 3, 4, 3, 2, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3, 4, 3, 2, 3, 4
+    )
 
     matrix = [matrix[x] for x in indices]
 
@@ -87,9 +88,9 @@ def limit_usm(
     if callable(blur):
         blurred = blur(clip)
     elif isinstance(blur, vs.VideoNode):
-        blurred = blur
-    elif blur <= 0:
-        blurred = min_blur(clip, -blur, planes)
+        blurred = blur  # type: ignore
+    elif blur <= 0:  # type: ignore
+        blurred = min_blur(clip, -blur, planes)  # type: ignore
     elif blur == 1:
         blurred = clip.std.Convolution(wmean_matrix, planes=planes)
     elif blur == 2:

@@ -107,8 +107,8 @@ def flux_smooth(
 
     cthreshold = threshold if (1 in planes or 2 in planes) else 0
 
-    median = clip.tmedian.TemporalMedian(radius, planes)
-    average = clip.focus2.TemporalSoften2(
+    median = clip.tmedian.TemporalMedian(radius, planes)  # type: ignore
+    average = clip.focus2.TemporalSoften2(  # type: ignore
         radius, threshold, cthreshold, scenechange
     )
 

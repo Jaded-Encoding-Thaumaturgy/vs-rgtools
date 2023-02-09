@@ -4,7 +4,7 @@ from typing import Any, Sequence, TypeVar, cast
 
 from vstools import (
     GenericVSFunction, KwargsT, Nb, PlanesT, check_variable, check_variable_format, join, normalize_planes,
-    normalize_seq, plane, to_arr, vs
+    normalize_seq, plane, vs
 )
 
 from .enum import RemoveGrainMode, RepairMode
@@ -26,7 +26,7 @@ def norm_rmode_planes(
 ) -> list[int]:
     assert check_variable(clip, norm_rmode_planes)
 
-    modes_array = normalize_seq(to_arr(mode), clip.format.num_planes)  # type: ignore[var-annotated,arg-type]
+    modes_array = normalize_seq(mode, clip.format.num_planes)
 
     planes = normalize_planes(clip, planes)
 
