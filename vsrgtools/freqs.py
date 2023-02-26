@@ -5,11 +5,11 @@ from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Any, Iterable, Literal
 
-from vsexprtools import ExprOp, aka_expr_available, norm_expr, norm_expr_planes, ExprVars
+from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
-    check_variable, core, disallow_variable_format, disallow_variable_resolution, flatten, get_peak_value, get_y, join,
-    normalize_planes, scale_value, split, vs, get_video_format
+    check_variable, disallow_variable_format, disallow_variable_resolution, flatten, get_video_format, get_y, join,
+    normalize_planes, scale_value, split, vs
 )
 
 from .blur import box_blur, gauss_blur
@@ -130,9 +130,7 @@ def lehmer_diff_merge(
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if not aka_expr_available and n_clips > 2:
-        raise CustomIndexError('You can pass at most 2 clips without akarin plugin!', lehmer_diff_merge, n_clips)
-    elif n_clips < 2:
+    if n_clips < 2:
         raise CustomIndexError('You must pass at lest two clips!', lehmer_diff_merge, n_clips)
 
     if not filter:
@@ -153,44 +151,26 @@ def lehmer_diff_merge(
 
     blurred_clips = [filt(clip) for filt, clip in zip(filter, clips)]
 
-    if aka_expr_available:
-        counts = range(n_clips)
+    counts = range(n_clips)
 
-        clip_vars, blur_vars = ExprVars(n_clips), ExprVars(n_clips, n_clips * 2)
+    clip_vars, blur_vars = ExprVars(n_clips), ExprVars(n_clips, n_clips * 2)
 
-        n_op = n_clips - 1
+    n_op = n_clips - 1
 
-        expr = StrList([
-            [f'{clip} {blur} - D{i}!' for i, clip, blur in zip(counts, clip_vars, blur_vars)],
-        ])
+    expr = StrList([
+        [f'{clip} {blur} - D{i}!' for i, clip, blur in zip(counts, clip_vars, blur_vars)],
+    ])
 
-        for y in range(2):
-            expr.extend([
-                [f'D{i}@ {3 - y} pow' for i in counts],
-                ExprOp.ADD * n_op, f'P{y + 1}!'
-            ])
-
+    for y in range(2):
         expr.extend([
-            'P2@ 0 = 0 P1@ P2@ / ?',
-            blur_vars, ExprOp.ADD * n_op,
-            n_clips, ExprOp.DIV, ExprOp.ADD
+            [f'D{i}@ {3 - y} pow' for i in counts],
+            ExprOp.ADD * n_op, f'P{y + 1}!'
         ])
 
-        return norm_expr([*clips, *blurred_clips], expr, planes)
+    expr.extend([
+        'P2@ 0 = 0 P1@ P2@ / ?',
+        blur_vars, ExprOp.ADD * n_op,
+        n_clips, ExprOp.DIV, ExprOp.ADD
+    ])
 
-    src, flt = clips
-    src_high, flt_high = blurred_clips
-
-    peak = get_peak_value(src)
-
-    src_high_diff = src.std.MakeDiff(src_high, planes)
-    flt_high_diff = flt.std.MakeDiff(flt_high, planes)
-
-    flt_high_diff = core.std.Expr(
-        [src_high_diff, flt_high_diff],
-        norm_expr_planes(
-            src, f'x {peak} - 3 pow y {peak} - 3 pow + x {peak} - 2 pow y {peak} - 2 pow 0.0001 + + / {peak} +', planes
-        )
-    )
-
-    return src.std.MakeDiff(src_high_diff, planes).std.MergeDiff(flt_high_diff, planes)
+    return norm_expr([*clips, *blurred_clips], expr, planes)
