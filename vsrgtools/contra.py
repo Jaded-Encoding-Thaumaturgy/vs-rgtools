@@ -10,7 +10,7 @@ from vstools import (
     disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, to_arr, vs
 )
 
-from .blur import blur, box_blur, min_blur
+from .blur import blur, box_blur, min_blur, median_blur
 from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
 from .util import norm_rmode_planes, wmean_matrix
@@ -98,7 +98,7 @@ def contrasharpening_dehalo(
     rep_modes = norm_rmode_planes(flt, RepairMode.MINMAX_SQUARE1, planes)
 
     weighted = flt.std.Convolution(wmean_matrix, planes=planes)
-    weighted2 = weighted.ctmf.CTMF(radius=2, planes=planes)
+    weighted2 = median_blur(weighted, 2, planes=planes)
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 
     neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]

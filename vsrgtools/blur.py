@@ -8,7 +8,7 @@ from typing import Any
 from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, DitherType, FuncExceptT, FunctionUtil,
+    ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, FunctionUtil,
     NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
     disallow_variable_resolution, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
     to_arr, vs
@@ -282,11 +282,7 @@ def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = 
     if radius in {0, 1}:
         median = clip.std.Median(planes)
     else:
-        if radius >= 3 and get_depth(clip) == 16:
-            median = depth(clip, 12, dither_type=DitherType.NONE).ctmf.CTMF(radius, None, planes)
-            median = limit_filter(clip, depth(median, 16), thr=16, elast=2, planes=planes)
-        else:
-            median = clip.ctmf.CTMF(radius, None, planes)
+        median = median_blur(clip, radius, planes=planes)
 
     if radius:
         weighted = blur(clip, radius)
