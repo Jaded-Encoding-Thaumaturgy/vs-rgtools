@@ -74,7 +74,7 @@ def diff_merge(
     if not aka_expr_available and n_clips > 13:
         raise CustomIndexError(f'Too many clips passed! ({n_clips})', diff_merge)
     elif n_clips < 2:
-        raise CustomIndexError(f'You must pass at lest two clips! ({n_clips})', diff_merge)
+        raise CustomIndexError(f'You must pass at least two clips! ({n_clips})', diff_merge)
 
     if not filter:
         raise CustomValueError('You must pass at least one filter!', diff_merge)
