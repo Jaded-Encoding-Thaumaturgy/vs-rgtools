@@ -27,7 +27,7 @@ __all__ = [
 @disallow_variable_resolution
 def contrasharpening(
     flt: vs.VideoNode, src: vs.VideoNode, radius: int | list[int] | None = None,
-    mode: RepairModeT = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = 0
+    mode: RepairModeT = RepairMode.MINMAX_SQUARE3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.
