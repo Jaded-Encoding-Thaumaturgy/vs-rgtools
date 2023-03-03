@@ -15,11 +15,14 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
     const int x = threadIdx.x + blockIdx.x * blockDim.x;
     const int y = threadIdx.y + blockIdx.y * blockDim.y;
     
+    if (x >= width || y >= height)
+        return;
+
     float num {};
     float den {};
 
-    if (x >= width || y >= height)
-        return;
+    float center {};
+    float value {};
 
     if constexpr (use_shared_memory) {
         extern __shared__ ${data_type} buffer[];
@@ -33,9 +36,6 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
         }
 
         __syncthreads();
-
-        float center {};
-        float value {};
 
         if constexpr (is_float) {
             center = src[y * width + x];
@@ -72,9 +72,6 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
             dst[y * width + x] = __float2int_rn(num / den * peak);
         }
     } else {
-        float value {};
-        float center {};
-
         if constexpr (is_float) {
             center = src[y * width + x];
         } else {
@@ -82,9 +79,9 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
         }
         
         #pragma unroll 4
-        for (int cy = max(y - radius, 0); cy <= min(y + radius, height - 1); ++cy) {
+        for (int cy = max(y - radius, 0); cy <= min(y + radius, height); ++cy) {
             #pragma unroll 4
-            for (int cx = max(x - radius, 0); cx <= min(x + radius, width - 1); ++cx) {
+            for (int cx = max(x - radius, 0); cx <= min(x + radius, width); ++cx) {
                 if constexpr (is_float) {
                     value = src[cy * width + cx];
                 } else {

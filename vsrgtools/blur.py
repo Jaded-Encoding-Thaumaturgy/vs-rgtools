@@ -407,7 +407,7 @@ def bilateral(
             return BilateralFilter(
                 clip, sigmaS, sigmaR, radius,
                 kernel_size=(block_x, block_y),
-                use_shared_memory=use_shared_memory
+                use_shared_memory=False  # use_shared_memory
             ).invoke()
 
         try:
