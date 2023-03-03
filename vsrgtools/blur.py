@@ -237,7 +237,9 @@ def gauss_fmtc_blur(
 
         def _fmtc_blur(clip: vs.VideoNode) -> vs.VideoNode:
             down = clip.resize.Bilinear(wdown, hdown)
-            return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
+            down = down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=9)
+
+            return depth(down, clip)
     else:
         if sigma is None or sigma < 1.0 or sigma > 100.0:
             raise CustomValueError('Sigma has to be > 1 and < 100!', gauss_fmtc_blur, reason='strict=True')
@@ -250,19 +252,17 @@ def gauss_fmtc_blur(
             down = clip.fmtc.resample(
                 clip.width * 2, clip.height * 2, kernel='gauss', a1=sharp
             )
-            return down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=sigma)
+            down = down.fmtc.resample(clip.width, clip.height, kernel='gauss', a1=sigma)
+
+            return depth(down, clip)
 
     if not {*range(clip.format.num_planes)} - {*planes}:  # type: ignore
-        blurred = _fmtc_blur(clip)
-    else:
-        blurred = join([
-            _fmtc_blur(p) if i in planes else p for i, p in enumerate(split(clip))  # type: ignore
-        ])
+        return _fmtc_blur(clip)
 
-    if (bits := get_depth(clip)) != get_depth(blurred):
-        return depth(blurred, bits)
-
-    return blurred
+    return join([
+        _fmtc_blur(p) if i in planes else p  # type: ignore
+        for i, p in enumerate(split(clip))
+    ])
 
 
 @disallow_variable_format
