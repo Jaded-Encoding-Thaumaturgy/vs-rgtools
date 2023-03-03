@@ -6,7 +6,7 @@ from math import ceil, e, exp, log, log2, pi, sqrt
 from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
-from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
+from vspyplugin import FilterMode, ProcessMode, PyPluginCuda, PyPluginCudaOptions
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, FunctionUtil,
     NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
@@ -22,7 +22,7 @@ __all__ = [
     'blur', 'box_blur', 'side_box_blur',
     'gauss_blur', 'gauss_fmtc_blur',
     'min_blur', 'sbr', 'median_blur',
-    'bilateral'
+    'bilateral', 'NoiseAwareBilateralFilter'
 ]
 
 
@@ -435,3 +435,54 @@ def bilateral(
         ref = depth(ref, clip)
 
     return depth(clip.bilateral.Bilateral(ref, sigmaS, sigmaR), bits)
+
+
+class NoiseAwareBilateralFilter(PyPluginCuda[None]):
+    cuda_kernel = 'nabl'
+    filter_mode = FilterMode.Parallel
+
+    input_per_plane = True
+    output_per_plane = True
+
+    options = PyPluginCudaOptions(force_precision=32, shift_chroma=True)
+
+    @PyPluginCuda.process(ProcessMode.SingleSrcIPP)
+    def _(
+        self, src: NoiseAwareBilateralFilter.DT, dst: NoiseAwareBilateralFilter.DT, f: vs.VideoFrame, plane: int, n: int
+    ) -> None:
+        self.kernel.nabl[plane](src, dst)
+
+    @lru_cache
+    def get_kernel_shared_mem(
+        self, plane: int, func_name: str, blk_size_w: int, blk_size_h: int, dtype_size: int
+    ) -> int:
+        return (2 * self.bil_radius[plane] + blk_size_w) * (2 * self.bil_radius[plane] + blk_size_h) * dtype_size
+
+    def __init__(
+        self, clip: vs.VideoNode, sigmaS: float | list[float],
+        noise: tuple[float, float] | list[tuple[float, float]],
+        radius: int | list[int] | None, **kwargs: Any
+    ) -> None:
+        clip = depth(clip, 32)
+
+        sigmaS = normalize_seq(sigmaS)
+        noise_norm: list[tuple[float, float]] = normalize_seq([noise] if isinstance(noise, tuple) else noise)
+
+        sigmaS_scaled = sigmaS
+
+        if radius is None:
+            radius = 5
+
+        # sigmaS_scaled = [(-0.5 / (val * val)) * log2(e) for val in sigmaS]
+
+        # if radius is None:
+        #     radius = [max(1, round(s * 3)) for s in sigmaS]
+
+        self.bil_radius = normalize_seq(radius)
+
+        return super().__init__(
+            clip, kernel_planes_kwargs=[
+                dict(sigmaS=s, noise0=noise0, noise1=noise1, radius=rad)
+                for s, (noise0, noise1), rad in zip(sigmaS_scaled, noise_norm, self.bil_radius)
+            ], **kwargs
+        )

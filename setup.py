@@ -34,6 +34,7 @@ setuptools.setup(
     package_data={
         package_name: [
             'bilateral.cu',
+            'nabl.cu',
             'py.typed'
         ]
     },
