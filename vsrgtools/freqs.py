@@ -131,7 +131,7 @@ def lehmer_diff_merge(
     n_clips = len(clips)
 
     if n_clips < 2:
-        raise CustomIndexError('You must pass at lest two clips!', lehmer_diff_merge, n_clips)
+        raise CustomIndexError('You must pass at least two clips!', lehmer_diff_merge, n_clips)
 
     if not filter:
         raise CustomValueError('You must pass at least one filter!', lehmer_diff_merge)
