@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import auto
 from typing import Sequence
 
-from vstools import CustomIntEnum
+from vstools import CustomIntEnum, PlanesT, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -69,6 +69,11 @@ class RemoveGrainMode(CustomIntEnum):
     SMART_RGCL = 27
     SMART_RGCL2 = 28
 
+    def __call__(self, clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
+        from .rgtools import removegrain
+        from .util import norm_rmode_planes
+        return removegrain(clip, norm_rmode_planes(clip, self, planes))
+
 
 RemoveGrainModeT = int | RemoveGrainMode | Sequence[int | RemoveGrainMode]
 
@@ -103,6 +108,11 @@ class RepairMode(CustomIntEnum):
     CLIP_REF_RG27 = 27
     CLIP_REF_RG28 = 28
 
+    def __call__(self, clip: vs.VideoNode, repairclip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
+        from .rgtools import repair
+        from .util import norm_rmode_planes
+        return repair(clip, repairclip, norm_rmode_planes(clip, self, planes))
+
 
 RepairModeT = int | RepairMode | Sequence[int | RepairMode]
 
@@ -111,6 +121,11 @@ class VerticalCleanerMode(CustomIntEnum):
     NONE = 0
     MEDIAN = 1
     PRESERVING = 2
+
+    def __call__(self, clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
+        from .rgtools import vertical_cleaner
+        from .util import norm_rmode_planes
+        return vertical_cleaner(clip, norm_rmode_planes(clip, self, planes))
 
 
 VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleanerMode]
