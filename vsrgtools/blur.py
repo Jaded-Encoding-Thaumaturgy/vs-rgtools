@@ -123,7 +123,7 @@ def side_box_blur(
         cum_expr, cumc = '', 'y'
         n_inter = len(intermediates)
 
-        for i, newc, var in zip(count(), ExprVars[2:], ExprVars[4:]):
+        for i, newc, var in zip(count(), ExprVars[2:26], ExprVars[4:26]):
             if i == n_inter - 1:
                 break
 
