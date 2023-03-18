@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from enum import auto
-from typing import Sequence
+from math import ceil, exp, log2, pi, sqrt
+from typing import Generic, Sequence
 
-from vstools import CustomIntEnum, PlanesT, vs
+from vstools import ConvMode, CustomEnum, CustomIntEnum, Nb, PlanesT, vs
 
 __all__ = [
     'LimitFilterMode',
     'RemoveGrainMode', 'RemoveGrainModeT',
     'RepairMode', 'RepairModeT',
-    'VerticalCleanerMode', 'VerticalCleanerModeT'
+    'VerticalCleanerMode', 'VerticalCleanerModeT',
+    'BlurMatrix'
 ]
 
 
@@ -129,3 +131,65 @@ class VerticalCleanerMode(CustomIntEnum):
 
 
 VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleanerMode]
+
+
+class BaseBlurMatrix(Generic[Nb], list[Nb]):
+    def __call__(
+        self, clip: vs.VideoNode, planes: PlanesT = None, mode: ConvMode = ConvMode.SQUARE,
+        bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
+        passes: int = 1
+    ) -> vs.VideoNode:
+        for _ in range(passes):
+            clip = clip.std.Convolution(self, bias, divisor, planes, saturate, mode)
+
+        return clip
+
+    @property
+    def asint(self) -> BaseBlurMatrix[int]:
+        return BaseBlurMatrix[int](map(int, self))
+
+    @property
+    def asfloat(self) -> BaseBlurMatrix[float]:
+        return BaseBlurMatrix[float](map(float, self))
+
+
+class BlurMatrix(BaseBlurMatrix[int], CustomEnum):
+    BOX = [1, 1, 0, 1, 1, 0, 0, 0, 0]
+    MEAN = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    WMEAN = [1, 2, 1, 2, 4, 2, 1, 2, 1]
+    CIRCLE = [1, 1, 1, 1, 0, 1, 1, 1, 1]
+
+    @classmethod
+    def gauss(cls, sigma: float, round: bool = False) -> BaseBlurMatrix[float]:
+        taps = ceil(sigma * 6 + 1)
+
+        if not taps % 2:
+            taps += 1
+
+        half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
+        doub_qsigma = 2 * sigma * sigma
+
+        high, *kernel = [
+            half_pisqrt * exp(-(x * x) / doub_qsigma)
+            for x in range(taps // 2)
+        ]
+
+        kernel = [x * 1023 / high for x in kernel]
+        kernel = [*kernel[::-1], 1023, *kernel]
+
+        return BaseBlurMatrix[float](kernel)
+
+    @classmethod
+    def log(cls, radius: int = 1, strength: float = 100.0) -> BaseBlurMatrix[float]:
+        strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
+
+        weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
+
+        matrix = [1.0]
+
+        for _ in range(radius):
+            matrix.append(matrix[-1] / weight)
+
+        kernel = [*matrix[::-1], *matrix[1:]]
+
+        return BaseBlurMatrix[float](kernel)

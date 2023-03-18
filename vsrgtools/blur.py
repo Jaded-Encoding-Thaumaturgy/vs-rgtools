@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache, partial
 from itertools import count
-from math import ceil, e, exp, log, log2, pi, sqrt
+from math import e, log, log2, sqrt
 from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
@@ -14,7 +14,7 @@ from vstools import (
     to_arr, vs
 )
 
-from .enum import LimitFilterMode
+from .enum import BlurMatrix, LimitFilterMode
 from .limit import limit_filter
 from .util import normalize_radius
 
@@ -191,23 +191,7 @@ def gauss_blur(
         return clip
 
     if sigma <= 4.333:
-        taps = ceil(sigma * 6 + 1)
-
-        if not taps % 2:
-            taps += 1
-
-        half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
-        doub_qsigma = 2 * sigma * sigma
-
-        high, *kernel = [
-            half_pisqrt * exp(-(x * x) / doub_qsigma)
-            for x in range(taps // 2)
-        ]
-
-        kernel = [x * 1023 / high for x in kernel]
-        kernel = [*kernel[::-1], 1023, *kernel]
-
-        return clip.std.Convolution(kernel, mode=mode, planes=planes)
+        return BlurMatrix.gauss(sigma)(clip, planes, mode)
 
     return gauss_fmtc_blur(clip, sigma, sharp, True, mode, planes)
 

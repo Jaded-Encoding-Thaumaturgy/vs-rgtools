@@ -7,7 +7,7 @@ from vstools import (
     normalize_seq, plane, vs
 )
 
-from .enum import RemoveGrainMode, RepairMode
+from .enum import RemoveGrainMode, RepairMode, BlurMatrix
 
 __all__ = [
     'wmean_matrix', 'mean_matrix',
@@ -15,8 +15,8 @@ __all__ = [
     'normalize_radius'
 ]
 
-wmean_matrix = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-mean_matrix = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+wmean_matrix = list(BlurMatrix.WMEAN)
+mean_matrix = list(BlurMatrix.MEAN)
 
 RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 

@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from math import log2
-
 from vsexprtools import norm_expr
-from vstools import (
-    CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, get_sample_type, normalize_planes, vs
-)
+from vstools import CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, normalize_planes, vs
 
 from .blur import gauss_blur, min_blur
+from .enum import BlurMatrix
 from .limit import limit_filter
-from .util import mean_matrix, normalize_radius, wmean_matrix
+from .util import normalize_radius
 
 __all__ = [
     'unsharpen',
@@ -47,36 +44,9 @@ def unsharp_masked(
     if isinstance(radius, list):
         return normalize_radius(clip, unsharp_masked, radius, planes, strength=strength)
 
-    strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
+    blurred = BlurMatrix.log(radius, strength)(clip, planes)
 
-    weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
-
-    if get_sample_type(clip) == 0:
-        all_matrices = [[x * 1.0] for x in range(1, 1024)]
-
-        for x in range((2 ** 10) - 1):
-            while len(all_matrices[x]) < radius * 2 + 1:
-                all_matrices[x].append(all_matrices[x][-1] / weight)
-
-        error = list(map(sum, ([abs(x - round(x)) for x in matrix[1:]] for matrix in all_matrices)))  # type: ignore
-        matrix = list(map(float, map(round, all_matrices[error.index(min(error))])))  # type: ignore
-    else:
-        matrix = [1.0]
-
-        while len(matrix) < radius * 2 + 1:
-            matrix.append(matrix[-1] / weight)
-
-    indices = (
-        2, 1, 2, 1, 0, 1, 2, 1, 2
-    ) if radius == 1 else (
-        4, 3, 2, 3, 4, 3, 2, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3, 4, 3, 2, 3, 4
-    )
-
-    matrix = [matrix[x] for x in indices]
-
-    blurred = clip.std.Convolution(matrix, planes=planes)
-
-    return clip.std.MergeDiff(clip.std.MakeDiff(blurred, planes=planes), planes=planes)
+    return norm_expr([clip, blurred], 'x dup y - +')
 
 
 def limit_usm(
@@ -92,9 +62,9 @@ def limit_usm(
     elif blur <= 0:  # type: ignore
         blurred = min_blur(clip, -blur, planes)  # type: ignore
     elif blur == 1:
-        blurred = clip.std.Convolution(wmean_matrix, planes=planes)
+        blurred = BlurMatrix.WMEAN(clip, planes)
     elif blur == 2:
-        blurred = clip.std.Convolution(mean_matrix, planes=planes)
+        blurred = BlurMatrix.MEAN(clip, planes)
     else:
         raise CustomTypeError("'blur' must be an int, clip or a blurring function!", limit_usm, blur)
 

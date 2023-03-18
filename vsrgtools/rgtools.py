@@ -10,8 +10,7 @@ from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
-from .util import mean_matrix, wmean_matrix
+from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT, BlurMatrix
 
 __all__ = [
     'repair', 'removegrain',
@@ -67,17 +66,17 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     for idx, m in enumerate(mode):
         if m == RemoveGrainMode.SQUARE_BLUR:
             if all(mm == m for mm in mode):
-                return clip.std.Convolution(wmean_matrix)
+                return BlurMatrix.WMEAN(clip)
             expr.append(aka_removegrain_expr_11_12())
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
             return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
         elif m == RemoveGrainMode.CIRCLE_BLUR:
             if set(mode) == {RemoveGrainMode.CIRCLE_BLUR}:
-                return clip.std.Convolution([1, 1, 1, 1, 0, 1, 1, 1, 1])
+                return BlurMatrix.CIRCLE(clip)
             expr.append(aka_removegrain_expr_19())
         elif m == RemoveGrainMode.BOX_BLUR:
             if set(mode) == {RemoveGrainMode.BOX_BLUR}:
-                return clip.std.Convolution(mean_matrix)
+                return BlurMatrix.MEAN(clip)
             expr.append(aka_removegrain_expr_20())
         elif m == RemoveGrainMode.EDGE_DEHALO:
             expr.append(aka_removegrain_expr_23(0 if idx == 0 else -0.5))
