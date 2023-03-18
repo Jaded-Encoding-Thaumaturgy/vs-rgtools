@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import auto
 from math import ceil, exp, log2, pi, sqrt
-from typing import Generic, Sequence
+from typing import Generic, Sequence, TypeVar
 
 from vstools import ConvMode, CustomEnum, CustomIntEnum, Nb, PlanesT, vs
 
@@ -139,8 +139,10 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
         bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
         passes: int = 1
     ) -> vs.VideoNode:
+        conv = self.tosizes(*range(3, 26, 2))
+
         for _ in range(passes):
-            clip = clip.std.Convolution(self, bias, divisor, planes, saturate, mode)
+            clip = clip.std.Convolution(conv, bias, divisor, planes, saturate, mode)
 
         return clip
 
@@ -152,6 +154,43 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
     def asfloat(self) -> BaseBlurMatrix[float]:
         return BaseBlurMatrix[float](map(float, self))
 
+    def tosize(self: BBMatrixT, size: int) -> BBMatrixT:
+        curlen = len(self)
+
+        diff = curlen - size
+
+        if diff == 0:
+            return self
+
+        lh = abs(diff) // 2
+        rh = abs(diff) - lh
+
+        if diff < 0:
+            return self.__class__(self[:lh] + self + self[-rh:])
+
+        return self.__class__(self[lh:-rh])
+
+    def tosizes(self: BBMatrixT, *_sizes: int) -> BBMatrixT:
+        sizes = list(sorted(_sizes, reverse=True))
+
+        curlen = len(self)
+
+        for sizeh, sizel in zip(sizes, sizes[1:]):
+            if curlen >= sizeh:
+                return self.tosize(sizeh)
+            elif curlen == sizel:
+                return self.tosize(sizel)
+            elif curlen > sizel:
+                if (sizeh - curlen) < (curlen - sizel):
+                    return self.tosize(sizeh)
+
+                return self.tosize(sizel)
+
+        return self.tosize(sizes[-1])
+
+
+BBMatrixT = TypeVar('BBMatrixT', bound=BaseBlurMatrix)  # type: ignore
+
 
 class BlurMatrix(BaseBlurMatrix[int], CustomEnum):
     BOX = [1, 1, 0, 1, 1, 0, 0, 0, 0]
@@ -160,7 +199,7 @@ class BlurMatrix(BaseBlurMatrix[int], CustomEnum):
     CIRCLE = [1, 1, 1, 1, 0, 1, 1, 1, 1]
 
     @classmethod
-    def gauss(cls, sigma: float, round: bool = False) -> BaseBlurMatrix[float]:
+    def gauss(cls, sigma: float) -> BaseBlurMatrix[float]:
         taps = ceil(sigma * 6 + 1)
 
         if not taps % 2:
