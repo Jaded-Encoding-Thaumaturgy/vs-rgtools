@@ -5,7 +5,7 @@ from itertools import count
 from math import ceil, e, exp, log, log2, pi, sqrt
 from typing import Any
 
-from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, FunctionUtil,
@@ -117,7 +117,7 @@ def side_box_blur(
 
     comp_blur = None if inverse else box_blur(clip, radius, 1, planes)
 
-    if aka_expr_available if expr is None else expr:
+    if complexpr_available if expr is None else expr:
         template = '{cum} x - abs {new} x - abs < {cum} {new} ?'
 
         cum_expr, cumc = '', 'y'
@@ -315,7 +315,7 @@ def sbr(
 
     clips = [diff, diff_weighted]
 
-    if aka_expr_available:
+    if complexpr_available:
         clips.append(clip)
         expr = 'x y - A! x {mid} - XD! z A@ XD@ * 0 < {mid} A@ abs XD@ abs < A@ {mid} + x ? ? {mid} - -'
     else:
@@ -323,7 +323,7 @@ def sbr(
 
     diff = norm_expr(clips, expr, planes, mid=neutral)
 
-    if aka_expr_available:
+    if complexpr_available:
         return diff
 
     return clip.std.MakeDiff(diff, planes)

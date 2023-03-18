@@ -4,7 +4,7 @@ from functools import partial
 from inspect import Signature
 from typing import Callable
 
-from vsexprtools import aka_expr_available, norm_expr
+from vsexprtools import complexpr_available, norm_expr
 from vstools import (
     CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, disallow_variable_format,
     disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, to_arr, vs
@@ -70,7 +70,7 @@ def contrasharpening(
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
-    if aka_expr_available:
+    if complexpr_available:
         expr = 'x {mid} - LD! y {mid} - BD! LD@ abs BD@ abs < LD@ BD@ ? z +'
     else:
         expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
@@ -103,7 +103,7 @@ def contrasharpening_dehalo(
 
     neutral = [get_neutral_value(flt), get_neutral_value(flt, True)]
 
-    if aka_expr_available:
+    if complexpr_available:
         clips = [weighted, weighted2, src, flt]
         expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
     else:
@@ -142,7 +142,7 @@ def contrasharpening_median(
     else:
         raise CustomValueError('Invalid mode or function passed!', contrasharpening_median)
 
-    if aka_expr_available:
+    if complexpr_available:
         expr = 'x dup + z - D! x y < D@ x y clamp D@ y x clamp ?'
     else:
         expr = 'x dup + z - x y min max x y max min'
@@ -210,7 +210,7 @@ def fine_contra(
 
     limit = repair(mblur, src.std.MakeDiff(flt, planes), norm_rmode_planes(flt, mode, planes))
 
-    if aka_expr_available:
+    if complexpr_available:
         expr = 'x {mid} - LD! y {mid} - BD! LD@ abs BD@ abs < LD@ BD@ ? z +'
     else:
         expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vsexprtools import aka_expr_available, expr_func
+from vsexprtools import complexpr_available, expr_func
 from vstools import (
     NotFoundEnumValue, PlanesT, check_variable, core, disallow_variable_format, disallow_variable_resolution,
     normalize_seq, pick_func_stype, vs
@@ -32,7 +32,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
     if not sum(mode):
         return clip
 
-    if not aka_expr_available:
+    if not complexpr_available:
         if (RepairMode.CLIP_REF_RG20 in mode or RepairMode.CLIP_REF_RG23 in mode) and is_float:
             raise NotFoundEnumValue(
                 'Specified RepairMode for rgsf is not implemented!', repair, reason=iter(mode)
@@ -60,7 +60,7 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     if hasattr(core, 'rgvs') and clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
         return clip.rgvs.RemoveGrain(mode)
 
-    if not aka_expr_available:
+    if not complexpr_available:
         return clip.rgsf.RemoveGrain(mode)
 
     expr = list[str]()

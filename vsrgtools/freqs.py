@@ -5,7 +5,7 @@ from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Any, Iterable, Literal
 
-from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
     check_variable, disallow_variable_format, disallow_variable_resolution, flatten, get_video_format, get_y, join,
@@ -71,7 +71,7 @@ def diff_merge(
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if not aka_expr_available and n_clips > 13:
+    if not complexpr_available and n_clips > 13:
         raise CustomIndexError(f'Too many clips passed! ({n_clips})', diff_merge)
     elif n_clips < 2:
         raise CustomIndexError(f'You must pass at least two clips! ({n_clips})', diff_merge)

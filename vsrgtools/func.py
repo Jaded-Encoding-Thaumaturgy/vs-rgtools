@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from vsexprtools import ExprOp, ExprVars, aka_expr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vstools import (
     CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, disallow_variable_format,
     disallow_variable_resolution, fallback, flatten, get_neutral_value, normalize_planes, vs
@@ -51,7 +51,7 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     planes = normalize_planes(clip, planes)
     neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
 
-    if aka_expr_available:
+    if complexpr_available:
         expr = 'y z - D! x D@ y {mid} clamp D@ {mid} y clamp - -'
     else:
         expr = 'x y z - y min {mid} max y z - {mid} min y max - -'
@@ -65,7 +65,7 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
 
-    if not aka_expr_available and n_clips > 26:
+    if not complexpr_available and n_clips > 26:
         raise CustomOverflowError('You can pass only up to 26 clips without akarin Expr!', median_clips, reason=n_clips)
     elif n_clips < 3:
         raise CustomIndexError('You must pass at least 3 clips!', median_clips, reason=n_clips)
@@ -82,7 +82,7 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
     ]
 
     header = ''
-    if aka_expr_available:
+    if complexpr_available:
         header = f'{all_clips_min} YZMIN! {all_clips_max} YZMAX! '
         yzmin, yzmax = 'YZMIN@', 'YZMAX@'
 
