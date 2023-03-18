@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vsexprtools import aka_expr_available
+from vsexprtools import aka_expr_available, expr_func
 from vstools import (
     NotFoundEnumValue, PlanesT, check_variable, core, disallow_variable_format, disallow_variable_resolution,
     normalize_seq, pick_func_stype, vs
@@ -86,7 +86,7 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
         else:
             expr.append(removegrain_aka_exprs[m]())
 
-    return core.akarin.Expr(clip, expr, clip.format.id, True)
+    return expr_func(clip, expr, opt=True)
 
 
 @disallow_variable_format
