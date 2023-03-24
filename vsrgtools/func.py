@@ -77,13 +77,13 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
 
     n_ops = n_clips - 2
 
-    all_clips_min, all_clips_max = [
+    yzmin, yzmax = [
         all_clips + f' {op}' * n_ops for op in (ExprOp.MIN, ExprOp.MAX)
     ]
 
     header = ''
     if complexpr_available:
-        header = f'{all_clips_min} YZMIN! {all_clips_max} YZMAX! '
+        header = f'{yzmin} YZMIN! {yzmax} YZMAX! '
         yzmin, yzmax = 'YZMIN@', 'YZMAX@'
 
     expr = f'{header} x {yzmin} min x = {yzmin} x {yzmax} max x = {yzmax} x ? ?'
