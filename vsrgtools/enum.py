@@ -219,6 +219,10 @@ class BlurMatrix(BaseBlurMatrix[int], CustomEnum):
         return BaseBlurMatrix[float](kernel)
 
     @classmethod
+    def gauss_from_radius(cls, radius: int) -> BaseBlurMatrix[float]:
+        return cls.gauss((radius + 1.0) / 3)
+
+    @classmethod
     def log(cls, radius: int = 1, strength: float = 100.0) -> BaseBlurMatrix[float]:
         strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
 
