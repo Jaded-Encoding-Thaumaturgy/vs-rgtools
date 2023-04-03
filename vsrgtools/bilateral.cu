@@ -14,9 +14,6 @@ extern "C"
 __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * __restrict__ dst) {
     const int x = threadIdx.x + blockIdx.x * blockDim.x;
     const int y = threadIdx.y + blockIdx.y * blockDim.y;
-    
-    if (x >= width || y >= height)
-        return;
 
     float num {};
     float den {};
@@ -36,6 +33,9 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
         }
 
         __syncthreads();
+
+        if (x >= width || y >= height)
+            return;
 
         if constexpr (is_float) {
             center = src[y * width + x];
@@ -72,6 +72,9 @@ __global__ void bilateral(const ${data_type} * __restrict__ src, ${data_type} * 
             dst[y * width + x] = __float2int_rn(num / den * peak);
         }
     } else {
+        if (x >= width || y >= height)
+            return;
+
         if constexpr (is_float) {
             center = src[y * width + x];
         } else {
