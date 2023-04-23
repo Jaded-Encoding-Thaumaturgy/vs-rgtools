@@ -115,10 +115,6 @@ def lehmer_diff_merge(
     Merge multiple sources.
 
     :param clips:           Clips to be merged together.
-                            If using multiple sources, first should be the "best" one,
-                            then the other a lowpassed or worse source overall.
-                            If the clips are filtered, first is src and
-                            others the denoised/debanded/whatever.
     :param filter:          Filter to be applied to clips to isolate high frequencies.
                             If a list, each filter will be mapped to corresponding clip at same index.
                             If not enough filters are passed, the last one will be reused.
