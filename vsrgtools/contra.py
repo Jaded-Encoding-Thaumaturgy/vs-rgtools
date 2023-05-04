@@ -86,7 +86,7 @@ def contrasharpening_dehalo(
     """
     :param dehaloed:    Dehaloed clip
     :param src:         Source clip
-    :param level:       Strengh level
+    :param level:       Strength level
     :return:            Contrasharpened clip
     """
     assert check_variable(src, contrasharpening)
@@ -162,7 +162,7 @@ def fine_contra(
     :param src:         Source clip.
     :param sharp:       Contrast Adaptive Sharpening's sharpening strength.
                         If it's a list, depending on ``merge_func`` being ``None``,
-                        it will iterate over with different strenghts or merge all with ``merge_func``.
+                        it will iterate over with different strengths or merge all with ``merge_func``.
     :param radius:      Spatial radius for contra-sharpening (1-3). Default is 2 for HD / 1 for SD.
     :param merge_func:  Depending on ``sharp``, this will get all sharpened clips and merge them.
     :param mode:        Mode of rgvs.Repair to limit the difference.
