@@ -4,8 +4,8 @@ from typing import Iterable
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vstools import (
-    CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, disallow_variable_format,
-    disallow_variable_resolution, fallback, flatten, get_neutral_value, normalize_planes, vs
+    CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, fallback, flatten,
+    get_neutral_value, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
@@ -18,8 +18,6 @@ __all__ = [
 ]
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def minimum_diff(
     clip: vs.VideoNode,
     clip_func: VSFunction, diff_func: VSFunction | None = None,
@@ -43,8 +41,6 @@ def minimum_diff(
     return median_diff(clip, diffa, diffb, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     assert check_variable(clip, median_diff)
 
@@ -59,8 +55,6 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     return norm_expr([clip, diffa, diffb], expr, planes, mid=neutral)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
     clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
     n_clips = len(clips)
@@ -91,8 +85,6 @@ def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT
     return norm_expr(clips, expr, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def flux_smooth(
     clip: vs.VideoNode, radius: int = 2, threshold: int = 7, scenechange: int = 24, planes: PlanesT = None
 ) -> vs.VideoNode:
@@ -101,7 +93,7 @@ def flux_smooth(
     if radius < 1 or radius > 7:
         raise CustomIndexError('Radius must be between 1 and 7 (inclusive)!', flux_smooth, reason=radius)
 
-    planes = normalize_planes(clip, planes, False)
+    planes = normalize_planes(clip, planes)
 
     threshold = threshold << clip.format.bits_per_sample - 8
 

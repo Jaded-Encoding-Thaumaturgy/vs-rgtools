@@ -9,9 +9,8 @@ from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomOverflowError, CustomValueError, FuncExceptT, FunctionUtil,
-    NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, disallow_variable_format,
-    disallow_variable_resolution, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
-    to_arr, vs
+    NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth, fallback, get_depth, get_neutral_value, join,
+    normalize_planes, normalize_seq, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, LimitFilterMode
@@ -26,8 +25,6 @@ __all__ = [
 ]
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
@@ -59,8 +56,6 @@ def blur(
     return clip.std.Convolution(matrix, planes=planes, mode=mode)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
     assert check_variable(clip, box_blur)
 
@@ -82,8 +77,6 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
     return blurred
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def side_box_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None,
     inverse: bool = False, expr: bool | None = None
@@ -169,8 +162,6 @@ def _norm_gauss_sigma(clip: vs.VideoNode, sigma: float | None, sharp: float | No
     return sigma
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def gauss_blur(
     clip: vs.VideoNode,
     sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
@@ -196,8 +187,6 @@ def gauss_blur(
     return gauss_fmtc_blur(clip, sigma, sharp, True, mode, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def gauss_fmtc_blur(
     clip: vs.VideoNode,
     sigma: float | list[float] | None = 0.5, sharp: float | list[float] | None = None,
@@ -240,17 +229,15 @@ def gauss_fmtc_blur(
 
             return depth(down, clip)
 
-    if not {*range(clip.format.num_planes)} - {*planes}:  # type: ignore
+    if not {*range(clip.format.num_planes)} - {*planes}:
         return _fmtc_blur(clip)
 
     return join([
-        _fmtc_blur(p) if i in planes else p  # type: ignore
+        _fmtc_blur(p) if i in planes else p
         for i, p in enumerate(split(clip))
     ])
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None) -> vs.VideoNode:
     """
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
@@ -276,8 +263,6 @@ def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = 
     return limit_filter(weighted, clip, median, LimitFilterMode.DIFF_MIN, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def sbr(
     clip: vs.VideoNode,
     radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE,

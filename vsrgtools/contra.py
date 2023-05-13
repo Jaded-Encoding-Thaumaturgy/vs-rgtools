@@ -6,8 +6,8 @@ from typing import Callable
 
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, disallow_variable_format,
-    disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, to_arr, vs
+    CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, get_neutral_value, iterate,
+    normalize_planes, to_arr, vs
 )
 
 from .blur import blur, box_blur, median_blur, min_blur
@@ -23,8 +23,6 @@ __all__ = [
 ]
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def contrasharpening(
     flt: vs.VideoNode, src: vs.VideoNode, radius: int | list[int] = 1,
     mode: RepairModeT = RepairMode.MINMAX_SQUARE3, planes: PlanesT = 0
@@ -80,8 +78,6 @@ def contrasharpening(
     return norm_expr([limit, diff_blur, flt], expr, planes, mid=neutral)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def contrasharpening_dehalo(
     flt: vs.VideoNode, src: vs.VideoNode, level: float = 1.4, alpha: float = 2.49, planes: PlanesT = 0
 ) -> vs.VideoNode:
@@ -117,8 +113,6 @@ def contrasharpening_dehalo(
     return norm_expr(clips, expr, planes, mid=neutral)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def contrasharpening_median(
     flt: vs.VideoNode, src: vs.VideoNode,
     mode: RemoveGrainModeT | Callable[..., vs.VideoNode] = box_blur,
@@ -152,8 +146,6 @@ def contrasharpening_median(
     return norm_expr([flt, src, repaired], expr, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def fine_contra(
     flt: vs.VideoNode, src: vs.VideoNode, sharp: float | list[float] | range = 0.75,
     radius: int | list[int] = 1, merge_func: GenericVSFunction | None = None,

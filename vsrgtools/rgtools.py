@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from vsexprtools import complexpr_available, expr_func
-from vstools import (
-    NotFoundEnumValue, PlanesT, check_variable, core, disallow_variable_format, disallow_variable_resolution,
-    normalize_seq, pick_func_stype, vs
-)
+from vstools import NotFoundEnumValue, PlanesT, check_variable, core, normalize_seq, pick_func_stype, vs
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT, BlurMatrix
+from .enum import BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
 
 __all__ = [
     'repair', 'removegrain',
@@ -19,8 +16,6 @@ __all__ = [
 ]
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> vs.VideoNode:
     assert check_variable(clip, repair)
     assert check_variable(repairclip, repair)
@@ -44,8 +39,6 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
     )
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     assert check_variable(clip, removegrain)
 
@@ -88,8 +81,6 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     return expr_func(clip, expr, opt=True)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def clense(
     clip: vs.VideoNode,
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
@@ -98,25 +89,17 @@ def clense(
     return pick_func_stype(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def forward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_func_stype(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_func_stype(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
     return pick_func_stype(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
     return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()

@@ -8,8 +8,7 @@ from typing import Any, Iterable, Literal
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIndexError, CustomValueError, PlanesT, StrList, VSFunction, check_ref_clip,
-    check_variable, disallow_variable_format, disallow_variable_resolution, flatten, get_video_format, get_y, join,
-    normalize_planes, scale_value, split, vs
+    check_variable, flatten, get_video_format, get_y, join, normalize_planes, scale_value, split, vs
 )
 
 from .blur import box_blur, gauss_blur
@@ -20,8 +19,6 @@ __all__ = [
 ]
 
 
-@disallow_variable_format
-@disallow_variable_resolution
 def replace_low_frequencies(
     flt: vs.VideoNode, ref: vs.VideoNode, LFR: float, DCTFlicker: bool = False,
     planes: PlanesT = None, mode: ConvMode = ConvMode.SQUARE
