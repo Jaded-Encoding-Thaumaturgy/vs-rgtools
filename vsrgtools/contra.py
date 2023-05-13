@@ -10,8 +10,8 @@ from vstools import (
     disallow_variable_resolution, get_neutral_value, iterate, normalize_planes, to_arr, vs
 )
 
-from .blur import blur, box_blur, min_blur, median_blur
-from .enum import RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, BlurMatrix
+from .blur import blur, box_blur, median_blur, min_blur
+from .enum import BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
 from .util import norm_rmode_planes
 
@@ -26,7 +26,7 @@ __all__ = [
 @disallow_variable_format
 @disallow_variable_resolution
 def contrasharpening(
-    flt: vs.VideoNode, src: vs.VideoNode, radius: int | list[int] | None = None,
+    flt: vs.VideoNode, src: vs.VideoNode, radius: int | list[int] = 1,
     mode: RepairModeT = RepairMode.MINMAX_SQUARE3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
@@ -52,7 +52,9 @@ def contrasharpening(
     planes = normalize_planes(flt, planes)
 
     if radius is None:
-        radius = 2 if flt.width > 1024 or flt.height > 576 else 1
+        import warnings  # type: ignore
+        warnings.warn('contrasharpening: radius=None is deprecated! The function will always default to 1.')
+        radius = 1
 
     # Damp down remaining spots of the denoised clip
     mblur = min_blur(flt, radius, planes)
@@ -154,7 +156,7 @@ def contrasharpening_median(
 @disallow_variable_resolution
 def fine_contra(
     flt: vs.VideoNode, src: vs.VideoNode, sharp: float | list[float] | range = 0.75,
-    radius: int | list[int] | None = None, merge_func: GenericVSFunction | None = None,
+    radius: int | list[int] = 1, merge_func: GenericVSFunction | None = None,
     mode: RepairModeT = RepairMode.MINMAX_SQUARE_REF3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
@@ -182,7 +184,9 @@ def fine_contra(
     planes = normalize_planes(flt, planes)
 
     if radius is None:
-        radius = 2 if flt.width > 1024 or flt.height > 576 else 1
+        import warnings  # type: ignore
+        warnings.warn('fine_contra: radius=None is deprecated! The function will always default to 1.')
+        radius = 1
 
     mblur = min_blur(flt, radius, planes)
 
