@@ -142,7 +142,12 @@ def lehmer_diff_merge(
     elif lf > n_clips:
         filter = filter[:n_clips]
 
-    blurred_clips = [filt(clip) for filt, clip in zip(filter, clips)]
+    blurred_clips = []
+    for filt, clip in zip(filter, clips):
+        try:
+            blurred_clips.append(filt(clip, planes=planes))  # type: ignore
+        except Exception:
+            blurred_clips.append(filt(clip))
 
     counts = range(n_clips)
 
