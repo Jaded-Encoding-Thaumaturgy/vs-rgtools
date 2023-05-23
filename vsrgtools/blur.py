@@ -79,12 +79,12 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
 
 def side_box_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None,
-    inverse: bool = False, expr: bool | None = None
+    inverse: bool = False
 ) -> vs.VideoNode:
     planes = normalize_planes(clip, planes)
 
     if isinstance(radius, list):
-        return normalize_radius(clip, side_box_blur, radius, planes, inverse=inverse, expr=expr)
+        return normalize_radius(clip, side_box_blur, radius, planes, inverse=inverse)
 
     half_kernel = [(1 if i <= 0 else 0) for i in range(-radius, radius + 1)]
 
@@ -110,7 +110,7 @@ def side_box_blur(
 
     comp_blur = None if inverse else box_blur(clip, radius, 1, planes)
 
-    if complexpr_available if expr is None else expr:
+    if complexpr_available:
         template = '{cum} x - abs {new} x - abs < {cum} {new} ?'
 
         cum_expr, cumc = '', 'y'
