@@ -64,6 +64,9 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
     if isinstance(radius, list):
         return normalize_radius(clip, box_blur, radius, planes, passes=passes)
 
+    if not radius:
+        return clip
+
     if radius > 12:
         blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
     else:
