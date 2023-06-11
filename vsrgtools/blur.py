@@ -73,10 +73,13 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
         blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
     else:
         matrix_size = radius * 2 | 1
+
+        if fp16:
+            matrix_size **= 2
+
         blurred = clip
         for _ in range(passes):
             if fp16:
-                matrix_size **= 2
                 blurred = norm_expr(blurred, [
                     ExprOp.matrix('x', radius), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
                 ], planes)
