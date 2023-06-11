@@ -67,15 +67,21 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
     if not radius:
         return clip
 
-    if radius > 12:
+    fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
+
+    if radius > 12 and not fp16:
         blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
     else:
         matrix_size = radius * 2 | 1
         blurred = clip
         for _ in range(passes):
-            blurred = blurred.std.Convolution(
-                [1] * matrix_size, planes=planes, mode=ConvMode.SQUARE
-            )
+            if fp16:
+                matrix_size **= 2
+                blurred = norm_expr(blurred, [
+                    ExprOp.matrix('x', radius), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
+                ], planes)
+            else:
+                blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=ConvMode.SQUARE)
 
     return blurred
 
