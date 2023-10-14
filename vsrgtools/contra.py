@@ -49,11 +49,6 @@ def contrasharpening(
 
     planes = normalize_planes(flt, planes)
 
-    if radius is None:
-        import warnings  # type: ignore
-        warnings.warn('contrasharpening: radius=None is deprecated! The function will always default to 1.')
-        radius = 1
-
     # Damp down remaining spots of the denoised clip
     mblur = min_blur(flt, radius, planes)
 
@@ -174,11 +169,6 @@ def fine_contra(
         neutral = [0.0]
 
     planes = normalize_planes(flt, planes)
-
-    if radius is None:
-        import warnings  # type: ignore
-        warnings.warn('fine_contra: radius=None is deprecated! The function will always default to 1.')
-        radius = 1
 
     mblur = min_blur(flt, radius, planes)
 
