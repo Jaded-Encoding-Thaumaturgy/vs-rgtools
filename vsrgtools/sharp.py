@@ -11,7 +11,8 @@ from .util import normalize_radius
 __all__ = [
     'unsharpen',
     'unsharp_masked',
-    'limit_usm'
+    'limit_usm',
+    'shimmer_soothe'
 ]
 
 
@@ -71,3 +72,22 @@ def limit_usm(
     sharp = norm_expr([clip, blurred], 'x dup y - +', planes)
 
     return limit_filter(sharp, clip, thr=thr, elast=elast, bright_thr=bright_thr)
+
+
+def shimmer_soothe(
+    sharp: vs.VideoNode, orig: vs.VideoNode, strength: int = 75, tr: int = 1,
+    scenechange: bool = False, planes: PlanesT = 0
+) -> vs.VideoNode:
+    diff = orig.std.MakeDiff(sharp, planes)
+
+    strength = 100 - max(min(100, strength), 0)
+
+    soft_diff = diff.std.AverageFrames([1] * (tr * 2 + 1), None, scenechange, planes)
+
+    limit_diff = norm_expr([diff, soft_diff], [
+        'x range_diff - y range_diff - xor x range_diff - 100 / {strength} '
+        f'* range_diff + x range_diff - abs y range_diff - abs > x {strength} '
+        f'* y 100 {strength} - * + 100 / x ? ?'
+    ], planes, strength=strength)
+
+    return norm_expr([orig, limit_diff], 'x y range_diff - -', planes)
