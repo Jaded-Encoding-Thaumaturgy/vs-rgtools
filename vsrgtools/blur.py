@@ -380,8 +380,8 @@ def bilateral(
 
     sigmaS, sigmaR = func.norm_seq(sigmaS), func.norm_seq(sigmaR)
 
-    if not ref and gpu is not False:
-        if min(sigmaS) < 4 and PyPluginCuda.backend.is_available:
+    if gpu is not False:
+        if not ref and min(sigmaS) < 4 and PyPluginCuda.backend.is_available:
             block_x = fallback(block_x, block_y, 16)
             block_y = fallback(block_y, block_x)
 
@@ -392,18 +392,24 @@ def bilateral(
             ).invoke()
 
         try:
+            basic_args, new_args = (sigmaS, sigmaR, radius, device_id), (num_streams, use_shared_memory)
+
             if hasattr(core, 'bilateralgpu_rtc'):
-                return clip.bilateralgpu_rtc.Bilateral(
-                    sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory, block_x, block_y
-                )
+                if 'ref' in core.bilateralgpu_rtc.Bilateral.signature:  # type: ignore
+                    return clip.bilateralgpu_rtc.Bilateral(*basic_args, *new_args, block_x, block_y, ref)
+                if not ref:
+                    return clip.bilateralgpu_rtc.Bilateral(*basic_args, *new_args, block_x, block_y)
+
             if hasattr(core, 'bilateralgpu'):
                 try:
-                    return clip.bilateralgpu.Bilateral(
-                        sigmaS, sigmaR, radius, device_id, num_streams, use_shared_memory
-                    )
+                    if 'ref' in core.bilateralgpu.Bilateral.signature:  # type: ignore
+                        return clip.bilateralgpu.Bilateral(*basic_args, *new_args, ref)
+                    if not ref:
+                        return clip.bilateralgpu.Bilateral(*basic_args, *new_args)
                 except vs.Error:
-                    # Old versions
-                    return clip.bilateralgpu.Bilateral(sigmaS, sigmaR, radius, device_id)
+                    if not ref:
+                        # Old versions
+                        return clip.bilateralgpu.Bilateral(*basic_args)
         except vs.Error as e:
             # has the plugin but no cuda GPU available
             if 'cudaGetDeviceCount' in str(e):
@@ -415,4 +421,6 @@ def bilateral(
     if ref and clip.format != ref.format:
         ref = depth(ref, clip)
 
-    return depth(clip.bilateral.Bilateral(ref, sigmaS, sigmaR), bits)
+    clip = clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
+
+    return depth(clip, bits)
