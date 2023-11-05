@@ -9,8 +9,9 @@ from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Bilinear, Gaussian
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
-    ConvMode, CustomNotImplementedError, FunctionUtil, NotFoundEnumValue, PlanesT, StrList, check_variable, core, depth,
-    fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split, to_arr, vs
+    ConvMode, CustomNotImplementedError, CustomRuntimeError, FunctionUtil, NotFoundEnumValue, PlanesT, StrList,
+    check_variable, core, depth, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
+    to_arr, vs
 )
 
 from .enum import BlurMatrix, LimitFilterMode
@@ -179,10 +180,30 @@ def gauss_blur(
 
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
-    kernel = BlurMatrix.GAUSS(sigma, taps)
+    no_fmtc = not hasattr(core, 'fmtc')
+
+    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_fmtc and taps > 12 else 1023)
 
     if len(kernel) <= 25:
         return kernel(clip, planes, mode)
+
+    if no_fmtc:
+        if not complexpr_available:
+            raise CustomRuntimeError(
+                'With a high sigma you need a high number of taps, '
+                'and that\'t only supported with fmtc scaling or akarin expr!'
+                '\nInstall one of the two plugins or set lower (<= 12) the taps!'
+            )
+
+        proc: vs.VideoNode = clip
+
+        if ConvMode.HORIZONTAL in mode:
+            proc = ExprOp.convolution('x', kernel, mode=ConvMode.HORIZONTAL)(proc)
+
+        if ConvMode.VERTICAL in mode:
+            proc = ExprOp.convolution('x', kernel, mode=ConvMode.VERTICAL)(proc)
+
+        return proc
 
     def _fmtc_blur(plane: vs.VideoNode) -> vs.VideoNode:
         wdown, hdown = plane.width, plane.height
@@ -195,7 +216,7 @@ def gauss_blur(
 
         down = Bilinear.scale(plane, wdown, hdown)
 
-        return Gaussian(curve=9, taps=taps).scale(down, plane.width, plane.height)
+        return Gaussian(curve=9, taps=taps // 2 + 1).scale(down, plane.width, plane.height)
 
     if not {*range(clip.format.num_planes)} - {*planes}:
         return _fmtc_blur(clip)
