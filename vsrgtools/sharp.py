@@ -45,7 +45,7 @@ def unsharp_masked(
     if isinstance(radius, list):
         return normalize_radius(clip, unsharp_masked, radius, planes, strength=strength)
 
-    blurred = BlurMatrix.log(radius, strength)(clip, planes)
+    blurred = BlurMatrix.LOG(radius, strength)(clip, planes)
 
     return norm_expr([clip, blurred], 'x dup y - +')
 

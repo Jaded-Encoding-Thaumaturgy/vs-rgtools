@@ -4,7 +4,7 @@ from enum import auto
 from math import ceil, exp, log2, pi, sqrt
 from typing import Generic, Sequence, TypeVar
 
-from vstools import ConvMode, CustomEnum, CustomIntEnum, Nb, PlanesT, vs
+from vstools import ConvMode, CustomEnum, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -139,12 +139,12 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
         bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
         passes: int = 1
     ) -> vs.VideoNode:
+        if len(self) <= 1:
+            return clip
+
         conv = self.tosizes(*range(3, 26, 2))
 
-        for _ in range(passes):
-            clip = clip.std.Convolution(conv, bias, divisor, planes, saturate, mode)
-
-        return clip
+        return iterate(clip, core.std.Convolution, passes, conv, bias, divisor, planes, saturate, mode)
 
     @property
     def asint(self) -> BaseBlurMatrix[int]:
@@ -178,9 +178,11 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
         for sizeh, sizel in zip(sizes, sizes[1:]):
             if curlen >= sizeh:
                 return self.tosize(sizeh)
-            elif curlen == sizel:
+
+            if curlen == sizel:
                 return self.tosize(sizel)
-            elif curlen > sizel:
+
+            if curlen > sizel:
                 if (sizeh - curlen) < (curlen - sizel):
                     return self.tosize(sizeh)
 
@@ -192,47 +194,54 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
 BBMatrixT = TypeVar('BBMatrixT', bound=BaseBlurMatrix)  # type: ignore
 
 
-class BlurMatrix(BaseBlurMatrix[int], CustomEnum):
+class BlurMatrix(BaseBlurMatrix[int], CustomEnum):  # type: ignore
     BOX = [1, 1, 0, 1, 1, 0, 0, 0, 0]
     MEAN = [1, 1, 1, 1, 1, 1, 1, 1, 1]
     WMEAN = [1, 2, 1, 2, 4, 2, 1, 2, 1]
     CIRCLE = [1, 1, 1, 1, 0, 1, 1, 1, 1]
 
-    @classmethod
-    def gauss(cls, sigma: float) -> BaseBlurMatrix[float]:
-        taps = ceil(sigma * 6 + 1)
+    @to_singleton.as_property
+    class GAUSS:
+        def __call__(self, sigma: float, taps: int | None = None, scale_value: float = 1023) -> BaseBlurMatrix[float]:
+            taps = self.get_taps(sigma, taps)
 
-        if not taps % 2:
-            taps += 1
+            if taps < 0:
+                raise CustomValueError('Taps must be >= 0!')
 
-        half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
-        doub_qsigma = 2 * sigma * sigma
+            if sigma > 0.0:
+                half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
+                doub_qsigma = 2 * sigma ** 2
 
-        high, *kernel = [
-            half_pisqrt * exp(-(x * x) / doub_qsigma)
-            for x in range(taps // 2)
-        ]
+                high, *kernel = [half_pisqrt * exp(-x ** 2 / doub_qsigma) for x in range(taps + 1)]
 
-        kernel = [x * 1023 / high for x in kernel]
-        kernel = [*kernel[::-1], 1023, *kernel]
+                kernel = [x * scale_value / high for x in kernel]
+                kernel = [*kernel[::-1], scale_value, *kernel]
+            else:
+                kernel = [scale_value]
 
-        return BaseBlurMatrix[float](kernel)
+            return BaseBlurMatrix[float](kernel)
 
-    @classmethod
-    def gauss_from_radius(cls, radius: int) -> BaseBlurMatrix[float]:
-        return cls.gauss((radius + 1.0) / 3)
+        def from_radius(self, radius: int) -> BaseBlurMatrix[float]:
+            return self((radius + 1.0) / 3)
 
-    @classmethod
-    def log(cls, radius: int = 1, strength: float = 100.0) -> BaseBlurMatrix[float]:
-        strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
+        def get_taps(self, sigma: float, taps: int | None = None) -> int:
+            if taps is None:
+                taps = ceil(abs(sigma) * 8 + 1) // 2
 
-        weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
+            return taps
 
-        matrix = [1.0]
+    @to_singleton.as_property
+    class LOG:
+        def __call__(self, radius: int = 1, strength: float = 100.0) -> BaseBlurMatrix[float]:
+            strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
 
-        for _ in range(radius):
-            matrix.append(matrix[-1] / weight)
+            weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
 
-        kernel = [*matrix[::-1], *matrix[1:]]
+            matrix = [1.0]
 
-        return BaseBlurMatrix[float](kernel)
+            for _ in range(radius):
+                matrix.append(matrix[-1] / weight)
+
+            kernel = [*matrix[::-1], *matrix[1:]]
+
+            return BaseBlurMatrix[float](kernel)
