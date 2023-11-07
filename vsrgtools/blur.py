@@ -178,7 +178,7 @@ def gauss_blur(
     if mode in ConvMode.HORIZONTAL:
         sigma = min(sigma, clip.width)
 
-    taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
+    taps = BlurMatrix.GAUSS.get_taps(sigma, (orig_taps := taps))
 
     no_fmtc = not hasattr(core, 'fmtc')
 
@@ -216,7 +216,7 @@ def gauss_blur(
 
         down = Bilinear.scale(plane, wdown, hdown)
 
-        return Gaussian(curve=9, taps=taps // 2 + 1).scale(down, plane.width, plane.height)
+        return Gaussian(curve=9, taps=min(fallback(orig_taps, 30), 128)).scale(down, plane.width, plane.height)
 
     if not {*range(clip.format.num_planes)} - {*planes}:
         return _fmtc_blur(clip)
