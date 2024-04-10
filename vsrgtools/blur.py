@@ -89,7 +89,7 @@ def box_blur(
         for _ in range(passes):
             if fp16:
                 blurred = norm_expr(blurred, [
-                    ExprOp.matrix('x', radius), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
+                    ExprOp.matrix('x', radius, mode=mode), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
                 ], planes)
             else:
                 blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=mode)
