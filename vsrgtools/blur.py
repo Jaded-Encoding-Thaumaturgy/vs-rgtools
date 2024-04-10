@@ -57,7 +57,10 @@ def blur(
     return clip.std.Convolution(matrix, planes=planes, mode=mode)
 
 
-def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, planes: PlanesT = None) -> vs.VideoNode:
+def box_blur(
+    clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1,
+    mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+) -> vs.VideoNode:
     assert check_variable(clip, box_blur)
 
     planes = normalize_planes(clip, planes)
@@ -71,7 +74,11 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
     fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
 
     if radius > 12 and not fp16:
-        blurred = clip.std.BoxBlur(planes, radius, passes, radius, passes)
+        blurred = clip.std.BoxBlur(
+            planes,
+            radius, 0 if mode == ConvMode.VERTICAL else passes,
+            radius, 0 if mode == ConvMode.HORIZONTAL else passes
+        )
     else:
         matrix_size = radius * 2 | 1
 
@@ -82,10 +89,10 @@ def box_blur(clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1, p
         for _ in range(passes):
             if fp16:
                 blurred = norm_expr(blurred, [
-                    ExprOp.matrix('x', radius), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
+                    ExprOp.matrix('x', radius, mode=mode), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
                 ], planes)
             else:
-                blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=ConvMode.SQUARE)
+                blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=mode)
 
     return blurred
 
