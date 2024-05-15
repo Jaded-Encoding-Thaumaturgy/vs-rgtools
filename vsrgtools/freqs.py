@@ -70,7 +70,7 @@ class MeanMode(CustomIntEnum):
     MINIMUM_ABS = 20
     MAXIMUM_ABS = 21
 
-    def __call__(self, *_clips: vs.VideoNode | Iterable[vs.VideoNode], func: FuncExceptT | None = None) -> vs.VideoNode:
+    def __call__(self, *_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None, func: FuncExceptT | None = None) -> vs.VideoNode:
         func = func or self.__class__
 
         clips = flatten_vnodes(_clips)
@@ -81,14 +81,16 @@ class MeanMode(CustomIntEnum):
         if n_clips < 2:
             return next(iter(clips))
 
+        kwargs = KwargsT(planes=planes, func=func)
+
         if self == MeanMode.MINIMUM:
-            return ExprOp.MIN(clips, func=func)
+            return ExprOp.MIN(clips, **kwargs)
 
         if self == MeanMode.MAXIMUM:
-            return ExprOp.MAX(clips, func=func)
+            return ExprOp.MAX(clips, **kwargs)
 
         if self == MeanMode.GEOMETRIC:
-            return combine(clips, ExprOp.MUL, None, None, [1 / n_clips, ExprOp.POW], func=func)
+            return combine(clips, ExprOp.MUL, None, None, [1 / n_clips, ExprOp.POW], **kwargs)
 
         if self == MeanMode.LEHMER:
             counts = range(n_clips)
@@ -104,13 +106,13 @@ class MeanMode(CustomIntEnum):
 
             expr.append('P2@ 0 = 0 P1@ P2@ / ? range_diff +')
 
-            return norm_expr(clips, expr, func=func)
+            return norm_expr(clips, expr, **kwargs)
 
         if self in {MeanMode.RMS, MeanMode.ARITHMETIC, MeanMode.CUBIC, MeanMode.HARMONIC}:
             return combine(
                 clips, ExprOp.ADD, f'{self.value} {ExprOp.POW}', None, [
                     n_clips, ExprOp.DIV, 1 / self, ExprOp.POW
-                ], func=func
+                ], **kwargs
             )
 
         if self in {MeanMode.MINIMUM_ABS, MeanMode.MAXIMUM_ABS}:
@@ -128,7 +130,7 @@ class MeanMode(CustomIntEnum):
 
             expr_string += '? ' * n_op
 
-            return norm_expr(clips, expr_string, func=self.__class__)
+            return norm_expr(clips, expr_string, **kwargs)
 
         raise CustomNotImplementedError
 
