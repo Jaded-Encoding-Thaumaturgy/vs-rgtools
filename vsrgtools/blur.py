@@ -128,7 +128,7 @@ def side_box_blur(
         for j, hrz_flt in enumerate(hrz_filters) if not i == j == 2
     )
 
-    comp_blur = None if inverse else box_blur(clip, radius, 1, planes)
+    comp_blur = None if inverse else box_blur(clip, radius, 1, planes=planes)
 
     if complexpr_available:
         template = '{cum} x - abs {new} x - abs < {cum} {new} ?'
