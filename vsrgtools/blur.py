@@ -27,7 +27,7 @@ __all__ = [
 
 
 def blur(
-    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, blur)
 
@@ -36,7 +36,7 @@ def blur(
     if isinstance(radius, list):
         return normalize_radius(clip, blur, radius, planes, mode=mode)
 
-    if mode == ConvMode.SQUARE:
+    if mode == ConvMode.HV:
         matrix2 = [1, 3, 4, 3, 1]
         matrix3 = [1, 4, 8, 10, 8, 4, 1]
     elif mode in {ConvMode.HORIZONTAL, ConvMode.VERTICAL}:
@@ -59,7 +59,7 @@ def blur(
 
 def box_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1,
-    mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, box_blur)
 
@@ -170,7 +170,7 @@ def side_box_blur(
 
 def gauss_blur(
     clip: vs.VideoNode, sigma: float | list[float] = 0.5, taps: int | None = None,
-    mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, gauss_blur)
 
@@ -261,7 +261,7 @@ def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = 
 
 def sbr(
     clip: vs.VideoNode,
-    radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE,
+    radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV,
     planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, sbr)
@@ -295,7 +295,7 @@ def sbr(
 
 
 def median_blur(
-    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     def _get_vals(radius: int) -> tuple[StrList, int, int, int]:
         matrix = ExprOp.matrix('x', radius, mode, [(0, 0)])

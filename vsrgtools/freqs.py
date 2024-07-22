@@ -24,7 +24,7 @@ __all__ = [
 
 def replace_low_frequencies(
     flt: vs.VideoNode, ref: vs.VideoNode, LFR: float, DCTFlicker: bool = False,
-    planes: PlanesT = None, mode: ConvMode = ConvMode.SQUARE
+    planes: PlanesT = None, mode: ConvMode = ConvMode.HV
 ) -> vs.VideoNode:
     func = FunctionUtil(flt, replace_low_frequencies, planes, (vs.YUV, vs.GRAY))
 

@@ -135,7 +135,7 @@ VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleane
 
 class BaseBlurMatrix(Generic[Nb], list[Nb]):
     def __call__(
-        self, clip: vs.VideoNode, planes: PlanesT = None, mode: ConvMode = ConvMode.SQUARE,
+        self, clip: vs.VideoNode, planes: PlanesT = None, mode: ConvMode = ConvMode.HV,
         bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
         passes: int = 1
     ) -> vs.VideoNode:
