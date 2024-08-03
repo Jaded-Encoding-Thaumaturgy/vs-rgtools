@@ -4,7 +4,7 @@ from enum import auto
 from math import ceil, exp, log2, pi, sqrt
 from typing import Generic, Sequence, TypeVar
 
-from vstools import ConvMode, CustomEnum, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
+from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -194,7 +194,7 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
 BBMatrixT = TypeVar('BBMatrixT', bound=BaseBlurMatrix)  # type: ignore
 
 
-class BlurMatrix(BaseBlurMatrix[int], CustomEnum):  # type: ignore
+class BlurMatrix(BaseBlurMatrix[int]):  # type: ignore
     BOX = [1, 1, 0, 1, 1, 0, 0, 0, 0]
     MEAN = [1, 1, 1, 1, 1, 1, 1, 1, 1]
     WMEAN = [1, 2, 1, 2, 4, 2, 1, 2, 1]
