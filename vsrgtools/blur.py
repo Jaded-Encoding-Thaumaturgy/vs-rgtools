@@ -223,7 +223,7 @@ def gauss_blur(
 
         down = Bilinear.scale(plane, wdown, hdown)
 
-        return Gaussian(curve=9, taps=min(fallback(orig_taps, 30), 128)).scale(down, plane.width, plane.height)
+        return Gaussian(Gaussian.sigma.from_fmtc(9), min(fallback(orig_taps, 30), 128)).scale(down, plane.width, plane.height)
 
     if not {*range(clip.format.num_planes)} - {*planes}:
         return _fmtc_blur(clip)
