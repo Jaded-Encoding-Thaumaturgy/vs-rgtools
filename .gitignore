@@ -128,15 +128,8 @@ dmypy.json
 # vscode folder
 .vscode
 
-# vspreview folder
-.vspreview
-
-# louis fork of vsrepo for vs stubs
-.vsrepo
-
-# Random files
-vardautomation/shaders.py
-.my_test_files
+# vsjet folder
+.vsjet/
 
 # Index files
 *.ffindex
