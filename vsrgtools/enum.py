@@ -194,11 +194,11 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
 BBMatrixT = TypeVar('BBMatrixT', bound=BaseBlurMatrix)  # type: ignore
 
 
-class BlurMatrix(BaseBlurMatrix[int]):  # type: ignore
-    BOX = [1, 1, 0, 1, 1, 0, 0, 0, 0]
-    MEAN = [1, 1, 1, 1, 1, 1, 1, 1, 1]
-    WMEAN = [1, 2, 1, 2, 4, 2, 1, 2, 1]
-    CIRCLE = [1, 1, 1, 1, 0, 1, 1, 1, 1]
+class BlurMatrix(BaseBlurMatrix[int]):
+    BOX = BaseBlurMatrix[int]([1, 1, 0, 1, 1, 0, 0, 0, 0])
+    MEAN = BaseBlurMatrix[int]([1, 1, 1, 1, 1, 1, 1, 1, 1])
+    WMEAN = BaseBlurMatrix[int]([1, 2, 1, 2, 4, 2, 1, 2, 1])
+    CIRCLE = BaseBlurMatrix[int]([1, 1, 1, 1, 0, 1, 1, 1, 1])
 
     @to_singleton.as_property
     class GAUSS:
