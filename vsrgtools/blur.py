@@ -6,7 +6,7 @@ from math import e, log2
 from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
-from vskernels import Bilinear, Gaussian
+from vskernels import Gaussian
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomRuntimeError, FunctionUtil, NotFoundEnumValue, PlanesT, StrList,
@@ -185,21 +185,21 @@ def gauss_blur(
     if mode in ConvMode.HORIZONTAL:
         sigma = min(sigma, clip.width)
 
-    taps = BlurMatrix.GAUSS.get_taps(sigma, (orig_taps := taps))
+    taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
-    no_fmtc = not hasattr(core, 'fmtc')
+    no_resize2 = not hasattr(core, 'resize2')
 
-    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_fmtc and taps > 12 else 1023)
+    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_resize2 and taps > 12 else 1023)
 
     if len(kernel) <= 25:
         return kernel(clip, planes, mode)
 
-    if no_fmtc:
+    if no_resize2:
         if not complexpr_available:
             raise CustomRuntimeError(
                 'With a high sigma you need a high number of taps, '
-                'and that\'t only supported with fmtc scaling or akarin expr!'
-                '\nInstall one of the two plugins or set lower (<= 12) the taps!'
+                'and that\'t only supported with vskernels scaling or akarin expr!'
+                '\nInstall one of the two plugins (resize2, akarin) or set lower (<= 12) the taps!'
             )
 
         proc: vs.VideoNode = clip
@@ -212,24 +212,14 @@ def gauss_blur(
 
         return proc
 
-    def _fmtc_blur(plane: vs.VideoNode) -> vs.VideoNode:
-        wdown, hdown = plane.width, plane.height
-
-        if ConvMode.HORIZONTAL in mode:
-            wdown = round(max(round(wdown / sigma), 2) / 2) * 2
-
-        if ConvMode.VERTICAL in mode:
-            hdown = round(max(round(hdown / sigma), 2) / 2) * 2
-
-        down = Bilinear.scale(plane, wdown, hdown)
-
-        return Gaussian(Gaussian.sigma.from_fmtc(9), min(fallback(orig_taps, 30), 128)).scale(down, plane.width, plane.height)
+    def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
+        return Gaussian(sigma, taps).scale(plane, **{f'force_{k}': k in mode for k in 'hv'})  # type: ignore
 
     if not {*range(clip.format.num_planes)} - {*planes}:
-        return _fmtc_blur(clip)
+        return _resize2_blur(clip)
 
     return join([
-        _fmtc_blur(p) if i in planes else p
+        _resize2_blur(p) if i in planes else p
         for i, p in enumerate(split(clip))
     ])
 
