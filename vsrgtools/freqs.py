@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 from itertools import count
 from math import e, log, pi, sin, sqrt
 from typing import Iterable
@@ -8,17 +7,15 @@ from typing import Iterable
 from vsexprtools import ExprOp, ExprVars, combine, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIntEnum, CustomNotImplementedError, FuncExceptT, FunctionUtil, KwargsT, PlanesT,
-    StrList, VSFunction, check_ref_clip, flatten_vnodes, get_y, scale_value, vs
+    StrList, check_ref_clip, flatten_vnodes, get_y, scale_value, vs
 )
 
-from .blur import box_blur, gauss_blur
+from .blur import gauss_blur
 
 __all__ = [
     'replace_low_frequencies',
 
-    'MeanMode',
-
-    'lehmer_diff_merge'
+    'MeanMode'
 ]
 
 
@@ -135,17 +132,3 @@ class MeanMode(CustomIntEnum):
             return norm_expr(clips, expr_string, **kwargs)
 
         raise CustomNotImplementedError
-
-
-def lehmer_diff_merge(
-    *_clips: vs.VideoNode | Iterable[vs.VideoNode],
-    filter: VSFunction | list[VSFunction] = partial(box_blur, radius=3, passes=2),
-    planes: PlanesT = None
-) -> vs.VideoNode:
-    import warnings
-
-    from vsdenoise import frequency_merge
-
-    warnings.warn('lehmer_diff_merge: This function was moved to vsdenoise.frequency_merge, with better output!')
-
-    return frequency_merge(*_clips, tr=0, lowpass=filter, planes=planes)
