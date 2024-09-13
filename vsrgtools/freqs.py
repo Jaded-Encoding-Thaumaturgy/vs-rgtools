@@ -7,7 +7,7 @@ from typing import Iterable
 from vsexprtools import ExprOp, ExprVars, combine, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIntEnum, CustomNotImplementedError, FuncExceptT, FunctionUtil, KwargsT, PlanesT,
-    StrList, check_ref_clip, flatten_vnodes, get_y, scale_value, vs
+    StrList, check_ref_clip, core, flatten_vnodes, get_y, scale_value, vs
 )
 
 from .blur import gauss_blur
@@ -66,6 +66,8 @@ class MeanMode(CustomIntEnum):
 
     MINIMUM_ABS = 20
     MAXIMUM_ABS = 21
+
+    MEDIAN = 30
 
     def __call__(
         self, *_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None, func: FuncExceptT | None = None
@@ -130,5 +132,8 @@ class MeanMode(CustomIntEnum):
             expr_string += '? ' * n_op
 
             return norm_expr(clips, expr_string, **kwargs)
+
+        if self == MeanMode.MEDIAN:
+            return core.average.Median(clips)
 
         raise CustomNotImplementedError
