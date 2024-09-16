@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import warnings
+from typing import Iterable
+
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback,
-    get_neutral_value, normalize_planes, vs
+    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback, get_neutral_value, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
@@ -12,6 +14,7 @@ from .limit import limit_filter
 
 __all__ = [
     'minimum_diff', 'median_diff',
+    'median_clips',
     'flux_smooth'
 ]
 
@@ -51,6 +54,11 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
         expr = 'x y z - y min {mid} max y z - {mid} min y max - -'
 
     return norm_expr([clip, diffa, diffb], expr, planes, mid=neutral)
+
+
+def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
+    warnings.warn('median_clips: Function is deprecated and will be removed in a later version! Use MeanMode.MEDIAN')
+    return MeanMode.MEDIAN(*_clips, planes=planes, func=median_clips)
 
 
 def flux_smooth(
