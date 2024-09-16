@@ -7,7 +7,7 @@ from typing import Iterable
 from vsexprtools import ExprOp, ExprVars, combine, norm_expr
 from vstools import (
     ColorRange, ConvMode, CustomIntEnum, CustomNotImplementedError, FuncExceptT, FunctionUtil, KwargsT, PlanesT,
-    StrList, check_ref_clip, core, flatten_vnodes, get_y, scale_value, vs
+    StrList, check_ref_clip, flatten_vnodes, get_y, scale_value, vs
 )
 
 from .blur import gauss_blur

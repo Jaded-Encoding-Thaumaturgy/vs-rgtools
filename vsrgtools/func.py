@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback, flatten,
+    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback,
     get_neutral_value, normalize_planes, vs
 )
 
