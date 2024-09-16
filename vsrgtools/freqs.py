@@ -134,6 +134,16 @@ class MeanMode(CustomIntEnum):
             return norm_expr(clips, expr_string, **kwargs)
 
         if self == MeanMode.MEDIAN:
-            return core.average.Median(clips)
+            all_clips = str(ExprVars(1, n_clips))
+
+            n_ops = n_clips - 2
+
+            yzmin, yzmax = [
+                all_clips + f' {op}' * n_ops for op in (ExprOp.MIN, ExprOp.MAX)
+            ]
+
+            expr = f'{yzmin} YZMIN! {yzmax} YZMAX! x YZMIN@ min x = YZMIN@ x YZMAX@ max x = YZMAX@ x ? ?'
+
+            return norm_expr(clips, expr, planes)
 
         raise CustomNotImplementedError
