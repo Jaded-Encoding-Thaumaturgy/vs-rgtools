@@ -1,19 +1,17 @@
 from __future__ import annotations
 
-from typing import Iterable
-
-from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
+from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomIndexError, CustomOverflowError, PlanesT, VSFunction, check_variable, core, fallback, flatten,
+    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback,
     get_neutral_value, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
+from .freqs import MeanMode
 from .limit import limit_filter
 
 __all__ = [
     'minimum_diff', 'median_diff',
-    'median_clips',
     'flux_smooth'
 ]
 
@@ -30,7 +28,7 @@ def minimum_diff(
     diff_func = fallback(diff_func, clip_func)
 
     if not diff:
-        return median_clips(clip, clip_func(clip), diff_func(clip), planes=planes)
+        return MeanMode.MEDIAN(clip, clip_func(clip), diff_func(clip), planes=planes)
 
     filtered = clip_func(clip)
 
@@ -53,36 +51,6 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
         expr = 'x y z - y min {mid} max y z - {mid} min y max - -'
 
     return norm_expr([clip, diffa, diffb], expr, planes, mid=neutral)
-
-
-def median_clips(*_clips: vs.VideoNode | Iterable[vs.VideoNode], planes: PlanesT = None) -> vs.VideoNode:
-    clips = list[vs.VideoNode](flatten(_clips))  # type: ignore
-    n_clips = len(clips)
-
-    if not complexpr_available and n_clips > 26:
-        raise CustomOverflowError('You can pass only up to 26 clips without akarin Expr!', median_clips, reason=n_clips)
-    elif n_clips < 3:
-        raise CustomIndexError('You must pass at least 3 clips!', median_clips, reason=n_clips)
-
-    if n_clips == 3:
-        return norm_expr(clips, 'x y z min max y z max min')
-
-    all_clips = str(ExprVars(1, n_clips))
-
-    n_ops = n_clips - 2
-
-    yzmin, yzmax = [
-        all_clips + f' {op}' * n_ops for op in (ExprOp.MIN, ExprOp.MAX)
-    ]
-
-    header = ''
-    if complexpr_available:
-        header = f'{yzmin} YZMIN! {yzmax} YZMAX! '
-        yzmin, yzmax = 'YZMIN@', 'YZMAX@'
-
-    expr = f'{header} x {yzmin} min x = {yzmin} x {yzmax} max x = {yzmax} x ? ?'
-
-    return norm_expr(clips, expr, planes)
 
 
 def flux_smooth(
