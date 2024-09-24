@@ -395,6 +395,9 @@ def bilateral(
     if ref and clip.format != ref.format:
         ref = depth(ref, clip)
 
-    clip = clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
+    if hasattr(core, 'vszip'):
+        clip = clip.vszip.Bilateral(ref, sigmaS, sigmaR)
+    else:
+        clip = clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
 
     return depth(clip, bits)
