@@ -71,21 +71,19 @@ def box_blur(
     if not radius:
         return clip
 
+    box_args = (
+        planes,
+        radius, 0 if mode == ConvMode.VERTICAL else passes,
+        radius, 0 if mode == ConvMode.HORIZONTAL else passes
+    )
+
     if hasattr(core, 'vszip'):
-        blurred = clip.vszip.BoxBlur(
-                planes,
-                radius, 0 if mode == ConvMode.VERTICAL else passes,
-                radius, 0 if mode == ConvMode.HORIZONTAL else passes
-            )
+        blurred = clip.vszip.BoxBlur(*box_args)
     else:
         fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
 
         if radius > 12 and not fp16:
-            blurred = clip.std.BoxBlur(
-                planes,
-                radius, 0 if mode == ConvMode.VERTICAL else passes,
-                radius, 0 if mode == ConvMode.HORIZONTAL else passes
-            )
+            blurred = clip.std.BoxBlur(*box_args)
         else:
             matrix_size = radius * 2 | 1
 
