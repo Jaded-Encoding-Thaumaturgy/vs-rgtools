@@ -110,7 +110,7 @@ def side_box_blur(
 
     conv_m1 = partial(core.std.Convolution, matrix=half_kernel, planes=planes)
     conv_m2 = partial(core.std.Convolution, matrix=half_kernel[::-1], planes=planes)
-    blur_pt = partial(core.std.BoxBlur, planes=planes)
+    blur_pt = partial(box_blur, planes=planes)
 
     vrt_filters, hrz_filters = [
         [
