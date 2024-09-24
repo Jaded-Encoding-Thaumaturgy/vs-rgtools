@@ -71,28 +71,35 @@ def box_blur(
     if not radius:
         return clip
 
-    fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
-
-    if radius > 12 and not fp16:
-        blurred = clip.std.BoxBlur(
-            planes,
-            radius, 0 if mode == ConvMode.VERTICAL else passes,
-            radius, 0 if mode == ConvMode.HORIZONTAL else passes
-        )
+    if hasattr(core, 'vszip'):
+        blurred = clip.vszip.BoxBlur(
+                planes,
+                radius, 0 if mode == ConvMode.VERTICAL else passes,
+                radius, 0 if mode == ConvMode.HORIZONTAL else passes
+            )
     else:
-        matrix_size = radius * 2 | 1
+        fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
 
-        if fp16:
-            matrix_size **= 2
+        if radius > 12 and not fp16:
+            blurred = clip.std.BoxBlur(
+                planes,
+                radius, 0 if mode == ConvMode.VERTICAL else passes,
+                radius, 0 if mode == ConvMode.HORIZONTAL else passes
+            )
+        else:
+            matrix_size = radius * 2 | 1
 
-        blurred = clip
-        for _ in range(passes):
             if fp16:
-                blurred = norm_expr(blurred, [
-                    ExprOp.matrix('x', radius, mode=mode), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
-                ], planes)
-            else:
-                blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=mode)
+                matrix_size **= 2
+
+            blurred = clip
+            for _ in range(passes):
+                if fp16:
+                    blurred = norm_expr(blurred, [
+                        ExprOp.matrix('x', radius, mode=mode), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
+                    ], planes)
+                else:
+                    blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=mode)
 
     return blurred
 
