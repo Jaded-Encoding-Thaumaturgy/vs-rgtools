@@ -204,7 +204,7 @@ def gauss_blur(
             raise CustomRuntimeError(
                 'With a high sigma you need a high number of taps, '
                 'and that\'t only supported with vskernels scaling or akarin expr!'
-                '\nInstall one of the two plugins (resize2, akarin) or set lower (<= 12) the taps!'
+                '\nInstall one of the two plugins (resize2, akarin) or set a lower number of taps (<= 12)!'
             )
 
         proc: vs.VideoNode = clip
