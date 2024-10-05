@@ -5,7 +5,7 @@ from typing import Iterable
 
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback, get_neutral_value, normalize_planes, vs
+    CustomIndexError, PlanesT, VSFunction, check_variable, core, fallback, get_neutral_values, normalize_planes, vs
 )
 
 from .enum import LimitFilterMode
@@ -46,7 +46,7 @@ def median_diff(clip: vs.VideoNode, diffa: vs.VideoNode, diffb: vs.VideoNode, pl
     assert check_variable(clip, median_diff)
 
     planes = normalize_planes(clip, planes)
-    neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
+    neutral = get_neutral_values(clip)
 
     if complexpr_available:
         expr = 'y z - D! x D@ y {mid} clamp D@ {mid} y clamp - -'

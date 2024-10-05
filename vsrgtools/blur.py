@@ -10,7 +10,7 @@ from vskernels import Gaussian
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomRuntimeError, FunctionUtil, NotFoundEnumValue, PlanesT, StrList,
-    check_variable, core, depth, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
+    check_variable, core, depth, fallback, get_depth, get_neutral_values, join, normalize_planes, normalize_seq, split,
     to_arr, vs
 )
 
@@ -263,7 +263,7 @@ def sbr(
 
     planes = normalize_planes(clip, planes)
 
-    neutral = [get_neutral_value(clip), get_neutral_value(clip, True)]
+    neutral = get_neutral_values(clip)
 
     blur_func = partial(blur, radius=radius, mode=mode, planes=planes)
 
