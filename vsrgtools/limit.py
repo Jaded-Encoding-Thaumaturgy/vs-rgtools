@@ -40,11 +40,11 @@ def limit_filter(
     if bright_thr is None:
         bright_thr = thr
 
-    for var, name, l in [
+    for var, name, lower_bound in [
         (thr, 'thr', 0), (thrc, 'thrc', 0), (bright_thr, 'bright_thr', 0), (elast, 'elast', 1)
     ]:
-        if var < l:
-            raise CustomIndexError(f'{name} must be >= {l}', limit_filter, reason=var)
+        if var < lower_bound:
+            raise CustomIndexError(f'{name} must be >= {lower_bound}', limit_filter, reason=var)
 
     if ref is None and mode != LimitFilterMode.CLAMPING:
         raise CustomValueError('You need to specify ref!', limit_filter, reason='mode={mode}', mode=mode)
