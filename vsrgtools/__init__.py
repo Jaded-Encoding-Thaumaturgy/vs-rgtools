@@ -1,5 +1,4 @@
-# flake8: noqa
-from . import aka_expr, util
+# ruff: noqa: F401, F403
 
 from .blur import *
 from .contra import *
