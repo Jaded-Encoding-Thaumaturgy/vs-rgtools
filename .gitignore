@@ -125,6 +125,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Local test file
+*test*.py
+
 # vscode folder
 .vscode
 
@@ -137,5 +140,3 @@ dmypy.json
 
 # Video test file
 *.mkv
-
-vsrgtools/.test
