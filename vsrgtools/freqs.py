@@ -20,7 +20,7 @@ __all__ = [
 
 
 def replace_low_frequencies(
-    flt: vs.VideoNode, ref: vs.VideoNode, LFR: float, DCTFlicker: bool = False,
+    flt: vs.VideoNode, ref: vs.VideoNode, LFR: float,
     planes: PlanesT = None, mode: ConvMode = ConvMode.HV
 ) -> vs.VideoNode:
     func = FunctionUtil(flt, replace_low_frequencies, planes, (vs.YUV, vs.GRAY))
@@ -38,10 +38,6 @@ def replace_low_frequencies(
     f_cut = freq_sample / (k * 2 * pi)  # Frequency Cutoff for Gaussian Sigma
 
     expr = 'x y - z + '
-
-    if DCTFlicker:
-        sec = scale_value(sin(e) + 0.1, 8, func.work_clip, range_out=ColorRange.FULL)
-        expr += f'y z - D! y z = swap dup D@ 0 = 0 D@ 0 < -1 1 ? ? {sec} * + ?'
 
     flt_blur = gauss_blur(func.work_clip, f_cut, None, mode)
     ref_blur = gauss_blur(ref_work_clip, f_cut, None, mode)
