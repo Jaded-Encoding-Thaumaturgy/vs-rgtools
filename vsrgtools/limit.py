@@ -91,8 +91,8 @@ def _limit_filter_lut(
 ) -> vs.VideoNode:
     assert check_variable(diff, limit_filter)
 
-    neutral = int(get_neutral_value(diff))
-    peak = int(get_peak_value(diff))
+    neutral = get_neutral_value(diff)
+    peak = get_peak_value(diff)
 
     thr = int(thr * peak / 255)
     largen_thr = int(largen_thr * peak / 255)

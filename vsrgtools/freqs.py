@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from itertools import count
-from math import e, log, pi, sin, sqrt
+from math import log, pi, sqrt
 from typing import Iterable
 
 from vsexprtools import ExprOp, ExprVars, combine, norm_expr
 from vstools import (
-    ColorRange, ConvMode, CustomIntEnum, CustomNotImplementedError, FuncExceptT, FunctionUtil, KwargsT, PlanesT,
-    StrList, check_ref_clip, flatten_vnodes, get_y, scale_value, vs
+    ConvMode, CustomIntEnum, CustomNotImplementedError, FuncExceptT, FunctionUtil, KwargsT, PlanesT,
+    StrList, check_ref_clip, flatten_vnodes, get_y, vs
 )
 
 from .blur import gauss_blur

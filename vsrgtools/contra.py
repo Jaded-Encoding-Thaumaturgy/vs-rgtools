@@ -6,7 +6,7 @@ from typing import Callable
 
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
-    CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, get_neutral_values,
+    CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, get_neutral_value,
     iterate, normalize_planes, to_arr, vs
 )
 
@@ -42,10 +42,7 @@ def contrasharpening(
     assert check_variable(flt, contrasharpening)
     check_ref_clip(src, flt, contrasharpening)
 
-    if flt.format.sample_type == vs.INTEGER:
-        neutral = get_neutral_values(flt)
-    else:
-        neutral = [0.0]
+    neutral = get_neutral_value(flt)
 
     planes = normalize_planes(flt, planes)
 
@@ -94,7 +91,7 @@ def contrasharpening_dehalo(
     weighted2 = median_blur(weighted, 2, planes=planes)
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 
-    neutral = get_neutral_values(flt)
+    neutral = get_neutral_value(flt)
 
     if complexpr_available:
         clips = [weighted, weighted2, src, flt]
@@ -163,10 +160,7 @@ def fine_contra(
     assert check_variable(flt, contrasharpening)
     check_ref_clip(src, flt, contrasharpening)
 
-    if flt.format.sample_type == vs.INTEGER:
-        neutral = get_neutral_values(flt)
-    else:
-        neutral = [0.0]
+    neutral = get_neutral_value(flt)
 
     planes = normalize_planes(flt, planes)
 
