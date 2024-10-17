@@ -9,9 +9,9 @@ from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomRuntimeError, FunctionUtil, NotFoundEnumValue, PlanesT, StrList,
-    check_variable, core, depth, fallback, get_depth, get_neutral_value, join, normalize_planes, normalize_seq, split,
-    to_arr, vs
+    ConvMode, CustomNotImplementedError, CustomRuntimeError, CustomIndexError, FunctionUtil, NotFoundEnumValue,
+    PlanesT, StrList, check_variable, core, depth, fallback, get_depth, get_neutral_value, join, normalize_planes,
+    normalize_seq, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, LimitFilterMode
@@ -22,7 +22,7 @@ __all__ = [
     'blur', 'box_blur', 'side_box_blur',
     'gauss_blur',
     'min_blur', 'sbr', 'median_blur',
-    'bilateral'
+    'bilateral', 'flux_smooth'
 ]
 
 
@@ -406,3 +406,25 @@ def bilateral(
         clip = clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
 
     return depth(clip, bits)
+
+
+def flux_smooth(
+    clip: vs.VideoNode, radius: int = 2, threshold: int = 7, scenechange: int = 24, planes: PlanesT = None
+) -> vs.VideoNode:
+    assert check_variable(clip, flux_smooth)
+
+    if radius < 1 or radius > 7:
+        raise CustomIndexError('Radius must be between 1 and 7 (inclusive)!', flux_smooth, reason=radius)
+
+    planes = normalize_planes(clip, planes)
+
+    threshold = threshold << clip.format.bits_per_sample - 8
+
+    cthreshold = threshold if (1 in planes or 2 in planes) else 0
+
+    median = clip.tmedian.TemporalMedian(radius, planes)  # type: ignore
+    average = clip.focus2.TemporalSoften2(  # type: ignore
+        radius, threshold, cthreshold, scenechange
+    )
+
+    return limit_filter(average, clip, median, LimitFilterMode.DIFF_MIN, planes)
