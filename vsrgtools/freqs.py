@@ -60,7 +60,7 @@ class MeanMode(CustomIntEnum):
             counts = range(n_clips)
             clip_vars = ExprVars(n_clips)
 
-            expr = StrList([[f'{clip} range_diff - D{i}!' for i, clip in zip(counts, clip_vars)]])
+            expr = StrList([[f'{clip} neutral - D{i}!' for i, clip in zip(counts, clip_vars)]])
 
             for y in range(2):
                 expr.extend([
@@ -68,7 +68,7 @@ class MeanMode(CustomIntEnum):
                     ExprOp.ADD * n_op, f'P{y + 1}!'
                 ])
 
-            expr.append('P2@ 0 = 0 P1@ P2@ / ? range_diff +')
+            expr.append('P2@ 0 = 0 P1@ P2@ / ? neutral +')
 
             return norm_expr(clips, expr, **kwargs)
 
@@ -84,7 +84,7 @@ class MeanMode(CustomIntEnum):
 
             expr_string = ''
             for src in ExprVars(n_clips):
-                expr_string += f'{src} range_diff - abs {src.upper()}D! '
+                expr_string += f'{src} neutral - abs {src.upper()}D! '
 
             for i, src, srcn in zip(count(), ExprVars(n_clips), ExprVars(1, n_clips)):
                 expr_string += f'{src.upper()}D@ {srcn.upper()}D@ {operator} {src} '

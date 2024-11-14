@@ -85,9 +85,9 @@ def shimmer_soothe(
     soft_diff = diff.std.AverageFrames([1] * (tr * 2 + 1), None, scenechange, planes)
 
     limit_diff = norm_expr([diff, soft_diff], [
-        'x range_diff - y range_diff - xor x range_diff - 100 / {strength} '
-        f'* range_diff + x range_diff - abs y range_diff - abs > x {strength} '
+        'x neutral - y neutral - xor x neutral - 100 / {strength} '
+        f'* neutral + x neutral - abs y neutral - abs > x {strength} '
         f'* y 100 {strength} - * + 100 / x ? ?'
     ], planes, strength=strength)
 
-    return norm_expr([orig, limit_diff], 'x y range_diff - -', planes)
+    return norm_expr([orig, limit_diff], 'x y neutral - -', planes)
