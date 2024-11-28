@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from vsexprtools import norm_expr
 from vstools import CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, normalize_planes, vs
 
@@ -18,7 +20,7 @@ __all__ = [
 
 def unsharpen(
     clip: vs.VideoNode, strength: float = 1.0, sigma: float | list[float] = 1.5,
-    prefilter: vs.VideoNode | VSFunction | None = None
+    prefilter: vs.VideoNode | VSFunction | None = None, **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable(clip, unsharpen)
 
@@ -27,7 +29,7 @@ def unsharpen(
     check_ref_clip(clip, ref)
 
     den = ref or clip
-    blur = gauss_blur(den, sigma)
+    blur = gauss_blur(den, sigma, **kwargs)
 
     unsharp = norm_expr([den, blur], f'x y - {strength} * x +', 0)
 
