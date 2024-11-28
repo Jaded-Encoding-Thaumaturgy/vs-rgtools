@@ -124,9 +124,9 @@ def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_rgplugin_stype(clip, backward_clense).BackwardClense(planes)
 
 
-def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
-    return pick_rgplugin_stype(clip, vertical_cleaner).VerticalCleaner(mode)
+def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT, func_except: FuncExceptT | None = None) -> vs.VideoNode:
+    return pick_rgplugin_stype(clip, func_except or vertical_cleaner).VerticalCleaner(mode)
 
 
 def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
-    return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()
+    return vertical_cleaner(clip.std.Transpose(), mode, horizontal_cleaner).std.Transpose()
