@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from vsexprtools import complexpr_available, expr_func
-from vstools import NotFoundEnumValue, PlanesT, check_variable, core, normalize_seq, pick_func_stype, vs
+from vstools import (
+    DependencyNotFoundError, FuncExceptT, NotFoundEnumValue, PlanesT, VSFunction, check_variable, core,
+    normalize_seq, vs
+)
 
 from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
@@ -11,6 +14,9 @@ from .enum import BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, Rep
 
 __all__ = [
     'repair', 'removegrain',
+
+    'pick_rgplugin_stype',
+
     'clense', 'backward_clense', 'forward_clense',
     'vertical_cleaner', 'horizontal_cleaner'
 ]
@@ -32,7 +38,7 @@ def repair(clip: vs.VideoNode, repairclip: vs.VideoNode, mode: RepairModeT) -> v
                 'Specified RepairMode for rgsf is not implemented!', repair, reason=iter(mode)
             )
 
-        return pick_func_stype(clip, core.rgvs.Repair, core.rgsf.Repair)(clip, repairclip, mode)
+        return pick_rgplugin_stype(clip, repair).Repair(clip, repairclip, mode)
 
     return core.akarin.Expr(
         [clip, repairclip], [repair_aka_exprs[m]() for m in mode], clip.format.id, True
@@ -62,7 +68,7 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
                 return BlurMatrix.WMEAN(clip)
             expr.append(aka_removegrain_expr_11_12())
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
-            return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
+            return pick_rgplugin_stype(clip, removegrain).RemoveGrain(mode)
         elif m == RemoveGrainMode.CIRCLE_BLUR:
             if set(mode) == {RemoveGrainMode.CIRCLE_BLUR}:
                 return BlurMatrix.CIRCLE(clip)
@@ -81,24 +87,45 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     return expr_func(clip, expr, opt=True)
 
 
+def pick_rgplugin_stype(clip: vs.VideoNode, func_except: FuncExceptT | None = None) -> VSFunction:
+    """Pick the RG plugin based on the sample type of the clip."""
+
+    single_available = hasattr(core, 'rgvs')
+    float_available = hasattr(core, 'rgsf')
+
+    if not single_available and not float_available:
+        raise DependencyNotFoundError(func_except or pick_rgplugin_stype, 'rgvs or rgsf')
+
+    if clip.format.sample_type == vs.FLOAT:
+        if not float_available:
+            raise DependencyNotFoundError(func_except or pick_rgplugin_stype, 'rgsf')
+
+        return clip.rgsf
+
+    if not single_available:
+        raise DependencyNotFoundError(func_except or pick_rgplugin_stype, 'rgvs')
+
+    return clip.rgvs
+
+
 def clense(
     clip: vs.VideoNode,
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
+    return pick_rgplugin_stype(clip, clense).Clense(previous_clip, next_clip, planes)
 
 
 def forward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
+    return (pick_rgplugin_stype(clip, forward_clense)).ForwardClense(planes)
 
 
 def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
+    return pick_rgplugin_stype(clip, backward_clense).BackwardClense(planes)
 
 
 def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
+    return pick_rgplugin_stype(clip, vertical_cleaner).VerticalCleaner(mode)
 
 
 def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
