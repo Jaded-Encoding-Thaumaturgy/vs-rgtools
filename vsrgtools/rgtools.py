@@ -86,19 +86,19 @@ def clense(
     previous_clip: vs.VideoNode | None = None, next_clip: vs.VideoNode | None = None,
     planes: PlanesT = None
 ) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.Clense, clip.rgsf.Clense)(previous_clip, next_clip, planes)
+    return pick_func_stype(clip, core.lazy.rgvs.Clense, core.lazy.rgsf.Clense)(clip, previous_clip, next_clip, planes)
 
 
 def forward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.ForwardClense, clip.rgsf.ForwardClense)(planes)
+    return pick_func_stype(clip, core.lazy.rgvs.ForwardClense, core.lazy.rgsf.ForwardClense)(clip, planes)
 
 
 def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.BackwardClense, clip.rgsf.BackwardClense)(planes)
+    return pick_func_stype(clip, core.lazy.rgvs.BackwardClense, core.lazy.rgsf.BackwardClense)(clip, planes)
 
 
 def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
-    return pick_func_stype(clip, clip.rgvs.VerticalCleaner, clip.rgsf.VerticalCleaner)(mode)
+    return pick_func_stype(clip, core.lazy.rgvs.VerticalCleaner, core.lazy.rgsf.VerticalCleaner)(clip, mode)
 
 
 def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
