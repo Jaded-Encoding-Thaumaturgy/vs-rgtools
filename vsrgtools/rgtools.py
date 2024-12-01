@@ -7,7 +7,9 @@ from .aka_expr import (
     aka_removegrain_expr_11_12, aka_removegrain_expr_19, aka_removegrain_expr_20, aka_removegrain_expr_23,
     aka_removegrain_expr_24, removegrain_aka_exprs, repair_aka_exprs
 )
-from .enum import BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerModeT
+from .enum import (
+    BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT, VerticalCleanerMode, VerticalCleanerModeT
+)
 
 __all__ = [
     'repair', 'removegrain',
@@ -97,9 +99,9 @@ def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
     return pick_func_stype(clip, core.lazy.rgvs.BackwardClense, core.lazy.rgsf.BackwardClense)(clip, planes)
 
 
-def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
+def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT = VerticalCleanerMode.MEDIAN) -> vs.VideoNode:
     return pick_func_stype(clip, core.lazy.rgvs.VerticalCleaner, core.lazy.rgsf.VerticalCleaner)(clip, mode)
 
 
-def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT) -> vs.VideoNode:
+def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT = VerticalCleanerMode.MEDIAN) -> vs.VideoNode:
     return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()
