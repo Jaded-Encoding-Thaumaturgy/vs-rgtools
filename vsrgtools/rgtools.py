@@ -14,7 +14,7 @@ from .enum import (
 __all__ = [
     'repair', 'removegrain',
     'clense', 'backward_clense', 'forward_clense',
-    'vertical_cleaner', 'horizontal_cleaner'
+    'vertical_cleaner'
 ]
 
 
@@ -101,7 +101,3 @@ def backward_clense(clip: vs.VideoNode, planes: PlanesT = None) -> vs.VideoNode:
 
 def vertical_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT = VerticalCleanerMode.MEDIAN) -> vs.VideoNode:
     return pick_func_stype(clip, core.lazy.rgvs.VerticalCleaner, core.lazy.rgsf.VerticalCleaner)(clip, mode)
-
-
-def horizontal_cleaner(clip: vs.VideoNode, mode: VerticalCleanerModeT = VerticalCleanerMode.MEDIAN) -> vs.VideoNode:
-    return vertical_cleaner(clip.std.Transpose(), mode).std.Transpose()
