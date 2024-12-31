@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from functools import lru_cache, partial
+from functools import partial
 from itertools import count
-from math import e, log2
-from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
-from vspyplugin import FilterMode, ProcessMode, PyPluginCuda
 from vstools import (
     ConvMode, CustomNotImplementedError, CustomRuntimeError, CustomIndexError, FunctionUtil, NotFoundEnumValue,
-    PlanesT, StrList, check_variable, core, depth, fallback, get_depth, get_neutral_value, join, normalize_planes,
-    normalize_seq, split, to_arr, vs
+    PlanesT, StrList, check_variable, core, depth, get_depth, get_neutral_value, join, normalize_planes,
+    split, to_arr, vs
 )
 
 from .enum import BlurMatrix, LimitFilterMode
@@ -307,47 +304,6 @@ def median_blur(
     ), planes, force_akarin=median_blur)
 
 
-class BilateralFilter(PyPluginCuda[None]):
-    cuda_kernel = 'bilateral'
-    filter_mode = FilterMode.Parallel
-
-    input_per_plane = True
-    output_per_plane = True
-
-    @PyPluginCuda.process(ProcessMode.SingleSrcIPP)
-    def _(self, src: BilateralFilter.DT, dst: BilateralFilter.DT, f: vs.VideoFrame, plane: int, n: int) -> None:
-        self.kernel.bilateral[plane](src, dst)
-
-    @lru_cache
-    def get_kernel_shared_mem(
-        self, plane: int, func_name: str, blk_size_w: int, blk_size_h: int, dtype_size: int
-    ) -> int:
-        return (2 * self.bil_radius[plane] + blk_size_w) * (2 * self.bil_radius[plane] + blk_size_h) * dtype_size
-
-    def __init__(
-        self, clip: vs.VideoNode, sigmaS: float | list[float], sigmaR: float | list[float],
-        radius: int | list[int] | None, **kwargs: Any
-    ) -> None:
-        sigmaS, sigmaR = normalize_seq(sigmaS), normalize_seq(sigmaR)
-
-        sigmaS_scaled, sigmaR_scaled = [
-            [(-0.5 / (val * val)) * log2(e) for val in vals]
-            for vals in (sigmaS, sigmaR)
-        ]
-
-        if radius is None:
-            radius = [max(1, round(s * 3)) for s in sigmaS]
-
-        self.bil_radius = normalize_seq(radius)
-
-        return super().__init__(
-            clip, kernel_planes_kwargs=[
-                dict(sigmaS=s, sigmaR=r, radius=rad)
-                for s, r, rad in zip(sigmaS_scaled, sigmaR_scaled, self.bil_radius)
-            ], **kwargs
-        )
-
-
 def bilateral(
     clip: vs.VideoNode, sigmaS: float | list[float] = 3.0, sigmaR: float | list[float] = 0.02,
     ref: vs.VideoNode | None = None, radius: int | list[int] | None = None,
@@ -360,39 +316,12 @@ def bilateral(
     sigmaS, sigmaR = func.norm_seq(sigmaS), func.norm_seq(sigmaR)
 
     if gpu is not False:
-        if not ref and min(sigmaS) < 4 and PyPluginCuda.backend.is_available:
-            block_x = fallback(block_x, block_y, 16)
-            block_y = fallback(block_y, block_x)
+        basic_args, new_args = (sigmaS, sigmaR, radius, device_id), (num_streams, use_shared_memory)
 
-            return BilateralFilter(
-                clip, sigmaS, sigmaR, radius,
-                kernel_size=(block_x, block_y),
-                use_shared_memory=use_shared_memory
-            ).invoke()
-
-        try:
-            basic_args, new_args = (sigmaS, sigmaR, radius, device_id), (num_streams, use_shared_memory)
-
-            if hasattr(core, 'bilateralgpu_rtc'):
-                if 'ref' in core.bilateralgpu_rtc.Bilateral.signature:  # type: ignore
-                    return clip.bilateralgpu_rtc.Bilateral(*basic_args, *new_args, block_x, block_y, ref)
-                if not ref:
-                    return clip.bilateralgpu_rtc.Bilateral(*basic_args, *new_args, block_x, block_y)
-
-            if hasattr(core, 'bilateralgpu'):
-                try:
-                    if 'ref' in core.bilateralgpu.Bilateral.signature:  # type: ignore
-                        return clip.bilateralgpu.Bilateral(*basic_args, *new_args, ref)
-                    if not ref:
-                        return clip.bilateralgpu.Bilateral(*basic_args, *new_args)
-                except vs.Error:
-                    if not ref:
-                        # Old versions
-                        return clip.bilateralgpu.Bilateral(*basic_args)
-        except vs.Error as e:
-            # has the plugin but no cuda GPU available
-            if 'cudaGetDeviceCount' in str(e):
-                pass
+        if hasattr(core, 'bilateralgpu_rtc'):
+            return clip.bilateralgpu_rtc.Bilateral(*basic_args, *new_args, block_x, block_y, ref)
+        else:
+            return clip.bilateralgpu.Bilateral(*basic_args, *new_args, ref)
 
     if (bits := get_depth(clip)) > 16:
         clip = depth(clip, 16)
@@ -400,10 +329,7 @@ def bilateral(
     if ref and clip.format != ref.format:
         ref = depth(ref, clip)
 
-    if hasattr(core, 'vszip'):
-        clip = clip.vszip.Bilateral(ref, sigmaS, sigmaR)
-    else:
-        clip = clip.bilateral.Bilateral(ref, sigmaS, sigmaR)
+    clip = clip.vszip.Bilateral(ref, sigmaS, sigmaR)
 
     return depth(clip, bits)
 
