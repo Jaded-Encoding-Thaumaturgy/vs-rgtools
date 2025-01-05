@@ -191,10 +191,10 @@ def gauss_blur(
 
     no_resize2 = not hasattr(core, 'resize2')
 
-    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_resize2 and taps > 12 else 1023)
+    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_resize2 and taps > 12 else 1023, mode)
 
     if len(kernel) <= 25:
-        return kernel(clip, planes, mode)
+        return kernel(clip, planes)
 
     if no_resize2:
         if not complexpr_available:

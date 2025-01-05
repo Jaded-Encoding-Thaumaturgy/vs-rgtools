@@ -61,13 +61,13 @@ def limit_usm(
     if callable(blur):
         blurred = blur(clip)
     elif isinstance(blur, vs.VideoNode):
-        blurred = blur  # type: ignore
-    elif blur <= 0:  # type: ignore
-        blurred = min_blur(clip, -blur, planes)  # type: ignore
+        blurred = blur
+    elif blur <= 0:
+        blurred = min_blur(clip, -blur, planes)
     elif blur == 1:
-        blurred = BlurMatrix.WMEAN(clip, planes)
+        blurred = BlurMatrix.WMEAN()(clip, planes)
     elif blur == 2:
-        blurred = BlurMatrix.MEAN(clip, planes)
+        blurred = BlurMatrix.MEAN()(clip, planes)
     else:
         raise CustomTypeError("'blur' must be an int, clip or a blurring function!", limit_usm, blur)
 

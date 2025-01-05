@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from enum import auto
 from math import ceil, exp, log2, pi, sqrt
-from typing import Generic, Sequence, TypeVar
+from typing import Generic, Iterable, Literal, Self, Sequence
 
-from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
+from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -133,9 +133,18 @@ class VerticalCleanerMode(CustomIntEnum):
 VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleanerMode]
 
 
-class BaseBlurMatrix(Generic[Nb], list[Nb]):
+OneDimensionConvMode = Literal[ConvMode.HORIZONTAL] | Literal[ConvMode.VERTICAL] | Literal[ConvMode.HV]
+
+
+class BlurMatrixBase(Generic[Nb], list[Nb]):
+    def __init__(
+        self, __iterable: Iterable[Nb], /, mode: ConvMode = ConvMode.SQUARE,
+    ) -> None:
+        self.mode = mode
+        super().__init__(__iterable)  # type: ignore[arg-type]
+
     def __call__(
-        self, clip: vs.VideoNode, planes: PlanesT = None, mode: ConvMode = ConvMode.HV,
+        self, clip: vs.VideoNode, planes: PlanesT = None,
         bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
         passes: int = 1
     ) -> vs.VideoNode:
@@ -144,17 +153,17 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
 
         conv = self.tosizes(*range(3, 26, 2))
 
-        return iterate(clip, core.std.Convolution, passes, conv, bias, divisor, planes, saturate, mode)
+        return iterate(clip, core.std.Convolution, passes, conv, bias, divisor, planes, saturate, self.mode)
 
     @property
-    def asint(self) -> BaseBlurMatrix[int]:
-        return BaseBlurMatrix[int](map(int, self))
+    def asint(self) -> BlurMatrixBase[int]:
+        return BlurMatrixBase[int](map(int, self))
 
     @property
-    def asfloat(self) -> BaseBlurMatrix[float]:
-        return BaseBlurMatrix[float](map(float, self))
+    def asfloat(self) -> BlurMatrixBase[float]:
+        return BlurMatrixBase[float](map(float, self))
 
-    def tosize(self: BBMatrixT, size: int) -> BBMatrixT:
+    def tosize(self, size: int) -> Self:
         curlen = len(self)
 
         diff = curlen - size
@@ -170,7 +179,7 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
 
         return self.__class__(self[lh:-rh])
 
-    def tosizes(self: BBMatrixT, *_sizes: int) -> BBMatrixT:
+    def tosizes(self, *_sizes: int) -> Self:
         sizes = list(sorted(_sizes, reverse=True))
 
         curlen = len(self)
@@ -191,18 +200,70 @@ class BaseBlurMatrix(Generic[Nb], list[Nb]):
         return self.tosize(sizes[-1])
 
 
-BBMatrixT = TypeVar('BBMatrixT', bound=BaseBlurMatrix)  # type: ignore
+class BlurMatrix(BlurMatrixBase[Nb]):
+    @classmethod
+    def BOX(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
+        return BlurMatrix([1, 1, 0, 1, 1, 0, 0, 0, 0], mode)
 
+    @classmethod
+    def CIRCLE(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
+        matrix = [
+            1 for _ in range(((2 * taps + 1) ** (2 if mode == ConvMode.SQUARE else 1)) - 1)
+        ]
 
-class BlurMatrix(BaseBlurMatrix[int]):
-    BOX = BaseBlurMatrix[int]([1, 1, 0, 1, 1, 0, 0, 0, 0])
-    MEAN = BaseBlurMatrix[int]([1, 1, 1, 1, 1, 1, 1, 1, 1])
-    WMEAN = BaseBlurMatrix[int]([1, 2, 1, 2, 4, 2, 1, 2, 1])
-    CIRCLE = BaseBlurMatrix[int]([1, 1, 1, 1, 0, 1, 1, 1, 1])
+        matrix.insert(len(matrix) // 2, 0)
 
-    @to_singleton.as_property
-    class GAUSS:
-        def __call__(self, sigma: float, taps: int | None = None, scale_value: float = 1023) -> BaseBlurMatrix[float]:
+        return BlurMatrix(matrix, mode)
+
+    @classmethod
+    def MEAN(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
+        return BlurMatrix(
+            (1 for _ in range(((2 * taps + 1) ** (2 if mode == ConvMode.SQUARE else 1)))), mode
+        )
+
+    @classmethod
+    def BINOMIAL(cls, taps: int = 2, c: int = 1, mode: ConvMode = ConvMode.HV) -> BlurMatrix[int]:
+        n = taps * 2 + 1
+
+        matrix = list[int]()
+
+        for i in range(1, taps + c + 1):
+            matrix.append(c)
+            c = c * (n - i) // i
+
+        kernel = matrix[:-1] + matrix[::-1]
+
+        if mode == ConvMode.SQUARE:
+            from numpy import outer
+
+            kernel = outer(kernel, kernel).flatten().tolist()
+
+        return BlurMatrix(kernel, mode)
+
+    @classmethod
+    def WMEAN(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
+        return cls.BINOMIAL(taps, mode=mode)
+
+    @classmethod
+    def LOG(cls, radius: int = 1, strength: float = 100.0, mode: OneDimensionConvMode = ConvMode.HV) -> BlurMatrix[float]:
+        strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
+
+        weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
+
+        matrix = [1.0]
+
+        for _ in range(radius):
+            matrix.append(matrix[-1] / weight)
+
+        kernel = [*matrix[::-1], *matrix[1:]]  # type: ignore[has-type]
+
+        return BlurMatrix(kernel, mode)
+
+    class GAUSS(BlurMatrixBase[float]):
+        def __init__(
+            self, sigma: float, taps: int | None = None, scale_value: float = 1023,
+            mode: OneDimensionConvMode = ConvMode.HV
+        ) -> None:
             taps = self.get_taps(sigma, taps)
 
             if taps < 0:
@@ -218,30 +279,16 @@ class BlurMatrix(BaseBlurMatrix[int]):
                 kernel = [*kernel[::-1], scale_value, *kernel]
             else:
                 kernel = [scale_value]
+            
+            super().__init__(kernel, mode)
 
-            return BaseBlurMatrix[float](kernel)
+        @classmethod
+        def from_radius(cls, radius: int) -> Self:
+            return cls((radius + 1.0) / 3)
 
-        def from_radius(self, radius: int) -> BaseBlurMatrix[float]:
-            return self((radius + 1.0) / 3)
-
-        def get_taps(self, sigma: float, taps: int | None = None) -> int:
+        @classmethod
+        def get_taps(cls, sigma: float, taps: int | None = None) -> int:
             if taps is None:
                 taps = ceil(abs(sigma) * 8 + 1) // 2
 
             return taps
-
-    @to_singleton.as_property
-    class LOG:
-        def __call__(self, radius: int = 1, strength: float = 100.0) -> BaseBlurMatrix[float]:
-            strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
-
-            weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
-
-            matrix = [1.0]
-
-            for _ in range(radius):
-                matrix.append(matrix[-1] / weight)
-
-            kernel = [*matrix[::-1], *matrix[1:]]
-
-            return BaseBlurMatrix[float](kernel)

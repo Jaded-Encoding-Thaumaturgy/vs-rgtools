@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Sequence, TypeVar, cast
 
 from vstools import (
-    GenericVSFunction, KwargsT, Nb, PlanesT, check_variable, check_variable_format, join, normalize_planes,
+    ConvMode, GenericVSFunction, KwargsT, Nb, PlanesT, check_variable, check_variable_format, join, normalize_planes,
     normalize_seq, plane, vs
 )
 
@@ -15,8 +15,8 @@ __all__ = [
     'normalize_radius'
 ]
 
-wmean_matrix = list(BlurMatrix.WMEAN)
-mean_matrix = list(BlurMatrix.MEAN)
+wmean_matrix = list(BlurMatrix.WMEAN(1, ConvMode.SQUARE))
+mean_matrix = list(BlurMatrix.MEAN(1, ConvMode.SQUARE))
 
 RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)
 
