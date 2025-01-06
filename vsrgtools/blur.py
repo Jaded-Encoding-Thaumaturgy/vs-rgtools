@@ -11,7 +11,7 @@ from vstools import (
     split, to_arr, vs
 )
 
-from .enum import BlurMatrix, LimitFilterMode
+from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
 from .limit import limit_filter
 from .util import normalize_radius
 
@@ -191,7 +191,9 @@ def gauss_blur(
 
     no_resize2 = not hasattr(core, 'resize2')
 
-    kernel = BlurMatrix.GAUSS(sigma, taps, 1.0 if no_resize2 and taps > 12 else 1023, mode)
+    kernel: BlurMatrixBase[float] = BlurMatrix.GAUSS(  # type: ignore
+        taps, sigma=sigma, mode=mode, scale_value=1.0 if no_resize2 and taps > 12 else 1023
+    )
 
     if len(kernel) <= 25:
         return kernel(clip, planes)

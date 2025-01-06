@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from enum import auto
 from math import ceil, exp, log2, pi, sqrt
-from typing import Generic, Iterable, Literal, Self, Sequence
+from typing import Any, Iterable, Literal, Self, Sequence, overload
 
-from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, vs
+from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -133,10 +133,7 @@ class VerticalCleanerMode(CustomIntEnum):
 VerticalCleanerModeT = int | VerticalCleanerMode | Sequence[int | VerticalCleanerMode]
 
 
-OneDimensionConvMode = Literal[ConvMode.HORIZONTAL] | Literal[ConvMode.VERTICAL] | Literal[ConvMode.HV]
-
-
-class BlurMatrixBase(Generic[Nb], list[Nb]):
+class BlurMatrixBase(list[Nb]):
     def __init__(
         self, __iterable: Iterable[Nb], /, mode: ConvMode = ConvMode.SQUARE,
     ) -> None:
@@ -151,144 +148,151 @@ class BlurMatrixBase(Generic[Nb], list[Nb]):
         if len(self) <= 1:
             return clip
 
-        conv = self.tosizes(*range(3, 26, 2))
+        return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
 
-        return iterate(clip, core.std.Convolution, passes, conv, bias, divisor, planes, saturate, self.mode)
+    def outer(self) -> Self:
+        from numpy import outer
 
-    @property
-    def asint(self) -> BlurMatrixBase[int]:
-        return BlurMatrixBase[int](map(int, self))
-
-    @property
-    def asfloat(self) -> BlurMatrixBase[float]:
-        return BlurMatrixBase[float](map(float, self))
-
-    def tosize(self, size: int) -> Self:
-        curlen = len(self)
-
-        diff = curlen - size
-
-        if diff == 0:
-            return self
-
-        lh = abs(diff) // 2
-        rh = abs(diff) - lh
-
-        if diff < 0:
-            return self.__class__(self[:lh] + self + self[-rh:])
-
-        return self.__class__(self[lh:-rh])
-
-    def tosizes(self, *_sizes: int) -> Self:
-        sizes = list(sorted(_sizes, reverse=True))
-
-        curlen = len(self)
-
-        for sizeh, sizel in zip(sizes, sizes[1:]):
-            if curlen >= sizeh:
-                return self.tosize(sizeh)
-
-            if curlen == sizel:
-                return self.tosize(sizel)
-
-            if curlen > sizel:
-                if (sizeh - curlen) < (curlen - sizel):
-                    return self.tosize(sizeh)
-
-                return self.tosize(sizel)
-
-        return self.tosize(sizes[-1])
+        return self.__class__(outer(self, self).flatten().tolist(), self.mode)
 
 
-class BlurMatrix(BlurMatrixBase[Nb]):
-    @classmethod
-    def BOX(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
-        return BlurMatrix([1, 1, 0, 1, 1, 0, 0, 0, 0], mode)
+class BlurMatrix(CustomIntEnum):
+    CIRCLE = 0
+    MEAN = 1
+    WMEAN = 2
+    BINOMIAL = 3
+    LOG = 4
 
-    @classmethod
-    def CIRCLE(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
-        matrix = [
-            1 for _ in range(((2 * taps + 1) ** (2 if mode == ConvMode.SQUARE else 1)) - 1)
-        ]
+    @to_singleton.as_property
+    class GAUSS:
+        def __call__(
+            self,
+            taps: int | None = None,
+            *,
+            sigma: float = 0.25,
+            mode: ConvMode = ConvMode.HV,
+            **kwargs: Any
+        ) -> BlurMatrixBase[float]:
+                scale_value = kwargs.get("scale_value", 1023)
 
-        matrix.insert(len(matrix) // 2, 0)
+                if mode == ConvMode.SQUARE:
+                    scale_value = sqrt(scale_value)
 
-        return BlurMatrix(matrix, mode)
+                taps = self.get_taps(sigma, taps)
 
-    @classmethod
-    def MEAN(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
-        return BlurMatrix(
-            (1 for _ in range(((2 * taps + 1) ** (2 if mode == ConvMode.SQUARE else 1)))), mode
-        )
+                if taps < 0:
+                    raise CustomValueError('Taps must be >= 0!')
 
-    @classmethod
-    def BINOMIAL(cls, taps: int = 2, c: int = 1, mode: ConvMode = ConvMode.HV) -> BlurMatrix[int]:
-        n = taps * 2 + 1
+                if sigma > 0.0:
+                    half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
+                    doub_qsigma = 2 * sigma ** 2
 
-        matrix = list[int]()
+                    high, *mat = [half_pisqrt * exp(-x ** 2 / doub_qsigma) for x in range(taps + 1)]
 
-        for i in range(1, taps + c + 1):
-            matrix.append(c)
-            c = c * (n - i) // i
+                    mat = [x * scale_value / high for x in mat]
+                    mat = [*mat[::-1], scale_value, *mat]
+                else:
+                    mat = [scale_value]
 
-        kernel = matrix[:-1] + matrix[::-1]
+                kernel = BlurMatrixBase(mat, mode)
 
-        if mode == ConvMode.SQUARE:
-            from numpy import outer
+                if mode == ConvMode.SQUARE:
+                    kernel = kernel.outer()
 
-            kernel = outer(kernel, kernel).flatten().tolist()
+                return kernel
 
-        return BlurMatrix(kernel, mode)
+        def from_radius(self, radius: int) -> BlurMatrixBase[float]:
+            return self(None, sigma=(radius + 1.0) / 3)
 
-    @classmethod
-    def WMEAN(cls, taps: int = 1, mode: ConvMode = ConvMode.SQUARE) -> BlurMatrix[int]:
-        return cls.BINOMIAL(taps, mode=mode)
-
-    @classmethod
-    def LOG(cls, radius: int = 1, strength: float = 100.0, mode: OneDimensionConvMode = ConvMode.HV) -> BlurMatrix[float]:
-        strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
-
-        weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
-
-        matrix = [1.0]
-
-        for _ in range(radius):
-            matrix.append(matrix[-1] / weight)
-
-        kernel = [*matrix[::-1], *matrix[1:]]  # type: ignore[has-type]
-
-        return BlurMatrix(kernel, mode)
-
-    class GAUSS(BlurMatrixBase[float]):
-        def __init__(
-            self, sigma: float, taps: int | None = None, scale_value: float = 1023,
-            mode: OneDimensionConvMode = ConvMode.HV
-        ) -> None:
-            taps = self.get_taps(sigma, taps)
-
-            if taps < 0:
-                raise CustomValueError('Taps must be >= 0!')
-
-            if sigma > 0.0:
-                half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
-                doub_qsigma = 2 * sigma ** 2
-
-                high, *kernel = [half_pisqrt * exp(-x ** 2 / doub_qsigma) for x in range(taps + 1)]
-
-                kernel = [x * scale_value / high for x in kernel]
-                kernel = [*kernel[::-1], scale_value, *kernel]
-            else:
-                kernel = [scale_value]
-            
-            super().__init__(kernel, mode)
-
-        @classmethod
-        def from_radius(cls, radius: int) -> Self:
-            return cls((radius + 1.0) / 3)
-
-        @classmethod
-        def get_taps(cls, sigma: float, taps: int | None = None) -> int:
+        @staticmethod
+        def get_taps(sigma: float, taps: int | None = None) -> int:
             if taps is None:
                 taps = ceil(abs(sigma) * 8 + 1) // 2
 
             return taps
+
+    @overload
+    def __call__(  # type: ignore[misc]
+        self: Literal[BlurMatrix.CIRCLE], taps: int = 1, *, mode: ConvMode = ConvMode.SQUARE
+    ) -> BlurMatrixBase[int]:
+        ...
+
+    @overload
+    def __call__(  # type: ignore[misc]
+        self: Literal[BlurMatrix.MEAN], taps: int = 1, *, mode: ConvMode = ConvMode.SQUARE
+    ) -> BlurMatrixBase[int]:
+        ...
+
+    @overload
+    def __call__(  # type: ignore[misc]
+        self: Literal[BlurMatrix.BINOMIAL], taps: int = 1, *, mode: ConvMode = ConvMode.HV, **kwargs: Any
+    ) -> BlurMatrixBase[int]:
+        ...
+
+    @overload
+    def __call__(  # type: ignore[misc]
+        self: Literal[BlurMatrix.WMEAN], taps: int = 1, *, mode: ConvMode = ConvMode.SQUARE
+    ) -> BlurMatrixBase[int]:
+        ...
+
+    @overload
+    def __call__(  # type: ignore[misc]
+        self: Literal[BlurMatrix.LOG], taps: int = 1, *, strength: float = 100.0, mode: ConvMode = ConvMode.HV
+    ) -> BlurMatrixBase[float]:
+        ...
+
+    def __call__(self, taps: int = 1, **kwargs: Any) -> Any:
+        kernel: BlurMatrixBase[Any]
+
+        match self:
+            case BlurMatrix.CIRCLE:
+                mode = kwargs.pop("mode", ConvMode.SQUARE)
+
+                matrix = [1 for _ in range(((2 * taps + 1) ** (2 if mode == ConvMode.SQUARE else 1)) - 1)]
+                matrix.insert(len(matrix) // 2, 0)
+
+                return BlurMatrixBase[int](matrix, mode)
+
+            case BlurMatrix.MEAN:
+                mode = kwargs.pop("mode", ConvMode.SQUARE)
+
+                kernel = BlurMatrixBase[int]([1 for _ in range(((2 * taps + 1)))], mode)
+
+            case BlurMatrix.BINOMIAL:
+                mode = kwargs.pop("mode", ConvMode.HV)
+                c = kwargs.get("c", 1)
+
+                n = taps * 2 + 1
+
+                matrix = list[int]()
+
+                for i in range(1, taps + c + 1):
+                    matrix.append(c)
+                    c = c * (n - i) // i
+
+                kernel = BlurMatrixBase(matrix[:-1] + matrix[::-1], mode)
+
+            case BlurMatrix.WMEAN:
+                mode = kwargs.pop("mode", ConvMode.SQUARE)
+
+                return BlurMatrix.BINOMIAL(taps, mode=mode, **kwargs)
+
+            case BlurMatrix.LOG:
+                mode = kwargs.pop("mode", ConvMode.HV)
+                strength = kwargs.get("strength", 100)
+
+                strength = max(1e-6, min(log2(3) * strength / 100, log2(3)))
+
+                weight = 0.5 ** strength / ((1 - 0.5 ** strength) * 0.5)
+
+                matrixf = [1.0]
+
+                for _ in range(taps):
+                    matrixf.append(matrixf[-1] / weight)
+
+                kernel = BlurMatrixBase([*matrixf[::-1], *matrixf[1:]], mode)
+
+        if mode == ConvMode.SQUARE:
+            kernel = kernel.outer()
+
+        return kernel
