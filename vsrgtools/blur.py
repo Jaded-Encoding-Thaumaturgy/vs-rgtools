@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from functools import partial
 from itertools import count
+from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomRuntimeError, CustomIndexError, FunctionUtil, NotFoundEnumValue,
+    ConvMode, CustomNotImplementedError, CustomRuntimeError, CustomIndexError, FunctionUtil,
     PlanesT, StrList, check_variable, core, depth, get_depth, get_neutral_value, join, normalize_planes,
     split, to_arr, vs
 )
@@ -24,7 +25,8 @@ __all__ = [
 
 
 def blur(
-    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
+    **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable(clip, blur)
 
@@ -33,25 +35,25 @@ def blur(
     if isinstance(radius, list):
         return normalize_radius(clip, blur, radius, planes, mode=mode)
 
-    if mode == ConvMode.HV:
-        matrix2 = [1, 3, 4, 3, 1]
-        matrix3 = [1, 4, 8, 10, 8, 4, 1]
-    elif mode in {ConvMode.HORIZONTAL, ConvMode.VERTICAL}:
-        matrix2 = [1, 6, 15, 20, 15, 6, 1]
-        matrix3 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1]
-    else:
-        raise NotFoundEnumValue('Invalid mode specified!', blur)
+    legacy: bool = kwargs.get("legacy", False)
 
-    if radius == 1:
-        matrix = [1, 2, 1]
-    elif radius == 2:
-        matrix = matrix2
-    elif radius == 3:
-        matrix = matrix3
-    else:
-        raise CustomNotImplementedError('This radius isn\'t supported!', blur)
+    match mode:
+        case ConvMode.HV if legacy:
+            match radius:
+                case 1:
+                    return blur(clip, radius, mode, planes)
+                case 2:
+                    return BlurMatrixBase([1, 3, 4, 3, 1], mode)(clip, planes)
+                case 3:
+                    return BlurMatrixBase([1, 4, 8, 10, 8, 4, 1], mode)(clip, planes)
+                case _:
+                    raise CustomNotImplementedError('This radius isn\'t supported!', blur)
 
-    return clip.std.Convolution(matrix, planes=planes, mode=mode)
+        case ConvMode.HORIZONTAL | ConvMode.VERTICAL:
+            return BlurMatrix.BINOMIAL(radius * 2 - 1, mode=mode)(clip, planes) 
+
+        case _:
+            return BlurMatrix.BINOMIAL(radius, mode=mode)(clip, planes)
 
 
 def box_blur(
