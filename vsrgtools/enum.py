@@ -169,7 +169,7 @@ class BlurMatrix(CustomIntEnum):
             self,
             taps: int | None = None,
             *,
-            sigma: float = 0.25,
+            sigma: float = 0.5,
             mode: ConvMode = ConvMode.HV,
             **kwargs: Any
         ) -> BlurMatrixBase[float]:
