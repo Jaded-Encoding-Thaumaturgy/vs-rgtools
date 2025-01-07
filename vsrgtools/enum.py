@@ -260,13 +260,13 @@ class BlurMatrix(CustomIntEnum):
 
             case BlurMatrix.BINOMIAL:
                 mode = kwargs.pop("mode", ConvMode.HV)
-                c = kwargs.get("c", 1)
 
+                c = 1
                 n = taps * 2 + 1
 
                 matrix = list[int]()
 
-                for i in range(1, taps + c + 1):
+                for i in range(1, taps + 2):
                     matrix.append(c)
                     c = c * (n - i) // i
 
