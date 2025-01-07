@@ -159,9 +159,8 @@ class BlurMatrixBase(list[Nb]):
 class BlurMatrix(CustomIntEnum):
     CIRCLE = 0
     MEAN = 1
-    WMEAN = 2
-    BINOMIAL = 3
-    LOG = 4
+    BINOMIAL = 2
+    LOG = 3
 
     @to_singleton.as_property
     class GAUSS:
@@ -231,12 +230,6 @@ class BlurMatrix(CustomIntEnum):
 
     @overload
     def __call__(  # type: ignore[misc]
-        self: Literal[BlurMatrix.WMEAN], taps: int = 1, *, mode: ConvMode = ConvMode.SQUARE
-    ) -> BlurMatrixBase[int]:
-        ...
-
-    @overload
-    def __call__(  # type: ignore[misc]
         self: Literal[BlurMatrix.LOG], taps: int = 1, *, strength: float = 100.0, mode: ConvMode = ConvMode.HV
     ) -> BlurMatrixBase[float]:
         ...
@@ -271,11 +264,6 @@ class BlurMatrix(CustomIntEnum):
                     c = c * (n - i) // i
 
                 kernel = BlurMatrixBase(matrix[:-1] + matrix[::-1], mode)
-
-            case BlurMatrix.WMEAN:
-                mode = kwargs.pop("mode", ConvMode.SQUARE)
-
-                return BlurMatrix.BINOMIAL(taps, mode=mode, **kwargs)
 
             case BlurMatrix.LOG:
                 mode = kwargs.pop("mode", ConvMode.HV)

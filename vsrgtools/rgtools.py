@@ -61,7 +61,7 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     for idx, m in enumerate(mode):
         if m == RemoveGrainMode.SQUARE_BLUR:
             if all(mm == m for mm in mode):
-                return BlurMatrix.WMEAN()(clip)
+                return BlurMatrix.BINOMIAL()(clip)
             expr.append(aka_removegrain_expr_11_12())
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
             return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)

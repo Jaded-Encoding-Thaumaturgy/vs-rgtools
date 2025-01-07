@@ -15,7 +15,7 @@ __all__ = [
     'normalize_radius'
 ]
 
-wmean_matrix = list(BlurMatrix.WMEAN(1, mode=ConvMode.SQUARE))
+wmean_matrix = list(BlurMatrix.BINOMIAL(1, mode=ConvMode.SQUARE))
 mean_matrix = list(BlurMatrix.MEAN(1, mode=ConvMode.SQUARE))
 
 RModeT = TypeVar('RModeT', RemoveGrainMode, RepairMode)

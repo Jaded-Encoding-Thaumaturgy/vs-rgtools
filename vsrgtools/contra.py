@@ -87,7 +87,7 @@ def contrasharpening_dehalo(
 
     rep_modes = norm_rmode_planes(flt, RepairMode.MINMAX_SQUARE1, planes)
 
-    weighted = BlurMatrix.WMEAN()(flt, planes)
+    weighted = BlurMatrix.BINOMIAL()(flt, planes)
     weighted2 = median_blur(weighted, 2, planes=planes)
     weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
 

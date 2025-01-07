@@ -65,7 +65,7 @@ def limit_usm(
     elif blur <= 0:
         blurred = min_blur(clip, -blur, planes)
     elif blur == 1:
-        blurred = BlurMatrix.WMEAN()(clip, planes)
+        blurred = BlurMatrix.BINOMIAL()(clip, planes)
     elif blur == 2:
         blurred = BlurMatrix.MEAN()(clip, planes)
     else:
