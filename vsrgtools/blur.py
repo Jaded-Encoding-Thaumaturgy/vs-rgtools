@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from functools import partial
 from itertools import count
-from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, CustomNotImplementedError, CustomRuntimeError, CustomIndexError, FunctionUtil,
-    PlanesT, StrList, check_variable, core, depth, get_depth, get_neutral_value, join, normalize_planes,
+    ConvMode, CustomRuntimeError, CustomIndexError, FunctionUtil,
+    PlanesT, StrList, check_variable, core, depth, get_depth, join, normalize_planes,
     split, to_arr, vs
 )
 
@@ -17,43 +16,11 @@ from .limit import limit_filter
 from .util import normalize_radius
 
 __all__ = [
-    'blur', 'box_blur', 'side_box_blur',
+    'box_blur', 'side_box_blur',
     'gauss_blur',
     'min_blur', 'sbr', 'median_blur',
     'bilateral', 'flux_smooth'
 ]
-
-
-def blur(
-    clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
-    **kwargs: Any
-) -> vs.VideoNode:
-    assert check_variable(clip, blur)
-
-    planes = normalize_planes(clip, planes)
-
-    if isinstance(radius, list):
-        return normalize_radius(clip, blur, radius, planes, mode=mode)
-
-    legacy: bool = kwargs.get("legacy", False)
-
-    match mode:
-        case ConvMode.HV if legacy:
-            match radius:
-                case 1:
-                    return blur(clip, radius, mode, planes)
-                case 2:
-                    return BlurMatrixBase([1, 3, 4, 3, 1], mode)(clip, planes)
-                case 3:
-                    return BlurMatrixBase([1, 4, 8, 10, 8, 4, 1], mode)(clip, planes)
-                case _:
-                    raise CustomNotImplementedError('This radius isn\'t supported!', blur)
-
-        case ConvMode.HORIZONTAL | ConvMode.VERTICAL:
-            return BlurMatrix.BINOMIAL(radius * 2 - 1, mode=mode)(clip, planes) 
-
-        case _:
-            return BlurMatrix.BINOMIAL(radius, mode=mode)(clip, planes)
 
 
 def box_blur(
@@ -230,7 +197,10 @@ def gauss_blur(
     ])
 
 
-def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = None) -> vs.VideoNode:
+def min_blur(
+        clip: vs.VideoNode, radius: int | list[int] = 1,
+        mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+) -> vs.VideoNode:
     """
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
     Nifty Gauss/Median combination
@@ -242,52 +212,39 @@ def min_blur(clip: vs.VideoNode, radius: int | list[int] = 1, planes: PlanesT = 
     if isinstance(radius, list):
         return normalize_radius(clip, min_blur, radius, planes)
 
-    if radius in {0, 1}:
-        median = clip.std.Median(planes)
-    else:
-        median = median_blur(clip, radius, planes=planes)
+    blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode)(clip, planes=planes)
 
-    if radius:
-        weighted = blur(clip, radius)
-    else:
-        weighted = sbr(clip, planes=planes)
+    median = median_blur(clip, radius, mode, planes=planes)
 
-    return limit_filter(weighted, clip, median, LimitFilterMode.DIFF_MIN, planes)
+    return norm_expr(
+        [clip, blurred, median],
+        'x y - D1! x z - D2! D1@ D2@ xor x D1@ abs D2@ abs < y z ? ?',
+        planes=planes
+    )
 
 
 def sbr(
-    clip: vs.VideoNode,
-    radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV,
-    planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1,
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, sbr)
 
     planes = normalize_planes(clip, planes)
 
-    neutral = get_neutral_value(clip)
+    blur_kernel = BlurMatrix.BINOMIAL(radius=radius, mode=mode)
 
-    blur_func = partial(blur, radius=radius, mode=mode, planes=planes)
+    blurred = blur_kernel(clip, planes=planes)
 
-    weighted = blur_func(clip)
+    diff = clip.std.MakeDiff(blurred, planes=planes)
+    blurred_diff = blur_kernel(diff, planes=planes)
 
-    diff = clip.std.MakeDiff(weighted, planes)
+    limited_diff = norm_expr(
+        [diff, blurred_diff],
+        'x y - D1! x neutral - D2! D1@ D2@ xor neutral D1@ abs D2@ abs < D1@ neutral + x ? ?',
+        planes=planes
+    )
 
-    diff_weighted = blur_func(diff)
-
-    clips = [diff, diff_weighted]
-
-    if complexpr_available:
-        clips.append(clip)
-        expr = 'x y - A! x {mid} - XD! z A@ XD@ * 0 < {mid} A@ abs XD@ abs < A@ {mid} + x ? ? {mid} - -'
-    else:
-        expr = 'x y - x {mid} - * 0 < {mid} x y - abs x {mid} - abs < x y - {mid} + x ? ?'
-
-    diff = norm_expr(clips, expr, planes, mid=neutral)
-
-    if complexpr_available:
-        return diff
-
-    return clip.std.MakeDiff(diff, planes)
+    return clip.std.MakeDiff(limited_diff, planes=planes)
 
 
 def median_blur(
