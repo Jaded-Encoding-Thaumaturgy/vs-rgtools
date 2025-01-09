@@ -250,6 +250,9 @@ def sbr(
 def median_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
+    if radius == 1 and mode in (ConvMode.HV, ConvMode.SQUARE):
+        return clip.std.Median(planes=planes)
+
     def _get_vals(radius: int) -> tuple[StrList, int, int, int]:
         matrix = ExprOp.matrix('x', radius, mode, [(0, 0)])
         rb = len(matrix) + 1

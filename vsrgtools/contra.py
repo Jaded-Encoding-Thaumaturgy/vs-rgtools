@@ -10,7 +10,7 @@ from vstools import (
     iterate, normalize_planes, to_arr, vs
 )
 
-from .blur import blur, box_blur, median_blur, min_blur
+from .blur import box_blur, median_blur, min_blur
 from .enum import BlurMatrix, RemoveGrainMode, RemoveGrainModeT, RepairMode, RepairModeT
 from .rgtools import removegrain, repair
 from .util import norm_rmode_planes
@@ -49,7 +49,7 @@ def contrasharpening(
     # Damp down remaining spots of the denoised clip
     mblur = min_blur(flt, radius, planes)
 
-    rg11 = blur(mblur, radius, planes=planes)
+    rg11 = BlurMatrix.BINOMIAL(radius=radius)(mblur, planes=planes)
 
     # Difference of a simple kernel blur
     diff_blur = mblur.std.MakeDiff(rg11, planes)
