@@ -4,7 +4,8 @@ from enum import auto
 from math import ceil, exp, log2, pi, sqrt
 from typing import Any, Iterable, Literal, Self, Sequence, overload
 
-from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, iterate, to_singleton, vs
+from vsexprtools import ExprOp
+from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, fallback, iterate, to_singleton, vs
 
 __all__ = [
     'LimitFilterMode',
@@ -142,13 +143,32 @@ class BlurMatrixBase(list[Nb]):
 
     def __call__(
         self, clip: vs.VideoNode, planes: PlanesT = None,
-        bias: float | None = None, divisor: float | None = None, saturate: int | None = None,
+        bias: float | None = None, divisor: float | None = None, saturate: bool = True,
         passes: int = 1
     ) -> vs.VideoNode:
         if len(self) <= 1:
             return clip
 
-        return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
+        assert clip.format
+        fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
+
+        # std.Convolution is limited to 25 numbers
+        # SQUARE mode is not optimized
+        # std.Convolution doesn't support float 16
+        if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
+            return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
+
+        expr = ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode)
+
+        def _akarin_conv(c: vs.VideoNode) -> vs.VideoNode:
+            if isinstance(expr, tuple):
+                for e in expr:
+                    c = e(c, planes=planes)
+            else:
+                c = expr(c, planes=planes)
+            return clip
+
+        return iterate(clip, _akarin_conv, passes)
 
     def outer(self) -> Self:
         from numpy import outer
