@@ -4,8 +4,11 @@ from enum import auto
 from math import ceil, exp, log2, pi, sqrt
 from typing import Any, Iterable, Literal, Self, Sequence, overload
 
-from vsexprtools import ExprOp
-from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, fallback, iterate, to_singleton, vs
+from vsexprtools import ExprOp, ExprVars
+from vstools import (
+    ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, fallback, iterate,
+    shift_clip_multi, to_singleton, vs
+)
 
 __all__ = [
     'LimitFilterMode',
@@ -149,19 +152,29 @@ class BlurMatrixBase(list[Nb]):
         if len(self) <= 1:
             return clip
 
-        assert clip.format
-        fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
+        if self.mode.is_spatial:
+            assert clip.format
+            fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
 
-        # std.Convolution is limited to 25 numbers
-        # SQUARE mode is not optimized
-        # std.Convolution doesn't support float 16
-        if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
-            return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
+            # std.Convolution is limited to 25 numbers
+            # SQUARE mode is not optimized
+            # std.Convolution doesn't support float 16
+            if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
+                return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
 
-        return iterate(
-            clip, ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode),
-            passes, planes=planes
-        )
+            return iterate(
+                clip, ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode),
+                passes, planes=planes
+            )
+
+        if len(self) <= 31 or not bias or saturate is True:
+            return iterate(clip, core.std.AverageFrames, passes, self, divisor, planes=planes)
+
+        expr_conv = ExprOp.convolution(ExprVars(len(self)), self, bias, fallback(divisor, True), saturate, self.mode)
+
+        r = len(self) // 2
+
+        return iterate(clip, lambda x: expr_conv(shift_clip_multi(x, (-r, r)), planes=planes), passes)
 
     def outer(self) -> Self:
         from numpy import outer
