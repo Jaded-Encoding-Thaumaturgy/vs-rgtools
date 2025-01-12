@@ -145,43 +145,24 @@ def gauss_blur(
 
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
-    no_resize2 = not hasattr(core, 'resize2')
+    if hasattr(core, 'resize2'):
+        def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
+            kwargs: dict[str, Any] = {f'force_{k}': k in mode for k in 'hv'}
+            return Gaussian(sigma, taps).scale(plane, **kwargs)
+
+        if not {*range(clip.format.num_planes)} - {*planes}:
+            return _resize2_blur(clip)
+
+        return join([
+            _resize2_blur(p) if i in planes else p
+            for i, p in enumerate(split(clip))
+        ])
 
     kernel: BlurMatrixBase[float] = BlurMatrix.GAUSS(  # type: ignore
-        taps, sigma=sigma, mode=mode, scale_value=1.0 if no_resize2 and taps > 12 else 1023
+        taps, sigma=sigma, mode=mode, scale_value=1.0 if taps > 12 else 1023
     )
 
-    if len(kernel) <= 25:
-        return kernel(clip, planes)
-
-    if no_resize2:
-        if not complexpr_available:
-            raise CustomRuntimeError(
-                'With a high sigma you need a high number of taps, '
-                'and that\'t only supported with vskernels scaling or akarin expr!'
-                '\nInstall one of the two plugins (resize2, akarin) or set a lower number of taps (<= 12)!'
-            )
-
-        proc: vs.VideoNode = clip
-
-        if ConvMode.HORIZONTAL in mode:
-            proc = ExprOp.convolution('x', kernel, mode=ConvMode.HORIZONTAL)(proc)
-
-        if ConvMode.VERTICAL in mode:
-            proc = ExprOp.convolution('x', kernel, mode=ConvMode.VERTICAL)(proc)
-
-        return proc
-
-    def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
-        return Gaussian(sigma, taps).scale(plane, **{f'force_{k}': k in mode for k in 'hv'})  # type: ignore
-
-    if not {*range(clip.format.num_planes)} - {*planes}:
-        return _resize2_blur(clip)
-
-    return join([
-        _resize2_blur(p) if i in planes else p
-        for i, p in enumerate(split(clip))
-    ])
+    return kernel(clip, planes)
 
 
 def min_blur(
