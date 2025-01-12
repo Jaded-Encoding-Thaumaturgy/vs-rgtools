@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from functools import partial
 from itertools import count
+from typing import Any, Literal
 
-from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
+from vsexprtools import ExprList, ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, CustomRuntimeError, CustomIndexError, FunctionUtil,
-    PlanesT, StrList, check_variable, core, depth, get_depth, join, normalize_planes,
-    split, to_arr, vs
+    ConvMode, CustomIndexError, FunctionUtil, PlanesT, StrList, check_variable, core, depth,
+    get_depth, join, normalize_planes, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
@@ -25,7 +25,8 @@ __all__ = [
 
 def box_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1,
-    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    mode: Literal[ConvMode.HV] | Literal[ConvMode.HORIZONTAL] | Literal[ConvMode.VERTICAL] = ConvMode.HV,
+    planes: PlanesT = None
 ) -> vs.VideoNode:
     assert check_variable(clip, box_blur)
 
@@ -46,24 +47,10 @@ def box_blur(
     if hasattr(core, 'vszip'):
         blurred = clip.vszip.BoxBlur(*box_args)
     else:
-        fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
-
-        if radius > 12 and not fp16:
+        if radius > 12 and not (clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16):
             blurred = clip.std.BoxBlur(*box_args)
         else:
-            matrix_size = radius * 2 | 1
-
-            if fp16:
-                matrix_size **= 2
-
-            blurred = clip
-            for _ in range(passes):
-                if fp16:
-                    blurred = norm_expr(blurred, [
-                        ExprOp.matrix('x', radius, mode=mode), ExprOp.ADD * (matrix_size - 1), matrix_size, ExprOp.DIV
-                    ], planes)
-                else:
-                    blurred = blurred.std.Convolution([1] * matrix_size, planes=planes, mode=mode)
+            blurred = BlurMatrix.MEAN(radius, mode=mode)(clip, planes, passes=passes)
 
     return blurred
 
