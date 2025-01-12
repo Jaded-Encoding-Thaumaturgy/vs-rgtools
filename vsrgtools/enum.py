@@ -158,17 +158,10 @@ class BlurMatrixBase(list[Nb]):
         if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
             return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
 
-        expr = ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode)
-
-        def _akarin_conv(c: vs.VideoNode) -> vs.VideoNode:
-            if isinstance(expr, tuple):
-                for e in expr:
-                    c = e(c, planes=planes)
-            else:
-                c = expr(c, planes=planes)
-            return clip
-
-        return iterate(clip, _akarin_conv, passes)
+        return iterate(
+            clip, ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode),
+            passes, planes=planes
+        )
 
     def outer(self) -> Self:
         from numpy import outer
