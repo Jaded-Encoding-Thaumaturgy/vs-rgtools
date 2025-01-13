@@ -206,13 +206,13 @@ def sbr(
     diff = clip.std.MakeDiff(blurred, planes=planes)
     blurred_diff = blur_kernel(diff, planes=planes)
 
-    limited_diff = norm_expr(
-        [diff, blurred_diff],
-        'x y - D1! x neutral - D2! D1@ D2@ xor neutral D1@ abs D2@ abs < D1@ neutral + x ? ?',
+    limited = norm_expr(
+        [clip, diff, blurred_diff],
+        'y z - D1! y neutral - D2! x D1@ D2@ xor 0 D1@ abs D2@ abs < D1@ D2@ ? ? -',
         planes=planes
     )
 
-    return clip.std.MakeDiff(limited_diff, planes=planes)
+    return limited
 
 
 def median_blur(
