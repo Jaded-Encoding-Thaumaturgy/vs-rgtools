@@ -121,7 +121,7 @@ def _limit_filter_lut(
         thr_1 = largen_thr if dif > 0 else thr
 
         if dif_abs <= thr_1:
-            return neutral
+            return neutral  # type: ignore[return-value]
 
         if no_elast:
             return x

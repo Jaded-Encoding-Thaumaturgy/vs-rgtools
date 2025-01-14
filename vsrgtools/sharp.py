@@ -94,7 +94,7 @@ def soothe(
 
     if temporal_strength:
         soothe = (
-            BlurMatrix.MEAN(radius=temporal_radius, mode=ConvMode.TEMPORAL)
+            BlurMatrix.MEAN(temporal_radius, mode=ConvMode.TEMPORAL)
             (sharp_diff, planes=planes, scenechange=scenechange)
         )
         strength = 100 - abs(max(min(temporal_strength, 100), -100))
