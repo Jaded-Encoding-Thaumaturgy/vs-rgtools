@@ -4,10 +4,7 @@ from itertools import count
 from typing import Iterable
 
 from vsexprtools import ExprOp, ExprVars, combine, norm_expr
-from vstools import (
-    CustomIntEnum, CustomNotImplementedError, FuncExceptT, KwargsT, PlanesT,
-    StrList, flatten_vnodes, vs
-)
+from vstools import CustomIntEnum, CustomNotImplementedError, FuncExceptT, PlanesT, StrList, flatten_vnodes, vs
 
 __all__ = [
     'MeanMode'
@@ -45,16 +42,14 @@ class MeanMode(CustomIntEnum):
         if n_clips < 2:
             return next(iter(clips))
 
-        kwargs = KwargsT(planes=planes, func=func)
-
         if self == MeanMode.MINIMUM:
-            return ExprOp.MIN(clips, **kwargs)
+            return ExprOp.MIN(clips, planes=planes, func=func)
 
         if self == MeanMode.MAXIMUM:
-            return ExprOp.MAX(clips, **kwargs)
+            return ExprOp.MAX(clips, planes=planes, func=func)
 
         if self == MeanMode.GEOMETRIC:
-            return combine(clips, ExprOp.MUL, None, None, [1 / n_clips, ExprOp.POW], **kwargs)
+            return combine(clips, ExprOp.MUL, None, None, [1 / n_clips, ExprOp.POW], planes=planes, func=func)
 
         if self == MeanMode.LEHMER:
             counts = range(n_clips)
@@ -70,13 +65,13 @@ class MeanMode(CustomIntEnum):
 
             expr.append('P2@ 0 = 0 P1@ P2@ / ? neutral +')
 
-            return norm_expr(clips, expr, **kwargs)
+            return norm_expr(clips, expr, planes=planes, func=func)
 
         if self in {MeanMode.RMS, MeanMode.ARITHMETIC, MeanMode.CUBIC, MeanMode.HARMONIC}:
             return combine(
                 clips, ExprOp.ADD, f'{self.value} {ExprOp.POW}', None, [
                     n_clips, ExprOp.DIV, 1 / self, ExprOp.POW
-                ], **kwargs
+                ], planes=planes, func=func
             )
 
         if self in {MeanMode.MINIMUM_ABS, MeanMode.MAXIMUM_ABS}:
@@ -94,7 +89,7 @@ class MeanMode(CustomIntEnum):
 
             expr_string += '? ' * n_op
 
-            return norm_expr(clips, expr_string, **kwargs)
+            return norm_expr(clips, expr_string, planes=planes, func=func)
 
         if self == MeanMode.MEDIAN:
             all_clips = str(ExprVars(1, n_clips))
@@ -105,8 +100,8 @@ class MeanMode(CustomIntEnum):
                 all_clips + f' {op}' * n_ops for op in (ExprOp.MIN, ExprOp.MAX)
             ]
 
-            expr = f'{yzmin} YZMIN! {yzmax} YZMAX! x YZMIN@ min x = YZMIN@ x YZMAX@ max x = YZMAX@ x ? ?'
-
-            return norm_expr(clips, expr, planes)
+            return norm_expr(
+                clips, f'{yzmin} YZMIN! {yzmax} YZMAX! x YZMIN@ min x = YZMIN@ x YZMAX@ max x = YZMAX@ x ? ?', planes
+            )
 
         raise CustomNotImplementedError

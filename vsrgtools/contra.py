@@ -171,7 +171,7 @@ def fine_contra(
 
     planes = normalize_planes(flt, planes)
 
-    mblur = min_blur(flt, radius, planes)
+    mblur = min_blur(flt, radius, planes=planes)
 
     sharp = [1.0 / x for x in sharp if x] if isinstance(sharp, range) else to_arr(sharp)
     sharp = clamp_arr(sharp, 0.0, 1.0)

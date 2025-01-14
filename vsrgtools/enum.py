@@ -213,7 +213,9 @@ class BlurMatrixBase(list[Nb]):
             expr_conv = ExprOp.convolution(
                 ExprVars(len(self)), self, bias, fallback(divisor, True), saturate, self.mode, **conv_kwargs
             )
-            return iterate(clip, lambda x: expr_conv(shift_clip_multi(x, (-r, r)), planes=planes, **expr_kwargs), passes)
+            return iterate(
+                clip, lambda x: expr_conv(shift_clip_multi(x, (-r, r)), planes=planes, **expr_kwargs), passes
+            )
 
         vars_, = ExprOp.matrix(ExprVars(len(self)), r, self.mode)
 
@@ -326,33 +328,33 @@ class BlurMatrix(CustomIntEnum):
             mode: ConvMode = ConvMode.HV,
             **kwargs: Any
         ) -> BlurMatrixBase[float]:
-                scale_value = kwargs.get("scale_value", 1023)
+            scale_value = kwargs.get("scale_value", 1023)
 
-                if mode == ConvMode.SQUARE:
-                    scale_value = sqrt(scale_value)
+            if mode == ConvMode.SQUARE:
+                scale_value = sqrt(scale_value)
 
-                taps = self.get_taps(sigma, taps)
+            taps = self.get_taps(sigma, taps)
 
-                if taps < 0:
-                    raise CustomValueError('Taps must be >= 0!')
+            if taps < 0:
+                raise CustomValueError('Taps must be >= 0!')
 
-                if sigma > 0.0:
-                    half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
-                    doub_qsigma = 2 * sigma ** 2
+            if sigma > 0.0:
+                half_pisqrt = 1.0 / sqrt(2.0 * pi) * sigma
+                doub_qsigma = 2 * sigma ** 2
 
-                    high, *mat = [half_pisqrt * exp(-x ** 2 / doub_qsigma) for x in range(taps + 1)]
+                high, *mat = [half_pisqrt * exp(-x ** 2 / doub_qsigma) for x in range(taps + 1)]
 
-                    mat = [x * scale_value / high for x in mat]
-                    mat = [*mat[::-1], scale_value, *mat]
-                else:
-                    mat = [scale_value]
+                mat = [x * scale_value / high for x in mat]
+                mat = [*mat[::-1], scale_value, *mat]
+            else:
+                mat = [scale_value]
 
-                kernel = BlurMatrixBase(mat, mode)
+            kernel = BlurMatrixBase(mat, mode)
 
-                if mode == ConvMode.SQUARE:
-                    kernel = kernel.outer()
+            if mode == ConvMode.SQUARE:
+                kernel = kernel.outer()
 
-                return kernel
+            return kernel
 
         def from_radius(self, radius: int) -> BlurMatrixBase[float]:
             return self(None, sigma=(radius + 1.0) / 3)

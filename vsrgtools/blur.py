@@ -166,8 +166,8 @@ def gauss_blur(
 
 
 def min_blur(
-        clip: vs.VideoNode, radius: int | list[int] = 1,
-        mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    clip: vs.VideoNode, radius: int | list[int] = 1,
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
 ) -> vs.VideoNode:
     """
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
