@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 from vsexprtools import norm_expr
-from vstools import CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, normalize_planes, vs
+from vstools import CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, normalize_planes, vs, ConvMode
 
-from .blur import gauss_blur, min_blur
+from .blur import gauss_blur, min_blur, box_blur
 from .enum import BlurMatrix
 from .limit import limit_filter
 from .util import normalize_radius
@@ -14,7 +14,7 @@ __all__ = [
     'unsharpen',
     'unsharp_masked',
     'limit_usm',
-    'shimmer_soothe'
+    'soothe'
 ]
 
 
@@ -76,20 +76,28 @@ def limit_usm(
     return limit_filter(sharp, clip, thr=thr, elast=elast, bright_thr=bright_thr)
 
 
-def shimmer_soothe(
-    sharp: vs.VideoNode, orig: vs.VideoNode, strength: int = 75, tr: int = 1,
-    scenechange: bool = False, planes: PlanesT = 0
+def soothe(
+    flt: vs.VideoNode, src: vs.VideoNode, spatial_strength: int = 0, temporal_strength: int = 25,
+    spatial_radius: int = 1, temporal_radius: int = 1, scenechange: bool = False, planes: PlanesT = 0
 ) -> vs.VideoNode:
-    diff = orig.std.MakeDiff(sharp, planes)
+    sharp_diff = src.std.MakeDiff(flt, planes)
 
-    strength = 100 - max(min(100, strength), 0)
+    expr = (
+        'x neutral - X! y neutral - Y! X@ 0 < Y@ 0 < xor X@ 100 / {strength} * '
+        'X@ abs Y@ abs > X@ {strength} * Y@ 100 {strength} - * + 100 / X@ ? ? neutral + '
+    )
 
-    soft_diff = diff.std.AverageFrames([1] * (tr * 2 + 1), None, scenechange, planes)
+    if spatial_strength:
+        soothe = box_blur(sharp_diff, radius=spatial_radius, planes=planes)
+        strength = 100 - abs(max(min(spatial_strength, 100), 0))
+        sharp_diff = norm_expr([sharp_diff, soothe], expr, strength=strength, planes=planes)
 
-    limit_diff = norm_expr([diff, soft_diff], [
-        'x neutral - y neutral - xor x neutral - 100 / {strength} '
-        f'* neutral + x neutral - abs y neutral - abs > x {strength} '
-        f'* y 100 {strength} - * + 100 / x ? ?'
-    ], planes, strength=strength)
+    if temporal_strength:
+        soothe = (
+            BlurMatrix.MEAN(radius=temporal_radius, mode=ConvMode.TEMPORAL)
+            (sharp_diff, planes=planes, scenechange=scenechange)
+        )
+        strength = 100 - abs(max(min(temporal_strength, 100), -100))
+        sharp_diff = norm_expr([sharp_diff, soothe], expr, strength=strength, planes=planes)
 
-    return norm_expr([orig, limit_diff], 'x y neutral - -', planes)
+    return src.std.MakeDiff(sharp_diff, planes)
