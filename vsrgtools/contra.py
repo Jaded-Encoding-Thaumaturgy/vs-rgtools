@@ -7,7 +7,7 @@ from typing import Callable
 from vsexprtools import complexpr_available, norm_expr
 from vstools import (
     CustomValueError, GenericVSFunction, PlanesT, check_ref_clip, check_variable, clamp_arr, get_neutral_value,
-    iterate, normalize_planes, to_arr, vs
+    iterate, normalize_planes, to_arr, vs, core
 )
 
 from .blur import box_blur, median_blur, min_blur
@@ -25,16 +25,20 @@ __all__ = [
 
 def contrasharpening(
     flt: vs.VideoNode, src: vs.VideoNode, radius: int | list[int] = 1,
+    sharp: vs.VideoNode | GenericVSFunction | None = None,
     mode: RepairModeT = RepairMode.MINMAX_SQUARE3, planes: PlanesT = 0
 ) -> vs.VideoNode:
     """
     contra-sharpening: sharpen the denoised clip, but don't add more to any pixel than what was previously removed.
     Script by Didée, at the VERY GRAINY thread (http://forum.doom9.org/showthread.php?p=1076491#post1076491)
+
     :param flt:         Filtered clip
     :param src:         Source clip
-    :param radius:      Spatial radius for contra-sharpening (1-3). Default is 2 for HD / 1 for SD.
+    :param radius:      Spatial radius for sharpening.
+    :param sharp:       Optional pre-sharpened clip or function to use.
     :param mode:        Mode of rgvs.Repair to limit the difference
     :param planes:      Planes to process, defaults to None
+
     :return:            Contrasharpened clip
     """
 
@@ -45,12 +49,20 @@ def contrasharpening(
     planes = normalize_planes(flt, planes)
 
     # Damp down remaining spots of the denoised clip
-    mblur = min_blur(flt, radius, planes)
-
-    rg11 = BlurMatrix.BINOMIAL(radius=radius)(mblur, planes=planes)
+    if isinstance(sharp, vs.VideoNode):
+        sharpened = sharp
+    elif callable(sharp):
+        sharpened = sharp(flt)
+    else:
+        damp = min_blur(flt, radius, planes=planes)
+        blurred = BlurMatrix.BINOMIAL(radius=radius)(damp, planes=planes)
 
     # Difference of a simple kernel blur
-    diff_blur = mblur.std.MakeDiff(rg11, planes=planes)
+    diff_blur = core.std.MakeDiff(
+        sharpened if sharp else damp,
+        flt if sharp else blurred,
+        planes
+    )
 
     # Difference achieved by the filtering
     diff_flt = src.std.MakeDiff(flt, planes)
