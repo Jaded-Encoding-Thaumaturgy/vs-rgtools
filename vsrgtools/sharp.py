@@ -63,7 +63,7 @@ def limit_usm(
     elif isinstance(blur, vs.VideoNode):
         blurred = blur
     elif blur <= 0:
-        blurred = min_blur(clip, -blur, planes)
+        blurred = min_blur(clip, -blur, planes=planes)
     elif blur == 1:
         blurred = BlurMatrix.BINOMIAL()(clip, planes)
     elif blur == 2:
@@ -84,7 +84,7 @@ def soothe(
 
     expr = (
         'x neutral - X! y neutral - Y! X@ 0 < Y@ 0 < xor X@ 100 / {strength} * '
-        'X@ abs Y@ abs > X@ {strength} * Y@ 100 {strength} - * + 100 / X@ ? ? neutral + '
+        'X@ abs Y@ abs > X@ {strength} * Y@ 100 {strength} - * + 100 / X@ ? ? neutral +'
     )
 
     if spatial_strength:

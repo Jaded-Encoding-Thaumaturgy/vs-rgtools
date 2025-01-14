@@ -42,8 +42,6 @@ def contrasharpening(
     assert check_variable(flt, contrasharpening)
     check_ref_clip(src, flt, contrasharpening)
 
-    neutral = get_neutral_value(flt)
-
     planes = normalize_planes(flt, planes)
 
     # Damp down remaining spots of the denoised clip
@@ -52,7 +50,7 @@ def contrasharpening(
     rg11 = BlurMatrix.BINOMIAL(radius=radius)(mblur, planes=planes)
 
     # Difference of a simple kernel blur
-    diff_blur = mblur.std.MakeDiff(rg11, planes)
+    diff_blur = mblur.std.MakeDiff(rg11, planes=planes)
 
     # Difference achieved by the filtering
     diff_flt = src.std.MakeDiff(flt, planes)
@@ -62,12 +60,9 @@ def contrasharpening(
 
     # abs(diff) after limiting may not be bigger than before
     # Apply the limited difference (sharpening is just inverse blurring)
-    if complexpr_available:
-        expr = 'x {mid} - LD! y {mid} - BD! LD@ abs BD@ abs < LD@ BD@ ? z +'
-    else:
-        expr = 'x {mid} - abs y {mid} - abs < x y ? {mid} - z +'
+    expr = 'x neutral - X! y neutral - Y! X@ abs Y@ abs < X@ Y@ ? z +'
 
-    return norm_expr([limit, diff_blur, flt], expr, planes, mid=neutral)
+    return norm_expr([limit, diff_blur, flt], expr, planes)
 
 
 def contrasharpening_dehalo(
