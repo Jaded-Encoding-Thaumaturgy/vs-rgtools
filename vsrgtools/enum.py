@@ -152,6 +152,25 @@ class BlurMatrixBase(list[Nb]):
         bias: float | None = None, divisor: float | None = None, saturate: bool = True,
         passes: int = 1, expr_kwargs: KwargsT | None = None, **conv_kwargs: Any
     ) -> vs.VideoNode:
+        """
+        Performs a spatial or temporal convolution.
+        It will either calls std.Convolution, std.AverageFrames or ExprOp.convolution
+        based on the ConvMode mode picked.
+
+        :param clip:            Clip to process.
+        :param planes:          Specifies which planes will be processed.
+        :param bias:            Value to add to the final result of the convolution
+                                (before clamping the result to the format's range of valid values).
+        :param divisor:         Divide the output of the convolution by this value (before adding bias).
+                                The default is the sum of the elements of the matrix
+        :param saturate:        If True, negative values become 0.
+                                If False, absolute values are returned.
+        :param passes:          Number of iterations.
+        :param expr_kwargs:     A KwargsT of keyword arguments for ExprOp.convolution.__call__ when it is picked.
+        :param **conv_kwargs:   Additional keyword arguments for std.Convolution, std.AverageFrames or ExprOp.convolution.
+
+        :return:                Processed clip.
+        """
         if len(self) <= 1:
             return clip
 
