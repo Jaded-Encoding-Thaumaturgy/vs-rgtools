@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import operator
+
 from enum import auto
+from itertools import accumulate
 from math import ceil, exp, log2, pi, sqrt
 from typing import Any, Iterable, Literal, Self, Sequence, overload
 
-from vsexprtools import ExprOp
-from vstools import ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, fallback, iterate, to_singleton, vs
+from vsexprtools import ExprList, ExprOp, ExprToken, ExprVars
+from vstools import (
+    ConvMode, CustomIntEnum, CustomValueError, KwargsT, Nb, PlanesT, check_variable, core, fallback,
+    iterate, shift_clip_multi, to_singleton, vs
+)
 
 __all__ = [
     'LimitFilterMode',
@@ -144,24 +150,159 @@ class BlurMatrixBase(list[Nb]):
     def __call__(
         self, clip: vs.VideoNode, planes: PlanesT = None,
         bias: float | None = None, divisor: float | None = None, saturate: bool = True,
-        passes: int = 1
+        passes: int = 1, expr_kwargs: KwargsT | None = None, **conv_kwargs: Any
     ) -> vs.VideoNode:
+        """
+        Performs a spatial or temporal convolution.
+        It will either calls std.Convolution, std.AverageFrames or ExprOp.convolution
+        based on the ConvMode mode picked.
+
+        :param clip:            Clip to process.
+        :param planes:          Specifies which planes will be processed.
+        :param bias:            Value to add to the final result of the convolution
+                                (before clamping the result to the format's range of valid values).
+        :param divisor:         Divide the output of the convolution by this value (before adding bias).
+                                The default is the sum of the elements of the matrix
+        :param saturate:        If True, negative values become 0.
+                                If False, absolute values are returned.
+        :param passes:          Number of iterations.
+        :param expr_kwargs:     A KwargsT of keyword arguments for ExprOp.convolution.__call__ when it is picked.
+        :param **conv_kwargs:   Additional keyword arguments for std.Convolution, std.AverageFrames or ExprOp.convolution.
+
+        :return:                Processed clip.
+        """
         if len(self) <= 1:
             return clip
 
-        assert clip.format
+        assert (check_variable(clip, self.__call__))
+
+        expr_kwargs = expr_kwargs or KwargsT()
+
         fp16 = clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16
 
-        # std.Convolution is limited to 25 numbers
-        # SQUARE mode is not optimized
-        # std.Convolution doesn't support float 16
-        if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
-            return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
+        if self.mode.is_spatial:
+            # std.Convolution is limited to 25 numbers
+            # SQUARE mode is not optimized
+            # std.Convolution doesn't support float 16
+            if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
+                return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
 
-        return iterate(
-            clip, ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode),
-            passes, planes=planes
-        )
+            return iterate(
+                clip, ExprOp.convolution("x", self, bias, fallback(divisor, True), saturate, self.mode, **conv_kwargs),
+                passes, planes=planes, **expr_kwargs
+            )
+
+        if all([
+            not fp16,
+            len(self) <= 31,
+            not bias,
+            saturate,
+            (len(conv_kwargs) == 0 or (len(conv_kwargs) == 1 and "scenechange" in conv_kwargs))
+        ]):
+            return iterate(clip, core.std.AverageFrames, passes, self, divisor, planes=planes, **conv_kwargs)
+
+        return self._averageframes_akarin(clip, planes, bias, divisor, saturate, passes, expr_kwargs, **conv_kwargs)
+
+    def _averageframes_akarin(self, *args: Any, **kwargs: Any) -> vs.VideoNode:
+        clip, planes, bias, divisor, saturate, passes, expr_kwargs = args
+        conv_kwargs = kwargs
+
+        r = len(self) // 2
+
+        if conv_kwargs.pop("scenechange", False) is False:
+            expr_conv = ExprOp.convolution(
+                ExprVars(len(self)), self, bias, fallback(divisor, True), saturate, self.mode, **conv_kwargs
+            )
+            return iterate(clip, lambda x: expr_conv(shift_clip_multi(x, (-r, r)), planes=planes, **expr_kwargs), passes)
+
+        vars_, = ExprOp.matrix(ExprVars(len(self)), r, self.mode)
+
+        # Conditionnal for backward frames
+        condb = list([ExprList(["cond0!", "cond0@", 0])])
+
+        for i, vv in enumerate(accumulate(vars_[:r][::-1], operator.add), 1):
+            ww = list[Any]()
+
+            for j, (v, w) in enumerate(zip(vv, self[:r][::-1])):
+                ww.append([v, w, ExprOp.DUP, f"div{j}!", ExprOp.MUL])
+
+            condb.append(ExprList([f"cond{i}!", f"cond{i}@", ww, [ExprOp.ADD] * (i - 1)]))
+
+        # Conditionnal for forward frames
+        condf = list([ExprList([f"cond{i + 1}!", f"cond{i + 1}@", 0])])
+
+        for ii, vv in enumerate(accumulate(vars_[r + 1:], operator.add), i + 2):
+            ww = list[Any]()
+
+            for jj, (v, w) in enumerate(zip(vv, self[r + 1:]), j + 2):
+                ww.append([v, w, ExprOp.DUP, f"div{jj}!", ExprOp.MUL])
+
+            condf.append(ExprList([f"cond{ii}!", f"cond{ii}@", ww, [ExprOp.ADD] * (ii - i - 2)]))
+
+        expr = ExprList()
+
+        # Conditionnal for backward frames
+        for i, (v, c) in enumerate(zip(vars_[:r][::-1], condb)):
+            expr.append(f"{v}._SceneChangeNext", *c)
+
+        expr.append(condb[-1][2:], ExprOp.TERN * r)
+
+        # Conditionnal for forward frames
+        for i, (v, c) in enumerate(zip(vars_[r + 1:], condf)):
+            expr.append(f"{v}._SceneChangePrev", *c)
+
+        expr.append(condf[-1][2:], ExprOp.TERN * r)
+
+        expr.append(ExprOp.ADD, vars_[r], self[r])
+
+        # Center frame
+        weights_cum_b = ExprList(v for v in reversed(list(accumulate(self[:r]))))
+        weights_cum_f = ExprList(v for v in reversed(list(accumulate(self[r + 1:][::-1]))))
+
+        for k, ws in zip(range(ii), weights_cum_b + ExprList() + weights_cum_f):
+            if k == r:
+                continue
+            expr.append(f"cond{k}@", ws, ExprOp.MUL)
+
+        expr.extend([ExprOp.ADD] * k)
+        expr.append(ExprOp.DUP, f"div{r}!", ExprOp.MUL, ExprOp.ADD)
+
+        if (premultiply := conv_kwargs.get("premultiply", None)):
+            expr.append(premultiply, ExprOp.MUL)
+
+        if divisor:
+            expr.append(divisor, ExprOp.DIV)
+        else:
+            # Divisor conditionnal
+            for cond, rr in zip([condb, condf], [(0, r), (r + 1, r * 2 + 1)]):
+                for n, m in zip(accumulate(([d] for d in range(*rr)), initial=[0]), cond[:-1]):
+                    if (n := n[1:]):
+                        div = list[str]()
+                        for divn in n:
+                            div.append(f"div{divn}@")
+                    else:
+                        div = [str(0)]
+
+                    expr.append(str(m[0])[:5] + "@", div, [ExprOp.ADD] * max(0, len(n) - 1))
+
+                expr.append(*div, f"div{divn + 1}@", ExprOp.ADD * len(div))
+                expr.append(ExprOp.TERN * r)
+
+            expr.append(ExprOp.ADD, f"div{r}@", ExprOp.ADD, ExprOp.DIV)
+
+        if bias:
+            expr.append(bias, ExprOp.ADD)
+
+        if not saturate:
+            expr.append(ExprOp.ABS)
+
+        if (multiply := conv_kwargs.get("multiply", None)):
+            expr.append(multiply, ExprOp.MUL)
+
+        if conv_kwargs.get("clamp", False):
+            expr.append(ExprOp.clamp(ExprToken.RangeMin, ExprToken.RangeMax))
+
+        return iterate(clip, lambda x: expr(shift_clip_multi(x, (-r, r)), planes=planes, **expr_kwargs), passes)
 
     def outer(self) -> Self:
         from numpy import outer
