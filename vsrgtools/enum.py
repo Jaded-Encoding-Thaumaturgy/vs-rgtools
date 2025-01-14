@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import operator
+
 from enum import auto
+from itertools import accumulate
 from math import ceil, exp, log2, pi, sqrt
 from typing import Any, Iterable, Literal, Self, Sequence, overload
 
-from vsexprtools import ExprOp, ExprVars
+from vsexprtools import ExprList, ExprOp, ExprToken, ExprVars
 from vstools import (
-    ConvMode, CustomIntEnum, CustomValueError, Nb, PlanesT, core, fallback, iterate,
-    shift_clip_multi, to_singleton, vs
+    ConvMode, CustomIntEnum, CustomValueError, KwargsT, Nb, PlanesT, check_variable, core, fallback,
+    iterate, shift_clip_multi, to_singleton, vs
 )
 
 __all__ = [
@@ -147,7 +150,7 @@ class BlurMatrixBase(list[Nb]):
     def __call__(
         self, clip: vs.VideoNode, planes: PlanesT = None,
         bias: float | None = None, divisor: float | None = None, saturate: bool = True,
-        passes: int = 1
+        passes: int = 1, expr_kwargs: KwargsT | None = None, **conv_kwargs: Any
     ) -> vs.VideoNode:
         if len(self) <= 1:
             return clip
