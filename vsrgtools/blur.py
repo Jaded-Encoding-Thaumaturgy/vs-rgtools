@@ -4,11 +4,11 @@ from functools import partial
 from itertools import count
 from typing import Any, Literal
 
-from vsexprtools import ExprList, ExprOp, ExprVars, complexpr_available, norm_expr
+from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, CustomIndexError, FunctionUtil, PlanesT, StrList, check_variable, core, depth,
-    get_depth, join, normalize_planes, split, to_arr, vs
+    ConvMode, CustomIndexError, FunctionUtil, PlanesT, check_variable, core, depth, get_depth, join,
+    normalize_planes, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
@@ -218,22 +218,30 @@ def sbr(
 def median_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
-    if radius == 1 and mode in (ConvMode.HV, ConvMode.SQUARE):
+    radius = to_arr(radius)
+
+    if (len((rs := set(radius))) == 1 and rs.pop() == 1) and mode == ConvMode.SQUARE:
         return clip.std.Median(planes=planes)
 
-    def _get_vals(radius: int) -> tuple[StrList, int, int, int]:
-        matrix = ExprList(ExprOp.matrix('x', radius, mode, [(0, 0)]))
-        rb = len(matrix) + 1
-        st = rb - 1
-        sp = rb // 2 - 1
-        dp = st - 2
+    expr_plane = list[list[str]]()
 
-        return matrix, st, sp, dp
+    for r in radius:
+        expr_passes = list[str]()
 
-    return norm_expr(clip, (
-        f"{matrix} sort{st} swap{sp} min! swap{sp} max! drop{dp} x min@ max@ clip"
-        for matrix, st, sp, dp in map(_get_vals, to_arr(radius))
-    ), planes, force_akarin=median_blur)
+        for mat in ExprOp.matrix('x', r, mode, [(0, 0)]):
+            rb = len(mat) + 1
+            st = rb - 1
+            sp = rb // 2 - 1
+            dp = st - 2
+            
+            expr_passes.append(f"{mat} sort{st} swap{sp} min! swap{sp} max! drop{dp} x min@ max@ clip")
+
+        expr_plane.append(expr_passes)
+
+    for e in zip(*expr_plane):
+        clip = norm_expr(clip, e, planes, force_akarin=median_blur)
+
+    return clip
 
 
 def bilateral(
