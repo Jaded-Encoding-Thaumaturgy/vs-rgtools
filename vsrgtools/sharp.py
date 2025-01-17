@@ -17,7 +17,7 @@ __all__ = [
     'unsharpen',
     'unsharp_masked',
     'limit_usm',
-    'fine_sharp'
+    'fine_sharp',
     'soothe'
 ]
 
