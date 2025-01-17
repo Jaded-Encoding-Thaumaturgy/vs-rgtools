@@ -7,7 +7,7 @@ from typing import Any, Literal
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, CustomIndexError, FunctionUtil, PlanesT, check_variable, core, depth, get_depth, join,
+    ConvMode, FunctionUtil, PlanesT, check_variable, core, depth, get_depth, join,
     normalize_planes, split, to_arr, vs
 )
 
@@ -275,22 +275,14 @@ def bilateral(
 
 
 def flux_smooth(
-    clip: vs.VideoNode, radius: int = 2, threshold: int = 7, scenechange: int = 24, planes: PlanesT = None
+    clip: vs.VideoNode, temporal_threshold: float = 7.0, spatial_threshold: float = 0,
+    scalep: bool = True, planes: PlanesT = None
 ) -> vs.VideoNode:
-    assert check_variable(clip, flux_smooth)
+    func = FunctionUtil(clip, flux_smooth, planes)
 
-    if radius < 1 or radius > 7:
-        raise CustomIndexError('Radius must be between 1 and 7 (inclusive)!', flux_smooth, reason=radius)
+    if spatial_threshold:
+        smoothed = func.work_clip.zsmooth.FluxSmoothST(temporal_threshold, spatial_threshold, scalep)
+    else:
+        smoothed = func.work_clip.zsmooth.FluxSmoothT(temporal_threshold, scalep)
 
-    planes = normalize_planes(clip, planes)
-
-    threshold = threshold << clip.format.bits_per_sample - 8
-
-    cthreshold = threshold if (1 in planes or 2 in planes) else 0
-
-    median = clip.tmedian.TemporalMedian(radius, planes)  # type: ignore
-    average = clip.focus2.TemporalSoften2(  # type: ignore
-        radius, threshold, cthreshold, scenechange
-    )
-
-    return limit_filter(average, clip, median, LimitFilterMode.DIFF_MIN, planes)
+    return func.return_clip(smoothed)
