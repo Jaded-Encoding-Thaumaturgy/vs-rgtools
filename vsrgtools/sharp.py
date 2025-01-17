@@ -3,17 +3,21 @@ from __future__ import annotations
 from typing import Any
 
 from vsexprtools import norm_expr
-from vstools import CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, normalize_planes, vs, ConvMode
+from vstools import (
+    CustomTypeError, PlanesT, VSFunction, check_ref_clip, check_variable, FunctionUtil, normalize_planes, vs, ConvMode
+)
 
-from .blur import gauss_blur, min_blur, box_blur
+from .blur import gauss_blur, min_blur, box_blur, median_blur
 from .enum import BlurMatrix
 from .limit import limit_filter
+from .rgtools import repair
 from .util import normalize_radius
 
 __all__ = [
     'unsharpen',
     'unsharp_masked',
     'limit_usm',
+    'fine_sharp'
     'soothe'
 ]
 
@@ -74,6 +78,64 @@ def limit_usm(
     sharp = norm_expr([clip, blurred], 'x dup y - +', planes)
 
     return limit_filter(sharp, clip, thr=thr, elast=elast, bright_thr=bright_thr)
+
+
+def fine_sharp(
+        clip: vs.VideoNode, mode: int = 1, sstr: float = 2.0, cstr: float | None = None, xstr: float = 0.19,
+        lstr: float = 1.49, pstr: float = 1.272, ldmp: float | None = None, planes: PlanesT = 0
+) -> vs.VideoNode:
+    from scipy import interpolate
+
+    func = FunctionUtil(clip, fine_sharp, planes)
+    
+    if cstr is None:
+        cstr = interpolate.CubicSpline(
+            x=(0, 0.5, 1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 8.0, 255.0),
+            y=(0, 0.1, 0.6, 0.9, 1.0, 1.09, 1.15, 1.19, 1.249, 1.5)
+        )(sstr)
+
+    if ldmp is None:
+        ldmp = sstr + 0.1
+
+    blur_kernel = BlurMatrix.BINOMIAL()
+    blur_kernel2 = blur_kernel
+
+    if mode < 0:
+        cstr **= 0.8
+        blur_kernel2 = box_blur
+
+    mode = abs(mode)
+
+    if mode == 1:
+        blurred = median_blur(blur_kernel(func.work_clip))
+    elif mode > 1:
+        blurred = blur_kernel(median_blur(func.work_clip))
+    if mode == 3:
+        blurred = median_blur(blurred)
+
+    diff = norm_expr(
+        [func.work_clip, blurred],
+        'range_size 256 / SCL! x y - SCL@ / D! D@ abs DA! DA@ {lstr} / 1 {pstr} / pow {sstr} * '
+        'D@ DA@ 0.001 + / * D@ 2 pow D@ 2 pow {ldmp} + / * SCL@ * neutral +',
+        lstr=lstr, pstr=pstr, sstr=sstr, ldmp=ldmp
+    )
+
+    sharp = func.work_clip
+
+    if sstr:
+        sharp = sharp.std.MergeDiff(diff)
+
+    if cstr:
+        diff = norm_expr(diff, 'x neutral - {cstr} * neutral +', cstr=cstr)
+        diff = blur_kernel2(diff)
+        sharp = sharp.std.MakeDiff(diff)
+
+    if xstr:
+        xysharp = norm_expr([sharp, box_blur(sharp)], 'x x y - 9.9 * +')
+        rpsharp = repair(xysharp, sharp, 12)
+        sharp = rpsharp.std.Merge(sharp, weight=[1 - xstr])
+
+    return func.return_clip(sharp)
 
 
 def soothe(

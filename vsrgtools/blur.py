@@ -275,7 +275,7 @@ def bilateral(
 
 
 def flux_smooth(
-    clip: vs.VideoNode, temporal_threshold: float = 7.0, spatial_threshold: float = 0,
+    clip: vs.VideoNode, temporal_threshold: float = 7.0, spatial_threshold: float = 0.0,
     scalep: bool = True, planes: PlanesT = None
 ) -> vs.VideoNode:
     func = FunctionUtil(clip, flux_smooth, planes)
