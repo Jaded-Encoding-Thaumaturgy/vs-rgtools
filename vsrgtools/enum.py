@@ -18,7 +18,7 @@ __all__ = [
     'RemoveGrainMode', 'RemoveGrainModeT',
     'RepairMode', 'RepairModeT',
     'VerticalCleanerMode', 'VerticalCleanerModeT',
-    'BlurMatrix'
+    'BlurMatrixBase', 'BlurMatrix'
 ]
 
 
