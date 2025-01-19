@@ -94,22 +94,15 @@ def contrasharpening_dehalo(
 
     rep_modes = norm_rmode_planes(flt, RepairMode.MINMAX_SQUARE1, planes)
 
-    weighted = BlurMatrix.BINOMIAL()(flt, planes)
-    weighted2 = median_blur(weighted, 2, planes=planes)
-    weighted2 = iterate(weighted2, partial(repair, repairclip=weighted), 2, mode=rep_modes)
+    blur = BlurMatrix.BINOMIAL()(flt, planes)
+    blur2 = median_blur(blur, 2, planes=planes)
+    blur2 = iterate(blur2, partial(repair, repairclip=blur), 2, mode=rep_modes)
 
-    neutral = get_neutral_value(flt)
-
-    if complexpr_available:
-        clips = [weighted, weighted2, src, flt]
-        expr = f'x y - {alpha} * {level} * D! z a - DY! D@ DY@ * 0 < 0 D@ abs DY@ abs < D@ DY@ ? ? a +'
-    else:
-        diff = norm_expr([weighted, weighted2], f'x y - {alpha} * {level} * {{mid}} +', planes, mid=neutral)
-
-        clips = [diff, src, flt]
-        expr = 'x {mid} - y z - xor 0 x {mid} - abs y z - abs < x {mid} - y z - ? ? z +'
-
-    return norm_expr(clips, expr, planes, mid=neutral)
+    return norm_expr(
+        [blur, blur2, src, flt],
+        'x y - {alpha} * {level} * D1! z a - D2! D1@ D2@ xor 0 D1@ abs D2@ abs < D1@ D2@ ? ? a +',
+        planes, alpha=alpha, level=level
+    )
 
 
 def contrasharpening_median(
