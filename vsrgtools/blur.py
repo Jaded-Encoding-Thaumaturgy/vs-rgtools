@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from functools import partial
 from itertools import count
-from typing import Any, Literal
+from typing import Any
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
     ConvMode, FunctionUtil, PlanesT, check_variable, core, depth, get_depth, join,
-    normalize_planes, split, to_arr, vs
+    normalize_planes, split, to_arr, vs, OneDimConvModeT, TempConvModeT
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
@@ -25,8 +25,7 @@ __all__ = [
 
 def box_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, passes: int = 1,
-    mode: Literal[ConvMode.HV] | Literal[ConvMode.HORIZONTAL] | Literal[ConvMode.VERTICAL] = ConvMode.HV,
-    planes: PlanesT = None
+    mode: OneDimConvModeT | TempConvModeT = ConvMode.HV, planes: PlanesT = None, **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable(clip, box_blur)
 
@@ -38,6 +37,9 @@ def box_blur(
     if not radius:
         return clip
 
+    if mode == ConvMode.TEMPORAL or (clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16):
+        return BlurMatrix.MEAN(radius, mode=mode)(clip, planes, passes=passes, **kwargs)
+
     box_args = (
         planes,
         radius, 0 if mode == ConvMode.VERTICAL else passes,
@@ -45,14 +47,12 @@ def box_blur(
     )
 
     if hasattr(core, 'vszip'):
-        blurred = clip.vszip.BoxBlur(*box_args)
-    else:
-        if radius > 12 and not (clip.format.sample_type == vs.FLOAT and clip.format.bits_per_sample == 16):
-            blurred = clip.std.BoxBlur(*box_args)
-        else:
-            blurred = BlurMatrix.MEAN(radius, mode=mode)(clip, planes, passes=passes)
+        return clip.vszip.BoxBlur(*box_args)
 
-    return blurred
+    if radius > 12:
+        return clip.std.BoxBlur(*box_args)
+
+    return BlurMatrix.MEAN(radius, mode=mode)(clip, planes, passes=passes, **kwargs)
 
 
 def side_box_blur(
