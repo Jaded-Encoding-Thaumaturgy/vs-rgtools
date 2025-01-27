@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from functools import partial
 from itertools import count
-from typing import Any
+from typing import Any, Literal, overload
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
-    ConvMode, FunctionUtil, PlanesT, check_variable, core, depth, get_depth, join,
-    normalize_planes, split, to_arr, vs, OneDimConvModeT, TempConvModeT
+    ConvMode, CustomValueError, FunctionUtil, OneDimConvModeT, PlanesT, SpatialConvModeT,
+    TempConvModeT, check_variable, core, depth, get_depth, join, normalize_planes, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
@@ -128,7 +128,8 @@ def side_box_blur(
 
 def gauss_blur(
     clip: vs.VideoNode, sigma: float | list[float] = 0.5, taps: int | None = None,
-    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
+    **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable(clip, gauss_blur)
 
@@ -145,10 +146,10 @@ def gauss_blur(
 
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
-    if hasattr(core, 'resize2'):
+    if hasattr(core, 'resize2') and kwargs.get("scenechange", None) is None:
         def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
-            kwargs: dict[str, Any] = {f'force_{k}': k in mode for k in 'hv'}
-            return Gaussian(sigma, taps).scale(plane, **kwargs)
+            resize_kwargs: dict[str, Any] = {f'force_{k}': k in mode for k in 'hv'} | kwargs
+            return Gaussian(sigma, taps).scale(plane, **resize_kwargs)
 
         if not {*range(clip.format.num_planes)} - {*planes}:
             return _resize2_blur(clip)
@@ -162,12 +163,13 @@ def gauss_blur(
         taps, sigma=sigma, mode=mode, scale_value=1.0 if taps > 12 else 1023
     )
 
-    return kernel(clip, planes)
+    return kernel(clip, planes, **kwargs)
 
 
 def min_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1,
-    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
+    **kwargs: Any
 ) -> vs.VideoNode:
     """
     MinBlur by Didée (http://avisynth.nl/index.php/MinBlur)
@@ -180,7 +182,7 @@ def min_blur(
     if isinstance(radius, list):
         return normalize_radius(clip, min_blur, radius, planes)
 
-    blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode)(clip, planes=planes)
+    blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode)(clip, planes=planes, **kwargs)
 
     median = median_blur(clip, radius, mode, planes=planes)
 
@@ -193,7 +195,8 @@ def min_blur(
 
 def sbr(
     clip: vs.VideoNode, radius: int | list[int] = 1,
-    mode: ConvMode = ConvMode.HV, planes: PlanesT = None
+    mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
+    **kwargs: Any
 ) -> vs.VideoNode:
     assert check_variable(clip, sbr)
 
@@ -201,10 +204,10 @@ def sbr(
 
     blur_kernel = BlurMatrix.BINOMIAL(radius=radius, mode=mode)
 
-    blurred = blur_kernel(clip, planes=planes)
+    blurred = blur_kernel(clip, planes=planes, **kwargs)
 
     diff = clip.std.MakeDiff(blurred, planes=planes)
-    blurred_diff = blur_kernel(diff, planes=planes)
+    blurred_diff = blur_kernel(diff, planes=planes, **kwargs)
 
     limited = norm_expr(
         [clip, diff, blurred_diff],
@@ -215,9 +218,36 @@ def sbr(
     return limited
 
 
+@overload
+def median_blur(
+    clip: vs.VideoNode, radius: int = ..., mode: Literal[ConvMode.TEMPORAL] = ..., planes: PlanesT = ...
+) -> vs.VideoNode:
+    ...
+
+
+@overload
+def median_blur(
+    clip: vs.VideoNode, radius: int | list[int] = ..., mode: SpatialConvModeT = ..., planes: PlanesT = None
+) -> vs.VideoNode:
+    ...
+
+
+@overload
+def median_blur(
+    clip: vs.VideoNode, radius: int | list[int] = ..., mode: ConvMode = ..., planes: PlanesT = None
+) -> vs.VideoNode:
+    ...
+
+
 def median_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1, mode: ConvMode = ConvMode.SQUARE, planes: PlanesT = None
 ) -> vs.VideoNode:
+    if mode == ConvMode.TEMPORAL:
+        if isinstance(radius, int):
+            return clip.zsmooth.TemporalMedian(radius, planes)
+
+        raise CustomValueError("A list of radius isn't supported for ConvMode.TEMPORAL!", median_blur, radius)
+
     radius = to_arr(radius)
 
     if (len((rs := set(radius))) == 1 and rs.pop() == 1) and mode == ConvMode.SQUARE:
@@ -233,7 +263,7 @@ def median_blur(
             st = rb - 1
             sp = rb // 2 - 1
             dp = st - 2
-            
+
             expr_passes.append(f"{mat} sort{st} swap{sp} min! swap{sp} max! drop{dp} x min@ max@ clip")
 
         expr_plane.append(expr_passes)
