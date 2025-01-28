@@ -138,10 +138,10 @@ def gauss_blur(
     if isinstance(sigma, list):
         return normalize_radius(clip, gauss_blur, ('sigma', sigma), planes, mode=mode)
 
-    if mode in ConvMode.VERTICAL:
+    if ConvMode.VERTICAL in mode:
         sigma = min(sigma, clip.height)
 
-    if mode in ConvMode.HORIZONTAL:
+    if ConvMode.HORIZONTAL in mode:
         sigma = min(sigma, clip.width)
 
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
