@@ -5,7 +5,7 @@ from itertools import count
 from typing import Any, Literal, overload
 
 from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
-from vskernels import Gaussian
+from vskernels import Bilinear, Gaussian
 from vstools import (
     ConvMode, CustomValueError, FunctionUtil, OneDimConvModeT, PlanesT, SpatialConvModeT,
     TempConvModeT, check_variable, core, depth, get_depth, join, normalize_planes, split, to_arr, vs
@@ -147,15 +147,35 @@ def gauss_blur(
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
     if hasattr(core, 'resize2') and not mode.is_temporal:
-        def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
-            resize_kwargs: dict[str, Any] = {f'force_{k}': k in mode for k in 'hv'} | kwargs
-            return Gaussian(sigma, taps).scale(plane, **resize_kwargs)
+        def _resize2_blur(plane: vs.VideoNode, sigma: float, taps: int) -> vs.VideoNode:
+            resize_kwargs = dict[str, Any]()
+
+            # Downscale approximation can be used by specifying _fast=True
+            # Has a big speed gain when taps is large
+            if kwargs.pop("_fast", False):
+                wdown, hdown = plane.width, plane.height
+
+                if ConvMode.VERTICAL in mode:
+                    hdown = round(max(round(hdown / sigma), 2) / 2) * 2
+
+                if ConvMode.HORIZONTAL in mode:
+                    wdown = round(max(round(wdown / sigma), 2) / 2) * 2
+
+                plane = Bilinear.scale(plane, wdown, hdown)
+                sigma = Gaussian.sigma.from_fmtc(9)
+                taps = min(taps, 128)
+
+                resize_kwargs.update(width=plane.width, height=plane.height)
+            else:
+                resize_kwargs.update({f'force_{k}': k in mode for k in 'hv'})
+
+            return Gaussian(sigma, taps).scale(plane, **resize_kwargs | kwargs)
 
         if not {*range(clip.format.num_planes)} - {*planes}:
-            return _resize2_blur(clip)
+            return _resize2_blur(clip, sigma, taps)
 
         return join([
-            _resize2_blur(p) if i in planes else p
+            _resize2_blur(p, sigma, taps) if i in planes else p
             for i, p in enumerate(split(clip))
         ])
 
