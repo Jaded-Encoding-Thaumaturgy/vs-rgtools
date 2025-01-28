@@ -146,7 +146,7 @@ def gauss_blur(
 
     taps = BlurMatrix.GAUSS.get_taps(sigma, taps)
 
-    if hasattr(core, 'resize2') and kwargs.get("scenechange", None) is None:
+    if hasattr(core, 'resize2') and not mode.is_temporal:
         def _resize2_blur(plane: vs.VideoNode) -> vs.VideoNode:
             resize_kwargs: dict[str, Any] = {f'force_{k}': k in mode for k in 'hv'} | kwargs
             return Gaussian(sigma, taps).scale(plane, **resize_kwargs)
