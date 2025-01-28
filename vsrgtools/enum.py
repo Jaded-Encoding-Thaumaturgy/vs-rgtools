@@ -184,7 +184,7 @@ class BlurMatrixBase(list[Nb]):
             # std.Convolution is limited to 25 numbers
             # SQUARE mode is not optimized
             # std.Convolution doesn't support float 16
-            if (len(self) <= 25 and self.mode != ConvMode.SQUARE) or not fp16:
+            if len(self) <= 25 and self.mode != ConvMode.SQUARE and not fp16:
                 return iterate(clip, core.std.Convolution, passes, self, bias, divisor, planes, saturate, self.mode)
 
             return iterate(
