@@ -161,11 +161,11 @@ def gauss_blur(
                 if ConvMode.HORIZONTAL in mode:
                     wdown = round(max(round(wdown / sigma), 2) / 2) * 2
 
+                resize_kwargs.update(width=plane.width, height=plane.height)
+
                 plane = Bilinear.scale(plane, wdown, hdown)
                 sigma = Gaussian.sigma.from_fmtc(9)
                 taps = min(taps, 128)
-
-                resize_kwargs.update(width=plane.width, height=plane.height)
             else:
                 resize_kwargs.update({f'force_{k}': k in mode for k in 'hv'})
 
