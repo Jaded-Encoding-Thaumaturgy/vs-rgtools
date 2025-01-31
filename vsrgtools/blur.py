@@ -8,7 +8,7 @@ from vsexprtools import ExprOp, ExprVars, complexpr_available, norm_expr
 from vskernels import Gaussian
 from vstools import (
     ConvMode, CustomValueError, FunctionUtil, OneDimConvModeT, PlanesT, SpatialConvModeT,
-    TempConvModeT, check_variable, core, depth, get_depth, join, normalize_planes, split, to_arr, vs
+    TempConvModeT, check_variable, core, depth, get_depth, join, normalize_planes, normalize_seq, split, to_arr, vs
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
@@ -168,7 +168,7 @@ def gauss_blur(
 
 def min_blur(
     clip: vs.VideoNode, radius: int | list[int] = 1,
-    mode: ConvMode = ConvMode.HV, planes: PlanesT = None,
+    mode: tuple[ConvMode, ConvMode] = (ConvMode.HV, ConvMode.SQUARE), planes: PlanesT = None,
     **kwargs: Any
 ) -> vs.VideoNode:
     """
@@ -181,10 +181,12 @@ def min_blur(
 
     if isinstance(radius, list):
         return normalize_radius(clip, min_blur, radius, planes)
+    
+    mode_blur, mode_median = normalize_seq(mode, 2)
 
-    blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode)(clip, planes=planes, **kwargs)
+    blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode_blur)(clip, planes=planes, **kwargs)
 
-    median = median_blur(clip, radius, mode, planes=planes)
+    median = median_blur(clip, radius, mode_median, planes=planes)
 
     return norm_expr(
         [clip, blurred, median],
@@ -209,13 +211,11 @@ def sbr(
     diff = clip.std.MakeDiff(blurred, planes=planes)
     blurred_diff = blur_kernel(diff, planes=planes, **kwargs)
 
-    limited = norm_expr(
+    return norm_expr(
         [clip, diff, blurred_diff],
         'y z - D1! y neutral - D2! x D1@ D2@ xor 0 D1@ abs D2@ abs < D1@ D2@ ? ? -',
         planes=planes
     )
-
-    return limited
 
 
 @overload
