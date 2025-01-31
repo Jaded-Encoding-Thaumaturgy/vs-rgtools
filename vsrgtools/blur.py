@@ -164,7 +164,7 @@ def gauss_blur(
                 resize_kwargs.update(width=plane.width, height=plane.height)
 
                 plane = Bilinear.scale(plane, wdown, hdown)
-                sigma = Gaussian.sigma.from_fmtc(9)
+                sigma = 0.8952637851149309
                 taps = min(taps, 128)
             else:
                 resize_kwargs.update({f'force_{k}': k in mode for k in 'hv'})
