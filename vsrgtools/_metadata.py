@@ -1,4 +1,4 @@
-"""Wrapper for RGVS, RGSF, and various other functions"""
+"""Wrapper for RemoveGrain, Repair, blurring and various other functions"""
 
 __version__ = '1.8.1'
 
