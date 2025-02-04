@@ -12,6 +12,7 @@ from vstools import (
 )
 
 from .enum import BlurMatrix, BlurMatrixBase, LimitFilterMode
+from .freqs import MeanMode
 from .limit import limit_filter
 from .util import normalize_radius
 
@@ -205,14 +206,9 @@ def min_blur(
     mode_blur, mode_median = normalize_seq(mode, 2)
 
     blurred = BlurMatrix.BINOMIAL(radius=radius, mode=mode_blur)(clip, planes=planes, **kwargs)
-
     median = median_blur(clip, radius, mode_median, planes=planes)
 
-    return norm_expr(
-        [clip, blurred, median],
-        'x y - D1! x z - D2! D1@ D2@ xor x D1@ abs D2@ abs < y z ? ?',
-        planes=planes
-    )
+    return MeanMode.MEDIAN([clip, blurred, median], planes=planes)
 
 
 def sbr(
