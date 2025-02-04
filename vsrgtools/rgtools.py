@@ -50,33 +50,43 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
     if not sum(mode):
         return clip
 
-    # rgvs is faster for integer clips
-    if hasattr(core, 'rgvs') and clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
-        return clip.rgvs.RemoveGrain(mode)
+    if clip.format.sample_type == vs.INTEGER and all(m in range(24 + 1) for m in mode):
+        if hasattr(core, "zsmooth"):
+            return clip.zsmooth.RemoveGrain(mode)
+
+        if hasattr(core, 'rgvs'):
+            return clip.rgvs.RemoveGrain(mode)
 
     if not complexpr_available:
-        return clip.rgsf.RemoveGrain(mode)
+        return clip.zsmooth.RemoveGrain(mode)
 
     expr = list[str]()
+
     for idx, m in enumerate(mode):
         if m == RemoveGrainMode.BINOMIAL_BLUR:
             if all(mm == m for mm in mode):
                 return BlurMatrix.BINOMIAL()(clip)
             expr.append(aka_removegrain_expr_11_12())
+
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
-            return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
+            return pick_func_stype(clip, core.lazy.rgvs.RemoveGrain, core.lazy.zsmooth.RemoveGrain)(clip, mode)
+
         elif m == RemoveGrainMode.BOX_BLUR_NO_CENTER:
             if set(mode) == {RemoveGrainMode.BOX_BLUR_NO_CENTER}:
                 return BlurMatrix.CIRCLE()(clip)
             expr.append(aka_removegrain_expr_19())
+
         elif m == RemoveGrainMode.BOX_BLUR:
             if set(mode) == {RemoveGrainMode.BOX_BLUR}:
                 return BlurMatrix.MEAN()(clip)
             expr.append(aka_removegrain_expr_20())
+
         elif m == RemoveGrainMode.EDGE_DEHALO:
             expr.append(aka_removegrain_expr_23(0 if idx == 0 else -0.5))
+
         elif m == RemoveGrainMode.EDGE_DEHALO2:
             expr.append(aka_removegrain_expr_24(0 if idx == 0 else -0.5))
+
         else:
             expr.append(removegrain_aka_exprs[m]())
 
