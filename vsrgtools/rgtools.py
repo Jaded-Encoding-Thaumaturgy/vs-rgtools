@@ -59,14 +59,14 @@ def removegrain(clip: vs.VideoNode, mode: RemoveGrainModeT) -> vs.VideoNode:
 
     expr = list[str]()
     for idx, m in enumerate(mode):
-        if m == RemoveGrainMode.SQUARE_BLUR:
+        if m == RemoveGrainMode.BINOMIAL_BLUR:
             if all(mm == m for mm in mode):
                 return BlurMatrix.BINOMIAL()(clip)
             expr.append(aka_removegrain_expr_11_12())
         elif RemoveGrainMode.BOB_TOP_CLOSE <= m <= RemoveGrainMode.BOB_BOTTOM_INTER:
             return pick_func_stype(clip, clip.rgvs.RemoveGrain, clip.rgsf.RemoveGrain)(mode)
-        elif m == RemoveGrainMode.CIRCLE_BLUR:
-            if set(mode) == {RemoveGrainMode.CIRCLE_BLUR}:
+        elif m == RemoveGrainMode.BOX_BLUR_NO_CENTER:
+            if set(mode) == {RemoveGrainMode.BOX_BLUR_NO_CENTER}:
                 return BlurMatrix.CIRCLE()(clip)
             expr.append(aka_removegrain_expr_19())
         elif m == RemoveGrainMode.BOX_BLUR:
