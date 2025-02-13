@@ -1,6 +1,6 @@
 """Wrapper for RemoveGrain, Repair, blurring and various other functions"""
 
-__version__ = '1.9.0'
+__version__ = '1.9.1'
 
 __author_name__, __author_email__ = 'Irrational Encoding Wizardry', 'wizards@encode.moe'
 __maintainer_name__, __maintainer_email__ = 'Setsugen no ao', 'setsugen@setsugen.dev'
