@@ -1,4 +1,1 @@
-VapourSynth>=68
-vstools>=3.4.1
-vsexprtools>=1.8.1
-vskernels>=3.4.2
+vsjetpack

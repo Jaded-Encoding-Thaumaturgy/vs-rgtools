@@ -28,7 +28,7 @@ setuptools.setup(
     install_requires=requirements,
     python_requires='>=3.12',
     packages=[
-        package_name, f'{package_name}.aka_expr'
+        # package_name, f'{package_name}.aka_expr'
     ],
     package_data={
         package_name: [
